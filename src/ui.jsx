@@ -75,19 +75,31 @@ export function StatTile({ label, value, sub, color, icon: Icon, i = 0 }) {
 }
 
 export function CertRow({ c, last, onDownload }) {
+  const isInsp = !!(c.resultado || c.precinto || c.cert_type === 'Inspección');
+  const resColor = c.resultado === 'NO APTO' ? '#E5605C' : c.resultado === 'APTO' ? '#4FC98B' : '#8B98A5';
   return (
     <div style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: last ? 'none' : '1px solid #201C24' }}>
-      <Band status={c.status} h={onDownload ? 46 : 40} />
+      <Band status={c.status} h={onDownload || c.pdf_url ? 58 : 40} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ font: '600 13px "IBM Plex Sans"', color: '#EAF0F3' }}>{c.cert_type}</div>
-        <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#7A8792', marginTop: 3 }}>{c.number}{c.inspector ? ` · ${c.inspector}` : ''}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ font: '600 13px "IBM Plex Sans"', color: '#EAF0F3' }}>{isInsp ? `Inspección · Informe ${c.number}` : c.cert_type}</span>
+          {c.resultado && <span style={{ font: '600 10.5px "IBM Plex Sans"', color: resColor, border: `1px solid ${resColor}55`, background: resColor + '16', padding: '1px 7px', borderRadius: 20 }}>{c.resultado}</span>}
+        </div>
+        <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#7A8792', marginTop: 3 }}>
+          {isInsp ? (c.inspector || '') : `${c.number}${c.inspector ? ` · ${c.inspector}` : ''}`}{c.presion ? ` · ${c.presion}` : ''}
+        </div>
+        {c.precinto && c.precinto !== 'N/A' && (
+          <div style={{ font: '400 10.5px "IBM Plex Mono", monospace', color: '#8A7A55', marginTop: 4, wordBreak: 'break-all' }}>Precinto: {c.precinto}</div>
+        )}
         <div style={{ display: 'flex', gap: 16, marginTop: 6, flexWrap: 'wrap' }}>
           <span style={{ font: '400 11px "IBM Plex Sans"', color: '#8B98A5' }}>Emitido {fmtDate(c.issued_date)}</span>
           <span style={{ font: '400 11px "IBM Plex Sans"', color: '#8B98A5' }}>Vence {fmtDate(c.expires_date)}</span>
         </div>
-        {onDownload && (
+        {c.pdf_url ? (
+          <a className="axt-btn small" style={{ marginTop: 9, textDecoration: 'none', display: 'inline-flex' }} href={c.pdf_url} target="_blank" rel="noreferrer"><Download size={13} /> Ver informe (BM)</a>
+        ) : onDownload ? (
           <button className="axt-btn small" style={{ marginTop: 9 }} onClick={onDownload}><Download size={13} /> Descargar PDF</button>
-        )}
+        ) : null}
       </div>
       <div style={{ textAlign: 'right' }}>
         <Pill status={c.status} />
