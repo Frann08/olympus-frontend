@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Boxes, Clock, Radio, Tag, ChevronRight, Search, X, CheckCircle2, Plus, Building2, Copy, Check, QrCode } from 'lucide-react';
+import { Boxes, Clock, Radio, Tag, ChevronRight, Search, X, CheckCircle2, Plus, Building2, Copy, Check, QrCode, Upload, FileDown, AlertTriangle } from 'lucide-react';
 import QRCode from 'qrcode';
+import * as XLSX from 'xlsx';
 import { api } from './api.js';
 import { useData, Band, Pill, EncChip, StatTile, CertRow, Spinner, ErrorNote, daysLabel } from './ui.jsx';
 
@@ -8,10 +9,11 @@ export default function Admin({ toast }) {
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState('all');
   const [sel, setSel] = useState(null);
+  const [rev, setRev] = useState(0);
 
-  const stats = useData(() => api('/api/stats'), []);
-  const clients = useData(() => api('/api/clients'), []);
-  const assets = useData(() => api('/api/assets'), []);
+  const stats = useData(() => api('/api/stats'), [rev]);
+  const clients = useData(() => api('/api/clients'), [rev]);
+  const assets = useData(() => api('/api/assets'), [rev]);
 
   const rows = (assets.data || []).filter((a) => {
     const s = q.trim().toLowerCase();
@@ -24,6 +26,8 @@ export default function Admin({ toast }) {
 
   return (
     <>
+      <ImportPanel toast={toast} onImported={() => setRev((r) => r + 1)} />
+
       <div className="axt-kpis" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
         {stats.loading ? <div className="axt-card axt-tile"><Spinner label="…" /></div> : stats.error ? null : (
           <>
@@ -211,6 +215,157 @@ function worst(certs) {
   if (certs.some((c) => c.status === 'overdue')) return 'overdue';
   if (certs.some((c) => c.status === 'due')) return 'due';
   return 'certified';
+}
+
+/* ============ Importación masiva por Excel ============ */
+const TPL_HEADERS = ['cliente', 'ibm', 'informe', 'sector', 'item', 'descripcion', 'nro_serie', 'resultado', 'presion', 'vencimiento', 'precinto', 'link_informe_bm'];
+const TPL_ROWS = [
+  ['Halliburton', '195', '2182', 'TSS/MPD', 1, 'CODO 2" Fig 1502 MH (CURVO) 90°', '482337', 'APTO', '15 KPSI', '06/2027', '482337 - 15 KPSI - EXP 0627 - IBM 195 - 2182', ''],
+  ['Halliburton', '195', '2182', 'TSS/MPD', 9, 'VÁLVULA TAPÓN 2" Fig 1502 x 1.75"', 'B4573438-04', 'NO APTO', '15 KPSI', '06/2027', 'N/A', ''],
+  ['Halliburton', '195', '2182', 'TSS/MPD', 11, 'CONEXIÓN 2" FIG 1502 x 4" Fig 602 HH', 'BMBS10760', 'APTO', '5 KPSI', '06/2027', 'BMBS10760 - 5 KPSI - EXP 0627 - IBM 195 - 2182', ''],
+];
+
+function downloadTemplate() {
+  const ws = XLSX.utils.aoa_to_sheet([TPL_HEADERS, ...TPL_ROWS]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'informe');
+  XLSX.writeFile(wb, 'plantilla-olympus-trace.xlsx');
+}
+
+const str = (v) => (v == null ? '' : String(v).trim());
+function normVenc(v) {
+  if (v == null) return '';
+  if (v instanceof Date) return `${String(v.getMonth() + 1).padStart(2, '0')}/${v.getFullYear()}`;
+  return String(v).trim();
+}
+function normRow(raw) {
+  const o = {};
+  for (const k in raw) o[String(k).trim().toLowerCase()] = raw[k];
+  return {
+    cliente: str(o.cliente),
+    ibm: str(o.ibm),
+    informe: str(o.informe),
+    sector: str(o.sector),
+    item: str(o.item),
+    descripcion: str(o.descripcion || o['descripción']),
+    nro_serie: str(o.nro_serie || o['nº de serie'] || o['nro serie'] || o['serie']),
+    resultado: str(o.resultado),
+    presion: str(o.presion || o['presión']),
+    vencimiento: normVenc(o.vencimiento),
+    precinto: str(o.precinto),
+    link_informe_bm: str(o.link_informe_bm || o.link),
+  };
+}
+function rowError(r) {
+  if (!r.cliente || !r.nro_serie || !r.informe || !r.vencimiento) return 'faltan campos obligatorios';
+  if (!/^\d{2}\/\d{4}$/.test(r.vencimiento)) return 'vencimiento debe ser MM/AAAA';
+  const mm = +r.vencimiento.slice(0, 2);
+  if (mm < 1 || mm > 12) return 'mes inválido';
+  return null;
+}
+
+function ImportPanel({ toast, onImported }) {
+  const [rows, setRows] = useState(null);
+  const [fileName, setFileName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+
+  function onFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name); setResult(null);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const wb = XLSX.read(ev.target.result, { type: 'array', cellDates: true });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        const parsed = json.map(normRow).map((r) => ({ ...r, _err: rowError(r) }));
+        setRows(parsed);
+      } catch (err) { toast('No se pudo leer el Excel: ' + err.message); }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  const valid = (rows || []).filter((r) => !r._err);
+  const invalid = (rows || []).filter((r) => r._err);
+
+  async function doImport() {
+    if (!valid.length) return;
+    setBusy(true); setResult(null);
+    try {
+      const r = await api('/api/import', { method: 'POST', body: JSON.stringify({ rows: valid.map(({ _err, ...x }) => x) }) });
+      setResult(r);
+      toast(`Importado: ${r.piecesCreated} piezas, ${r.inspections} inspecciones`);
+      onImported && onImported();
+    } catch (e) { toast('Error al importar: ' + e.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div className="axt-card" style={{ padding: 20, marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <Upload size={17} color="#D9B44A" />
+          <span style={{ font: '600 15px "Space Grotesk", sans-serif', color: '#EAF0F3' }}>Importar informe (Excel)</span>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className="axt-btn small" onClick={downloadTemplate}><FileDown size={14} /> Descargar plantilla</button>
+          <label className="axt-btn small primary" style={{ cursor: 'pointer' }}>
+            <Upload size={14} /> Elegir Excel
+            <input type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={onFile} />
+          </label>
+        </div>
+      </div>
+      <div style={{ font: '400 12px "IBM Plex Sans"', color: '#7A8792', marginTop: 8 }}>
+        Una fila por ítem del informe. Cada Nº de serie es una pieza; si ya existe, se le agrega la inspección al historial.
+      </div>
+
+      {rows && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+            <span style={{ font: '500 12px "IBM Plex Mono", monospace', color: '#9AA6B1' }}>{fileName}</span>
+            <span className="axt-count" style={{ color: '#4FC98B', borderColor: '#1F3A2A', background: '#0F1B12' }}>{valid.length} válidas</span>
+            {invalid.length > 0 && <span className="axt-count" style={{ color: '#E5605C', borderColor: '#3A1E1D', background: '#211011' }}>{invalid.length} con error</span>}
+          </div>
+
+          <div className="axt-scroll-x" style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid #2A2732', borderRadius: 8 }}>
+            <table className="axt-table" style={{ minWidth: 620 }}>
+              <thead><tr><th>Nº serie</th><th>Descripción</th><th>Cliente</th><th>Informe</th><th>Resultado</th><th>Vence</th><th></th></tr></thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i} style={r._err ? { background: '#1E1214' } : {}}>
+                    <td style={{ font: '600 12px "IBM Plex Mono", monospace', color: '#EAF0F3' }}>{r.nro_serie || '—'}</td>
+                    <td style={{ color: '#B7C1CB', maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.descripcion}</td>
+                    <td style={{ color: '#B7C1CB' }}>{r.cliente}</td>
+                    <td style={{ color: '#9AA6B1' }}>{r.informe}</td>
+                    <td><span style={{ font: '600 11px "IBM Plex Sans"', color: r.resultado === 'NO APTO' ? '#E5605C' : r.resultado === 'APTO' ? '#4FC98B' : '#8B98A5' }}>{r.resultado || '—'}</span></td>
+                    <td style={{ font: '500 12px "IBM Plex Mono", monospace', color: '#B7C1CB' }}>{r.vencimiento || '—'}</td>
+                    <td>{r._err && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, font: '500 11px "IBM Plex Sans"', color: '#E5605C' }}><AlertTriangle size={12} /> {r._err}</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button className="axt-btn primary" onClick={doImport} disabled={!valid.length || busy}>
+              {busy ? 'Importando…' : `Importar ${valid.length} filas`}
+            </button>
+            <button className="axt-btn small" onClick={() => { setRows(null); setResult(null); setFileName(''); }}>Cancelar</button>
+            {invalid.length > 0 && <span style={{ font: '400 12px "IBM Plex Sans"', color: '#EDA53C' }}>Las filas con error se omiten. Corregí el Excel y volvé a subirlo si querés incluirlas.</span>}
+          </div>
+
+          {result && (
+            <div style={{ marginTop: 12, padding: '12px 14px', background: '#0F1B12', border: '1px solid #1F3A2A', borderRadius: 8, font: '500 13px "IBM Plex Sans"', color: '#B7E0C4' }}>
+              ✓ {result.piecesCreated} piezas nuevas · {result.inspections} inspecciones nuevas · {result.updated} actualizadas · {result.clientsCreated} clientes nuevos
+              {result.errors?.length > 0 && <div style={{ color: '#E5A3A1', marginTop: 4 }}>{result.errors.length} filas con problemas en el servidor.</div>}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // Bloque para grabar el tag NFC (ISO 15693): URL exacta + QR
