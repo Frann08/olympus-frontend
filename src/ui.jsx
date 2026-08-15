@@ -68,7 +68,7 @@ export function StatTile({ label, value, sub, color, icon: Icon, i = 0 }) {
         <span style={{ font: '500 12px "IBM Plex Sans"', color: '#8B98A5' }}>{label}</span>
         {Icon && <Icon size={16} color={color} />}
       </div>
-      <div style={{ font: '700 30px "Space Grotesk", sans-serif', color: '#EAF0F3', marginTop: 10, lineHeight: 1 }}>{value}</div>
+      <div style={{ font: '700 30px "Oswald", sans-serif', color: '#EAF0F3', marginTop: 10, lineHeight: 1 }}>{value}</div>
       {sub && <div style={{ font: '500 11px "IBM Plex Mono", monospace', color, marginTop: 7 }}>{sub}</div>}
     </div>
   );
