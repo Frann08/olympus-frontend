@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Boxes, Clock, Radio, Tag, ChevronRight, Search, X, CheckCircle2, Plus, Building2, Copy, Check, QrCode, Upload, FileDown, AlertTriangle } from 'lucide-react';
+import { Boxes, Clock, Radio, Tag, ChevronRight, Search, X, CheckCircle2, Plus, Building2, Copy, Check, QrCode, Upload, FileDown, AlertTriangle, Users, UserPlus, Trash2, ChevronDown } from 'lucide-react';
 import QRCode from 'qrcode';
 import * as XLSX from 'xlsx';
 import { api } from './api.js';
@@ -26,6 +26,7 @@ export default function Admin({ toast }) {
 
   return (
     <>
+      <AdminPanel toast={toast} onChanged={() => setRev((r) => r + 1)} />
       <ImportPanel toast={toast} onImported={() => setRev((r) => r + 1)} />
 
       <div className="axt-kpis" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
@@ -407,6 +408,116 @@ function NfcWriteBlock({ token }) {
       <div style={{ font: '400 11.5px "IBM Plex Sans"', color: '#7A8792', marginTop: 12, lineHeight: 1.5 }}>
         Grabá esta URL en el tag con la app <b style={{ color: '#9AA6B1' }}>NFC Tools</b> (registro tipo "URL"). El QR abre la misma página — sirve para probar la vista del cliente desde el teléfono.
       </div>
+    </div>
+  );
+}
+
+/* ============ Clientes y usuarios ============ */
+function AdminPanel({ toast, onChanged }) {
+  const [open, setOpen] = useState(true);
+  const [rev, setRev] = useState(0);
+  const clients = useData(() => api('/api/clients'), [rev]);
+  const users = useData(() => api('/api/users'), [rev]);
+  const reload = () => { setRev((r) => r + 1); onChanged && onChanged(); };
+
+  const [cName, setCName] = useState('');
+  const [uForm, setUForm] = useState({ email: '', password: '', role: 'cliente', client_id: '' });
+
+  async function addClient() {
+    if (!cName.trim()) { toast('Escribí el nombre'); return; }
+    try { await api('/api/clients', { method: 'POST', body: JSON.stringify({ name: cName }) }); toast('Cliente creado'); setCName(''); reload(); }
+    catch (e) { toast(e.message); }
+  }
+  async function delClient(id) {
+    try { await api('/api/clients/' + id, { method: 'DELETE' }); toast('Cliente eliminado'); reload(); }
+    catch (e) { toast(e.message); }
+  }
+  async function addUser() {
+    if (!uForm.email || !uForm.password) { toast('Email y contraseña'); return; }
+    if (uForm.role === 'cliente' && !uForm.client_id) { toast('Elegí la empresa'); return; }
+    try {
+      await api('/api/users', { method: 'POST', body: JSON.stringify(uForm) });
+      toast('Usuario creado'); setUForm({ email: '', password: '', role: 'cliente', client_id: '' }); reload();
+    } catch (e) { toast(e.message); }
+  }
+  async function delUser(id) {
+    try { await api('/api/users/' + id, { method: 'DELETE' }); toast('Usuario eliminado'); reload(); }
+    catch (e) { toast(e.message); }
+  }
+
+  const roleColor = (r) => r === 'admin' ? '#D9B44A' : r === 'traza' ? '#7FB0C8' : '#9AA6B1';
+
+  return (
+    <div className="axt-card" style={{ padding: 0, overflow: 'hidden', marginBottom: 16 }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <Users size={17} color="#D9B44A" />
+          <span style={{ font: '600 15px "Space Grotesk", sans-serif', color: '#EAF0F3' }}>Clientes y usuarios</span>
+        </span>
+        <ChevronDown size={18} color="#7A8792" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: '.2s' }} />
+      </button>
+
+      {open && (
+        <div style={{ padding: '0 20px 20px' }}>
+          <div className="cli-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            <div style={{ background: '#171419', border: '1px solid #2A2732', borderRadius: 12, padding: 16 }}>
+              <div className="axt-sec" style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Building2 size={14} color="#9AA6B1" /> Empresas</div>
+              {clients.loading ? <Spinner label="…" /> : (clients.data || []).map((c) => (
+                <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid #201C24' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ font: '600 13px "IBM Plex Sans"', color: '#EAF0F3' }}>{c.name}</div>
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 4, alignItems: 'center' }}>
+                      {(c.ibms || []).map((ib) => <span key={ib} style={{ font: '600 10px "IBM Plex Mono", monospace', color: '#D9B44A', background: '#2A2410', border: '1px solid #4A3E1E', borderRadius: 5, padding: '1px 6px' }}>IBM {ib}</span>)}
+                      <span style={{ font: '400 10.5px "IBM Plex Mono", monospace', color: '#7A8792' }}>{c.assets} activos · {c.users} usuarios</span>
+                    </div>
+                  </div>
+                  {c.assets === 0 && <button className="axt-x sm" title="Eliminar" onClick={() => delClient(c.id)}><Trash2 size={13} /></button>}
+                </div>
+              ))}
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <input className="axt-input" style={{ flex: 1, background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px' }} placeholder="Nombre de la empresa" value={cName} onChange={(e) => setCName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addClient()} />
+                <button className="axt-btn small primary" onClick={addClient}><Plus size={13} /> Crear</button>
+              </div>
+              <div style={{ font: '400 10.5px "IBM Plex Sans"', color: '#6A7681', marginTop: 8 }}>Los IBM se cargan solos al importar activos de esa empresa.</div>
+            </div>
+
+            <div style={{ background: '#171419', border: '1px solid #2A2732', borderRadius: 12, padding: 16 }}>
+              <div className="axt-sec" style={{ display: 'flex', alignItems: 'center', gap: 7 }}><UserPlus size={14} color="#9AA6B1" /> Accesos</div>
+              <div style={{ maxHeight: 180, overflowY: 'auto' }}>
+                {users.loading ? <Spinner label="…" /> : (users.data || []).map((u) => (
+                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid #201C24' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ font: '600 12.5px "IBM Plex Sans"', color: '#EAF0F3', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.email}</div>
+                      <div style={{ font: '400 10.5px "IBM Plex Mono", monospace', marginTop: 3 }}>
+                        <span style={{ color: roleColor(u.role) }}>{u.role}</span>{u.client ? <span style={{ color: '#7A8792' }}> · {u.client}</span> : ''}
+                      </div>
+                    </div>
+                    {u.role !== 'admin' && <button className="axt-x sm" title="Eliminar" onClick={() => delUser(u.id)}><Trash2 size={13} /></button>}
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
+                <input className="axt-input" style={{ background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px' }} placeholder="email@empresa.com" value={uForm.email} onChange={(e) => setUForm({ ...uForm, email: e.target.value })} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input className="axt-input" style={{ flex: 1, background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px' }} placeholder="contraseña" value={uForm.password} onChange={(e) => setUForm({ ...uForm, password: e.target.value })} />
+                  <select className="axt-input" style={{ background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px', color: '#EAF0F3' }} value={uForm.role} onChange={(e) => setUForm({ ...uForm, role: e.target.value })}>
+                    <option value="cliente">Cliente</option>
+                    <option value="traza">Trazabilidad</option>
+                    <option value="admin">Programador</option>
+                  </select>
+                </div>
+                {uForm.role === 'cliente' && (
+                  <select className="axt-input" style={{ background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px', color: '#EAF0F3' }} value={uForm.client_id} onChange={(e) => setUForm({ ...uForm, client_id: e.target.value })}>
+                    <option value="">— Elegí la empresa —</option>
+                    {(clients.data || []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                )}
+                <button className="axt-btn small primary" onClick={addUser}><UserPlus size={13} /> Crear acceso</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
