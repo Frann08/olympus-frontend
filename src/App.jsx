@@ -16,24 +16,24 @@ const ROLES = {
 function Logo() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden>
+      <svg width="36" height="36" viewBox="0 0 44 44" aria-hidden>
         <defs>
           <linearGradient id="olymGold" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#F4DA86" />
-            <stop offset="0.5" stopColor="#D9B44A" />
-            <stop offset="1" stopColor="#A8842E" />
+            <stop offset="0" stopColor="#F6E29A" />
+            <stop offset="0.5" stopColor="#E7C15A" />
+            <stop offset="1" stopColor="#B98F32" />
           </linearGradient>
         </defs>
-        <circle cx="20" cy="20" r="18.2" fill="#0E0C09" stroke="url(#olymGold)" strokeWidth="1.6" />
-        <path d="M22.5 7 L12.5 21.8 L18.6 21.8 L16.8 33 L28 16.6 L21.2 16.6 Z" fill="url(#olymGold)" />
-        <path d="M13.5 34.2 H26.5" stroke="url(#olymGold)" strokeWidth="1.5" strokeLinecap="round" />
+        <circle cx="22" cy="22" r="20.4" fill="#0C0C0D" stroke="url(#olymGold)" strokeWidth="1.8" />
+        <path d="M24.6 8.5 L13.8 23.6 L20.5 23.6 L18.6 35 L30.8 18.4 L23.4 18.4 Z" fill="url(#olymGold)" />
+        <path d="M15 36.6 H29" stroke="url(#olymGold)" strokeWidth="1.6" strokeLinecap="round" />
       </svg>
       <div style={{ lineHeight: 1 }}>
-        <div style={{ font: '700 16px "Space Grotesk", sans-serif', letterSpacing: '1.5px' }}>
-          <span style={{ color: '#F1EFE6' }}>OLYMPUS</span>{' '}
-          <span style={{ color: '#D9B44A' }}>TRACE</span>
+        <div style={{ font: '700 18px "Oswald", sans-serif', letterSpacing: '.14em' }}>
+          <span style={{ background: 'linear-gradient(180deg,#FFFFFF,#C4CBD2)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>OLYMPUS</span>{' '}
+          <span style={{ letterSpacing: '.3em', background: 'linear-gradient(180deg,#F6E29A,#E7C15A 45%,#C79A3B)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>TRACE</span>
         </div>
-        <div style={{ font: '500 8.5px "IBM Plex Mono", monospace', letterSpacing: '2.5px', color: '#8A7A55', marginTop: 3 }}>ASSET INTELLIGENCE</div>
+        <div style={{ font: '500 8px "IBM Plex Mono", monospace', letterSpacing: '.32em', color: '#8A7233', marginTop: 4 }}>ASSET INTELLIGENCE</div>
       </div>
     </div>
   );
@@ -63,13 +63,14 @@ export default function App() {
     setTimeout(() => setToast(null), 2600);
   };
 
-  if (!user) return <div className="axt"><Login onLogin={setUser} /></div>;
+  if (!user) return <div className="axt"><div className="axt-haz" /><Login onLogin={setUser} /></div>;
 
   const role = ROLES[user.role] || ROLES.cliente;
   const RoleIcon = role.icon;
 
   return (
     <div className="axt">
+      <div className="axt-haz" />
       <header className="axt-chrome">
         <Logo />
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -118,7 +119,7 @@ function Login({ onLogin }) {
     <div className="login-wrap">
       <div className="login-card">
         <div style={{ marginBottom: 22 }}><Logo /></div>
-        <h1 style={{ font: '700 22px "Space Grotesk", sans-serif', color: '#EAF0F3', margin: '0 0 4px' }}>Ingresar</h1>
+        <h1 style={{ font: '700 22px "Oswald", sans-serif', color: '#EAF0F3', margin: '0 0 4px' }}>Ingresar</h1>
         <p style={{ font: '400 13px "IBM Plex Sans"', color: '#8B98A5', margin: '0 0 22px' }}>Panel de trazabilidad y cumplimiento.</p>
 
         <label className="fld" style={{ marginBottom: 12 }}><span>Email</span>
@@ -162,7 +163,7 @@ function PublicTag({ token }) {
                 <Band status={data.status} h={44} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#6A7681' }}>{data.asset.type} · {data.asset.client}</div>
-                  <div style={{ font: '700 17px "Space Grotesk", sans-serif', color: '#EAF0F3', margin: '3px 0 6px' }}>{data.asset.name}</div>
+                  <div style={{ font: '700 17px "Oswald", sans-serif', color: '#EAF0F3', margin: '3px 0 6px' }}>{data.asset.name}</div>
                   <Pill status={data.status} />
                 </div>
               </div>
