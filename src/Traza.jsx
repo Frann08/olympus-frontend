@@ -82,7 +82,7 @@ export default function Traza({ toast }) {
             <ScanLine size={30} color={scanning ? '#D9B44A' : '#7A8792'} />
             {scanning && <><span className="wave" /><span className="wave" style={{ animationDelay: '.4s' }} /></>}
           </div>
-          <div style={{ font: '700 16px "Space Grotesk", sans-serif', color: '#EAF0F3', marginTop: 14 }}>
+          <div style={{ font: '700 16px "Oswald", sans-serif', color: '#EAF0F3', marginTop: 14 }}>
             {scanning ? 'Leyendo tag UHF…' : 'Simular lectura de la pistola'}
           </div>
           <div style={{ font: '400 12px "IBM Plex Sans"', color: '#7A8792', marginTop: 5, marginBottom: 14 }}>
@@ -98,7 +98,7 @@ export default function Traza({ toast }) {
         <div className="axt-card" style={{ padding: 0, overflow: 'hidden', marginTop: 16 }}>
           <div className="axt-toolbar">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ font: '700 15px "Space Grotesk"', color: '#EAF0F3' }}>Lista de entrada</span>
+              <span style={{ font: '700 15px "Oswald"', color: '#EAF0F3' }}>Lista de entrada</span>
               <span className="axt-count" style={{ color: '#D9B44A', borderColor: '#4A3E1E', background: '#1B1609' }}>{items.length} leídos</span>
               {flags > 0 && <span className="axt-count" style={{ color: '#E5605C', borderColor: '#3A1E1D', background: '#211011' }}>{flags} con alerta</span>}
             </div>

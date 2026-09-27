@@ -151,7 +151,7 @@ function AssetDrawer({ id, onClose, toast }) {
               <Band status={data.certificates.length ? worst(data.certificates) : 'sin_cert'} h={48} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#6A7681' }}>{data.type} · {data.client}</div>
-                <h2 style={{ font: '700 20px "Space Grotesk", sans-serif', color: '#EAF0F3', margin: '3px 0 8px' }}>{data.name}</h2>
+                <h2 style={{ font: '700 20px "Oswald", sans-serif', color: '#EAF0F3', margin: '3px 0 8px' }}>{data.name}</h2>
                 <span style={{ font: '600 12px "IBM Plex Mono", monospace', color: '#9AA6B1', background: '#171419', border: '1px solid #2A2732', borderRadius: 6, padding: '3px 8px' }}>{data.code}</span>
               </div>
               <button onClick={onClose} className="axt-x"><X size={18} /></button>
@@ -308,7 +308,7 @@ function ImportPanel({ toast, onImported }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
           <Upload size={17} color="#D9B44A" />
-          <span style={{ font: '600 15px "Space Grotesk", sans-serif', color: '#EAF0F3' }}>Importar informe (Excel)</span>
+          <span style={{ font: '600 15px "Oswald", sans-serif', color: '#EAF0F3' }}>Importar informe (Excel)</span>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="axt-btn small" onClick={downloadTemplate}><FileDown size={14} /> Descargar plantilla</button>
@@ -452,7 +452,7 @@ function AdminPanel({ toast, onChanged }) {
       <button onClick={() => setOpen((o) => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
           <Users size={17} color="#D9B44A" />
-          <span style={{ font: '600 15px "Space Grotesk", sans-serif', color: '#EAF0F3' }}>Clientes y usuarios</span>
+          <span style={{ font: '600 15px "Oswald", sans-serif', color: '#EAF0F3' }}>Clientes y usuarios</span>
         </span>
         <ChevronDown size={18} color="#7A8792" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: '.2s' }} />
       </button>
