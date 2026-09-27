@@ -260,3 +260,13 @@ body { margin: 0; background: #0A0A0B; }
 /* Panel de clientes y usuarios: dos columnas, apiladas en celular */
 .adm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 @media (max-width: 860px) { .adm-grid { grid-template-columns: 1fr; } }
+
+/* Selector de IBMs por usuario */
+.ibm-pick { background: #0F0E12; border: 1px solid #2A2732; border-radius: 10px; padding: 12px; display: grid; gap: 8px; }
+.ibm-pick-h { font: 500 10.5px "IBM Plex Mono", monospace; letter-spacing: .14em; text-transform: uppercase; color: #8A97A2; }
+.ibm-opt { display: flex; align-items: center; gap: 8px; font: 500 12.5px "IBM Plex Sans"; color: #DCE3E9; cursor: pointer; }
+.ibm-opt input, .ibm-chip input { accent-color: #E7C15A; margin: 0; }
+.ibm-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ibm-chip { display: inline-flex; align-items: center; gap: 6px; font: 600 11.5px "IBM Plex Mono", monospace; color: #A9A7A2; background: #17171A; border: 1px solid #26262B; border-radius: 6px; padding: 5px 9px; cursor: pointer; }
+.ibm-chip.on { color: #E7C15A; background: #1C1707; border-color: #8A7233; }
+.ibm-note { font: 400 11.5px "IBM Plex Sans"; color: #8A97A2; }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Boxes, Clock, Radio, Tag, ChevronRight, Search, X, CheckCircle2, Plus, Building2, Copy, Check, QrCode, Upload, FileDown, AlertTriangle, Users, UserPlus, Trash2, ChevronDown } from 'lucide-react';
+import { Boxes, Clock, Radio, Tag, ChevronRight, Search, X, CheckCircle2, Plus, Building2, Copy, Check, QrCode, Upload, FileDown, AlertTriangle, Users, UserPlus, Trash2, ChevronDown, Pencil } from 'lucide-react';
 import QRCode from 'qrcode';
 import * as XLSX from 'xlsx';
 import { api } from './api.js';
@@ -421,7 +421,11 @@ function AdminPanel({ toast, onChanged }) {
   const reload = () => { setRev((r) => r + 1); onChanged && onChanged(); };
 
   const [cName, setCName] = useState('');
-  const [uForm, setUForm] = useState({ email: '', password: '', role: 'cliente', client_id: '' });
+  const EMPTY_USER = { email: '', password: '', role: 'cliente', client_id: '', ibms: null };
+  const [uForm, setUForm] = useState(EMPTY_USER);
+  const [editId, setEditId] = useState(null);
+  const [editIbms, setEditIbms] = useState(null);
+  const ibmsDe = (clientId) => ((clients.data || []).find((c) => String(c.id) === String(clientId)) || {}).ibms || [];
 
   async function addClient() {
     if (!cName.trim()) { toast('Escribí el nombre'); return; }
@@ -435,9 +439,18 @@ function AdminPanel({ toast, onChanged }) {
   async function addUser() {
     if (!uForm.email || !uForm.password) { toast('Email y contraseña'); return; }
     if (uForm.role === 'cliente' && !uForm.client_id) { toast('Elegí la empresa'); return; }
+    if (uForm.role === 'cliente' && Array.isArray(uForm.ibms) && !uForm.ibms.length) { toast('Elegí al menos un IBM o marcá "Todos"'); return; }
     try {
-      await api('/api/users', { method: 'POST', body: JSON.stringify(uForm) });
-      toast('Usuario creado'); setUForm({ email: '', password: '', role: 'cliente', client_id: '' }); reload();
+      const body = { ...uForm, ibms: uForm.role === 'cliente' ? uForm.ibms : null };
+      await api('/api/users', { method: 'POST', body: JSON.stringify(body) });
+      toast('Usuario creado'); setUForm(EMPTY_USER); reload();
+    } catch (e) { toast(e.message); }
+  }
+  async function saveIbms(u) {
+    if (Array.isArray(editIbms) && !editIbms.length) { toast('Elegí al menos un IBM o marcá "Todos"'); return; }
+    try {
+      await api('/api/users/' + u.id, { method: 'PATCH', body: JSON.stringify({ ibms: editIbms || [] }) });
+      toast('IBM actualizados para ' + u.email); setEditId(null); reload();
     } catch (e) { toast(e.message); }
   }
   async function delUser(id) {
@@ -484,16 +497,34 @@ function AdminPanel({ toast, onChanged }) {
 
             <div style={{ background: '#171419', border: '1px solid #2A2732', borderRadius: 12, padding: 16 }}>
               <div className="axt-sec" style={{ display: 'flex', alignItems: 'center', gap: 7 }}><UserPlus size={14} color="#9AA6B1" /> Accesos</div>
-              <div style={{ maxHeight: 180, overflowY: 'auto' }}>
+              <div style={{ maxHeight: 320, overflowY: 'auto' }}>
                 {users.loading ? <Spinner label="…" /> : (users.data || []).map((u) => (
-                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid #201C24' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ font: '600 12.5px "IBM Plex Sans"', color: '#EAF0F3', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.email}</div>
-                      <div style={{ font: '400 10.5px "IBM Plex Mono", monospace', marginTop: 3 }}>
-                        <span style={{ color: roleColor(u.role) }}>{roleName[u.role] || u.role}</span>{u.client ? <span style={{ color: '#7A8792' }}> · {u.client}</span> : ''}
+                  <div key={u.id} style={{ padding: '9px 0', borderBottom: '1px solid #201C24' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ font: '600 12.5px "IBM Plex Sans"', color: '#EAF0F3', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.email}</div>
+                        <div style={{ font: '400 10.5px "IBM Plex Mono", monospace', marginTop: 3 }}>
+                          <span style={{ color: roleColor(u.role) }}>{roleName[u.role] || u.role}</span>{u.client ? <span style={{ color: '#7A8792' }}> · {u.client}</span> : ''}
+                          {u.role === 'cliente' && <span style={{ color: '#D9B44A' }}> · {u.ibms && u.ibms.length ? 'IBM ' + u.ibms.join(', ') : 'Todos los IBM'}</span>}
+                        </div>
                       </div>
+                      {u.role === 'cliente' && (
+                        <button className="axt-x sm" title="Cambiar IBM" aria-label={'Cambiar IBM de ' + u.email}
+                          onClick={() => { if (editId === u.id) { setEditId(null); } else { setEditId(u.id); setEditIbms(u.ibms && u.ibms.length ? u.ibms : null); } }}>
+                          <Pencil size={13} />
+                        </button>
+                      )}
+                      {u.role !== 'admin' && <button className="axt-x sm" title="Eliminar" aria-label={'Eliminar ' + u.email} onClick={() => delUser(u.id)}><Trash2 size={13} /></button>}
                     </div>
-                    {u.role !== 'admin' && <button className="axt-x sm" title="Eliminar" onClick={() => delUser(u.id)}><Trash2 size={13} /></button>}
+                    {editId === u.id && (
+                      <div style={{ marginTop: 10 }}>
+                        <IbmPicker options={ibmsDe(u.client_id)} value={editIbms} onChange={setEditIbms} />
+                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                          <button className="axt-btn small primary" onClick={() => saveIbms(u)}>Guardar IBM</button>
+                          <button className="axt-btn small" onClick={() => setEditId(null)}>Cancelar</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -509,16 +540,59 @@ function AdminPanel({ toast, onChanged }) {
                   </select>
                 </div>
                 {uForm.role === 'cliente' && (
-                  <select className="axt-input" style={{ background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px', color: '#EAF0F3' }} value={uForm.client_id} onChange={(e) => setUForm({ ...uForm, client_id: e.target.value })}>
+                  <select className="axt-input" style={{ background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px', color: '#EAF0F3' }} value={uForm.client_id} onChange={(e) => setUForm({ ...uForm, client_id: e.target.value, ibms: null })}>
                     <option value="">— Elegí la empresa —</option>
                     {(clients.data || []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
+                )}
+                {uForm.role === 'cliente' && uForm.client_id && (
+                  <IbmPicker options={ibmsDe(uForm.client_id)} value={uForm.ibms} onChange={(v) => setUForm({ ...uForm, ibms: v })} />
                 )}
                 <button className="axt-btn small primary" onClick={addUser}><UserPlus size={13} /> Crear acceso</button>
               </div>
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+/* IBMs que puede ver un usuario cliente: null = todos; array = solo esos */
+function IbmPicker({ options, value, onChange }) {
+  const [otro, setOtro] = useState('');
+  const todos = value === null;
+  const sel = value || [];
+  const all = [...new Set([...(options || []), ...sel])];
+  const toggle = (ib) => onChange(sel.includes(ib) ? sel.filter((x) => x !== ib) : [...sel, ib]);
+  const add = () => {
+    const v = otro.replace(/^\s*ibm\s*/i, '').trim();
+    if (!v) return;
+    onChange([...sel.filter((x) => x !== v), v]);
+    setOtro('');
+  };
+  return (
+    <div className="ibm-pick">
+      <div className="ibm-pick-h">IBM que puede ver</div>
+      <label className="ibm-opt"><input type="radio" checked={todos} onChange={() => onChange(null)} /> Todos los IBM de la empresa</label>
+      <label className="ibm-opt"><input type="radio" checked={!todos} onChange={() => onChange(sel)} /> Solo algunos</label>
+      {!todos && (
+        <>
+          <div className="ibm-chips">
+            {all.map((ib) => (
+              <label key={ib} className={'ibm-chip' + (sel.includes(ib) ? ' on' : '')}>
+                <input type="checkbox" checked={sel.includes(ib)} onChange={() => toggle(ib)} /> IBM {ib}
+              </label>
+            ))}
+            {all.length === 0 && <span className="ibm-note">Esta empresa todavía no tiene IBM cargados. Escribilo abajo.</span>}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input className="axt-input" style={{ flex: 1, minWidth: 0, background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '7px 10px' }}
+              placeholder="Otro IBM (ej: 210)" value={otro} onChange={(e) => setOtro(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} aria-label="Agregar otro IBM" />
+            <button className="axt-btn small" onClick={add}><Plus size={13} /> Agregar</button>
+          </div>
+          {sel.length === 0 && <div className="ibm-note" style={{ color: '#EDA53C', marginTop: 6 }}>Elegí al menos un IBM.</div>}
+        </>
       )}
     </div>
   );
