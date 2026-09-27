@@ -147,3 +147,14 @@ body { margin: 0; background: #0A0A0B; }
 .net-pill.on { color: #4FC98B; background: #0F1B12; border-color: #1F3A2A; }
 .net-pill.off { color: #EDA53C; background: #211A10; border-color: #3A2C15; }
 .offline-banner { display: flex; align-items: center; justify-content: center; gap: 8px; background: #211A10; color: #EDC77E; border-bottom: 1px solid #3A2C15; font: 600 12.5px "IBM Plex Sans"; padding: 9px 16px; text-align: center; }
+
+/* ---- chips de filtro ---- */
+.fchip { font: 600 12px "IBM Plex Sans"; color: #A9A7A2; background: #17171A; border: 1px solid #26262B; border-radius: 20px; padding: 6px 13px; cursor: pointer; transition: .12s; }
+.fchip:hover { border-color: #3A3A40; color: #F3F1EC; }
+.fchip.on { color: #1A1405; background: linear-gradient(180deg,#F2D680,#C79A3B); border-color: #C79A3B; }
+
+/* ---- pestañas del cliente ---- */
+.cli-tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid #26262B; }
+.cli-tab { font: 600 13px "IBM Plex Sans"; color: #8A97A2; background: none; border: none; padding: 10px 4px; margin-bottom: -1px; border-bottom: 2px solid transparent; cursor: pointer; }
+.cli-tab:hover { color: #F3F1EC; }
+.cli-tab.on { color: #E7C15A; border-bottom-color: #E7C15A; }

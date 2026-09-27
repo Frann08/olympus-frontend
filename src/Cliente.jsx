@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   Building2, Smartphone, ChevronRight, Radio, X, Wifi, WifiOff, RefreshCw,
-  ScanLine, ClipboardList, CheckCircle2, Plus, Trash2, Loader2, History, ExternalLink, Save, Search,
+  ScanLine, ClipboardList, CheckCircle2, Plus, Trash2, Loader2, History, ExternalLink, Save, Search, FileDown,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { api } from './api.js';
 import { getUser } from './api.js';
 import { Band, Pill, CertRow, Spinner, ErrorNote, daysLabel, daysFrom } from './ui.jsx';
@@ -27,6 +28,7 @@ export default function Cliente({ toast }) {
   const [q, setQ] = useState('');
   const [fEstado, setFEstado] = useState('all');
   const [fIbm, setFIbm] = useState('all');
+  const [tab, setTab] = useState('activos');
 
   useEffect(() => {
     let live = true;
@@ -96,10 +98,16 @@ export default function Cliente({ toast }) {
         </div>
       </div>
 
-      <div className="cli-grid">
-        <ExpiringCard s={summary} />
-        <Relevamiento assets={assets} online={online} toast={toast} />
+      <div className="cli-tabs">
+        <button className={'cli-tab' + (tab === 'activos' ? ' on' : '')} onClick={() => setTab('activos')}>Mis activos</button>
+        <button className={'cli-tab' + (tab === 'relevamientos' ? ' on' : '')} onClick={() => setTab('relevamientos')}>Relevamientos</button>
       </div>
+
+      {tab === 'relevamientos' ? (
+        <Relevamiento assets={assets} online={online} toast={toast} />
+      ) : (
+      <>
+        <ExpiringCard s={summary} />
 
       <div className="axt-card" style={{ padding: 0, overflow: 'hidden', marginTop: 16 }}>
         <div className="axt-toolbar" style={{ flexWrap: 'wrap', gap: 10 }}>
@@ -149,6 +157,8 @@ export default function Cliente({ toast }) {
           )}
         </div>
       </div>
+      </>
+      )}
 
       {modalAsset && <CertModal asset={modalAsset} onClose={() => setModalAsset(null)} toast={toast} />}
     </div>
@@ -185,21 +195,18 @@ function Relevamiento({ assets, online, toast }) {
   const [scanning, setScanning] = useState(false);
   const [picker, setPicker] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [nombre, setNombre] = useState('');
   const [hist, setHist] = useState([]);
   const [detail, setDetail] = useState(null);
   const setQ = (nq) => { setQueue(nq); saveQueue(nq); };
 
-  const loadHist = () => {
-    if (!online) return;
-    api('/api/me/relevamientos').then(setHist).catch(() => {});
-  };
+  const loadHist = () => { if (online) api('/api/me/relevamientos').then(setHist).catch(() => {}); };
   useEffect(loadHist, [online]);
 
   const addToken = (token) => {
     const a = assets.find((x) => x.token === token);
     if (queue.some((i) => i.token === token)) { toast('Ese tag ya está en esta lista'); return; }
-    const item = { token, name: a ? a.name : 'Activo desconocido', status: a ? a.status : 'sin_cert', scanned_at: new Date().toISOString() };
-    setQ([...queue, item]);
+    setQ([...queue, { token, name: a ? a.name : 'Activo desconocido', status: a ? a.status : 'sin_cert', scanned_at: new Date().toISOString() }]);
     toast(a ? 'Agregado: ' + a.name : 'Tag sin activo asociado');
   };
 
@@ -217,89 +224,126 @@ function Relevamiento({ assets, online, toast }) {
           if (url) { const m = url.match(/tag=([A-Za-z0-9]+)/); if (m) addToken(m[1]); }
         };
       } catch (e) { setScanning(false); toast('No se pudo leer NFC (' + e.message + ')'); setPicker(true); }
-    } else {
-      setPicker(true);
-    }
+    } else { setPicker(true); }
   }
 
   async function guardar() {
-    if (!online) { toast('Necesitás conexión para guardar el relevamiento'); return; }
+    if (!online) { toast('Necesitás conexión para guardar'); return; }
     if (!queue.length) return;
     setSaving(true);
     try {
       const r = await api('/api/me/relevamientos', {
         method: 'POST',
-        body: JSON.stringify({ device: (navigator.userAgent || '').slice(0, 40), items: queue.map((i) => ({ token: i.token, scanned_at: i.scanned_at })) }),
+        body: JSON.stringify({ nombre: nombre.trim(), device: (navigator.userAgent || '').slice(0, 40), items: queue.map((i) => ({ token: i.token, scanned_at: i.scanned_at })) }),
       });
       toast('Relevamiento guardado: ' + r.count + ' piezas');
-      setQ([]);
-      loadHist();
+      setQ([]); setNombre(''); loadHist();
     } catch (e) { toast('Error al guardar: ' + e.message); }
     finally { setSaving(false); }
   }
 
+  async function exportar(h) {
+    try {
+      const d = await api('/api/me/relevamientos/' + h.id);
+      const rows = d.items.map((it) => ({
+        'Nº de serie': it.code || it.token || '',
+        'Descripción': it.name || '',
+        'IBM': it.ibm || '',
+        'Estado': estadoLabel(it.next_expiry),
+        'Vencimiento': vencMMAAAA(it.next_expiry),
+        'Nº de informe': it.informe || '',
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'relevamiento');
+      const base = (h.nombre || ('relevamiento-' + h.id)).replace(/[^\w\-]+/g, '_');
+      XLSX.writeFile(wb, base + '.xlsx');
+    } catch (e) { toast('No se pudo exportar: ' + e.message); }
+  }
+
+  async function borrar(h) {
+    if (!window.confirm(`¿Borrar la lista "${h.nombre || 'sin nombre'}"? No se puede deshacer.`)) return;
+    try { await api('/api/me/relevamientos/' + h.id, { method: 'DELETE' }); toast('Lista borrada'); loadHist(); }
+    catch (e) { toast('No se pudo borrar: ' + e.message); }
+  }
+
   return (
-    <div className="axt-card" style={{ padding: 18, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <ClipboardList size={16} color="#E7C15A" />
-        <span style={{ font: '600 14px "Oswald", sans-serif', color: '#F3F1EC' }}>Relevamiento de campo</span>
-      </div>
-      <div style={{ font: '400 11.5px "IBM Plex Sans"', color: '#8A97A2', marginBottom: 14, lineHeight: 1.5 }}>
-        Escaneá los tags que tenés enfrente y guardá tu lista. Cada relevamiento es tuyo y queda en el historial.
-      </div>
-
-      <button className="axt-btn primary" onClick={scan} style={{ marginBottom: 10 }}>
-        <ScanLine size={15} /> {scanning ? 'Escaneando… acercá un tag' : 'Escanear tag'}
-      </button>
-
-      {queue.length === 0 ? (
-        <div style={{ font: '500 12px "IBM Plex Sans"', color: '#6E6C69', textAlign: 'center', padding: '12px 0' }}>
-          Lista actual vacía.
+    <div>
+      <div className="axt-card" style={{ padding: 18, marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <ClipboardList size={16} color="#E7C15A" />
+          <span style={{ font: '600 15px "Oswald", sans-serif', color: '#F3F1EC' }}>Nuevo relevamiento</span>
         </div>
-      ) : (
-        <div style={{ maxHeight: 170, overflowY: 'auto', marginBottom: 10 }}>
-          {queue.map((it, i) => (
-            <div key={it.token + i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 0', borderBottom: '1px solid #1F1F23' }}>
-              <Band status={it.status} h={26} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ font: '600 12.5px "IBM Plex Sans"', color: '#F3F1EC', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}</div>
-              </div>
-              <button className="axt-x sm" onClick={() => setQ(queue.filter((x) => x.token !== it.token))}><X size={14} /></button>
-            </div>
-          ))}
+        <div style={{ font: '400 11.5px "IBM Plex Sans"', color: '#8A97A2', marginBottom: 14, lineHeight: 1.5 }}>
+          Escaneá los tags que tenés enfrente, ponele un nombre y guardá. Cada lista es tuya y queda abajo en "Listas guardadas".
         </div>
-      )}
 
-      <button className="axt-btn primary" onClick={guardar} disabled={!queue.length || saving} style={{ opacity: queue.length && online ? 1 : 0.55 }}>
-        {saving ? <Loader2 size={15} className="spin" /> : <Save size={15} />}
-        {online ? `Guardar relevamiento (${queue.length})` : `Guardá al recuperar señal (${queue.length})`}
-      </button>
+        <button className="axt-btn primary" onClick={scan} style={{ marginBottom: 12, width: '100%' }}>
+          <ScanLine size={15} /> {scanning ? 'Escaneando… acercá un tag' : 'Escanear tag'}
+        </button>
 
-      {hist.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, margin: '0 0 8px' }}>
-            <History size={13} color="#8A97A2" />
-            <span style={{ font: '600 11px "IBM Plex Mono", monospace', letterSpacing: '.12em', textTransform: 'uppercase', color: '#8A97A2' }}>Mis relevamientos</span>
-          </div>
-          <div style={{ maxHeight: 150, overflowY: 'auto' }}>
-            {hist.map((h) => (
-              <button key={h.id} onClick={() => api('/api/me/relevamientos/' + h.id).then(setDetail).catch(() => toast('No se pudo abrir'))}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid #1F1F23', background: 'none', border: 'none', borderBottomStyle: 'solid', cursor: 'pointer', textAlign: 'left' }}>
+        {queue.length === 0 ? (
+          <div style={{ font: '500 12px "IBM Plex Sans"', color: '#6E6C69', textAlign: 'center', padding: '10px 0' }}>Lista actual vacía.</div>
+        ) : (
+          <div style={{ maxHeight: 220, overflowY: 'auto', marginBottom: 12 }}>
+            {queue.map((it, i) => (
+              <div key={it.token + i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 0', borderBottom: '1px solid #1F1F23' }}>
+                <Band status={it.status} h={26} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ font: '600 12.5px "IBM Plex Sans"', color: '#F3F1EC' }}>{h.items} {h.items === 1 ? 'pieza' : 'piezas'}</div>
-                  <div style={{ font: '400 10.5px "IBM Plex Mono", monospace', color: '#8A97A2', marginTop: 2 }}>{fmtDateTime(h.created_at)}</div>
+                  <div style={{ font: '600 12.5px "IBM Plex Sans"', color: '#F3F1EC', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}</div>
                 </div>
-                <ChevronRight size={15} color="#5C6874" />
-              </button>
+                <button className="axt-x sm" onClick={() => setQ(queue.filter((x) => x.token !== it.token))}><X size={14} /></button>
+              </div>
             ))}
           </div>
+        )}
+
+        <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre de la lista (ej: Locación Fortín)"
+          style={{ width: '100%', background: '#0F0E12', border: '1px solid #26262B', borderRadius: 8, padding: '10px 12px', color: '#F3F1EC', font: '400 13px "IBM Plex Sans"', marginBottom: 10, outline: 'none' }} />
+
+        <button className="axt-btn primary" onClick={guardar} disabled={!queue.length || saving} style={{ width: '100%', opacity: queue.length && online ? 1 : 0.55 }}>
+          {saving ? <Loader2 size={15} className="spin" /> : <Save size={15} />}
+          {online ? `Guardar relevamiento (${queue.length})` : `Guardá al recuperar señal (${queue.length})`}
+        </button>
+      </div>
+
+      <div className="axt-card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div className="axt-toolbar">
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, font: '700 15px "Oswald"', color: '#F3F1EC' }}><History size={15} color="#8A97A2" /> Listas guardadas</span>
+          <span style={{ font: '500 12px "IBM Plex Mono", monospace', color: '#8A97A2' }}>{hist.length}</span>
         </div>
-      )}
+        {hist.length === 0 ? (
+          <div style={{ padding: '28px 16px', textAlign: 'center', font: '500 13px "IBM Plex Sans"', color: '#6E6C69' }}>
+            Todavía no guardaste ninguna lista.
+          </div>
+        ) : hist.map((h) => (
+          <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 16px', borderBottom: '1px solid #1F1F23' }}>
+            <button onClick={() => api('/api/me/relevamientos/' + h.id).then(setDetail).catch(() => toast('No se pudo abrir'))}
+              style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}>
+              <div style={{ font: '600 13.5px "IBM Plex Sans"', color: '#F3F1EC' }}>{h.nombre || 'Sin nombre'}</div>
+              <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#8A97A2', marginTop: 3 }}>{h.items} {h.items === 1 ? 'pieza' : 'piezas'} · {fmtDateTime(h.created_at)}</div>
+            </button>
+            <button className="axt-btn small" onClick={() => exportar(h)}><FileDown size={13} /> Excel</button>
+            <button className="axt-x sm" title="Borrar" onClick={() => borrar(h)}><Trash2 size={13} /></button>
+          </div>
+        ))}
+      </div>
 
       {picker && <Picker assets={assets} onPick={(t) => { addToken(t); }} onClose={() => setPicker(false)} />}
       {detail && <RelevDetail data={detail} onClose={() => setDetail(null)} toast={toast} />}
     </div>
   );
+}
+
+function estadoLabel(exp) {
+  if (!exp) return 'Sin dato';
+  const d = daysFrom(exp);
+  return d < 0 ? 'Vencido' : d <= 60 ? 'Por vencer' : 'Vigente';
+}
+function vencMMAAAA(exp) {
+  if (!exp) return '';
+  const m = /^(\d{4})-(\d{2})/.exec(String(exp));
+  return m ? `${m[2]}/${m[1]}` : String(exp);
 }
 
 function fmtDateTime(s) {
