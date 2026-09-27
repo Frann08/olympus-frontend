@@ -6,15 +6,18 @@ let user = JSON.parse(localStorage.getItem('axtag_user') || 'null');
 export function getUser() { return user; }
 export function isAuthed() { return !!token; }
 
-export async function login(email, password) {
+// lado: puerta del portal ('cliente' | 'operador' | 'admin'); el servidor rechaza otros roles
+export async function login(email, password, lado) {
   const res = await fetch(`${API}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, lado }),
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
-    throw new Error(e.error || 'No se pudo iniciar sesión');
+    const err = new Error(e.error || 'No se pudo iniciar sesión');
+    err.ladoCorrecto = e.lado_correcto || null;
+    throw err;
   }
   const data = await res.json();
   token = data.token;

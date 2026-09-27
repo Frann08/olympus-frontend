@@ -76,7 +76,7 @@ export default function App() {
       <div className="axt">
         <div className="axt-haz" />
         {door
-          ? <Login side={door} onBack={() => setDoor(null)} onLogin={(u) => { setView('admin'); setUser(u); }} />
+          ? <Login side={door} onBack={() => setDoor(null)} onSwitch={setDoor} onLogin={(u) => { setView('admin'); setUser(u); }} />
           : <Portal onPick={setDoor} Logo={Logo} />}
       </div>
     );
@@ -125,18 +125,19 @@ export default function App() {
   );
 }
 
-function Login({ side, onBack, onLogin }) {
+function Login({ side, onBack, onSwitch, onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [err, setErr] = useState(null);
+  const [otroLado, setOtroLado] = useState(null);
   const [busy, setBusy] = useState(false);
 
   async function submit(e) {
     e && e.preventDefault();
     if (!email || !password) { setErr('Completá email y contraseña'); return; }
-    setBusy(true); setErr(null);
-    try { const u = await login(email.trim(), password); onLogin(u); }
-    catch (e2) { setErr(e2.message); }
+    setBusy(true); setErr(null); setOtroLado(null);
+    try { const u = await login(email.trim(), password, side); onLogin(u); }
+    catch (e2) { setErr(e2.message); setOtroLado(e2.ladoCorrecto && e2.ladoCorrecto !== side ? e2.ladoCorrecto : null); }
     finally { setBusy(false); }
   }
 
@@ -156,7 +157,17 @@ function Login({ side, onBack, onLogin }) {
           <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </label>
 
-        {err && <div role="alert" style={{ font: '500 12.5px "IBM Plex Sans"', color: '#E5A3A1', background: '#211011', border: '1px solid #3A1E1D', borderRadius: 8, padding: '9px 12px', marginBottom: 14 }}>{err}</div>}
+        {err && (
+          <div role="alert" style={{ font: '500 12.5px "IBM Plex Sans"', color: '#E5A3A1', background: '#211011', border: '1px solid #3A1E1D', borderRadius: 8, padding: '9px 12px', marginBottom: 14 }}>
+            {err}
+            {otroLado && (
+              <button type="button" className="axt-btn small" style={{ display: 'flex', marginTop: 8 }}
+                onClick={() => { onSwitch(otroLado); setErr(null); setOtroLado(null); }}>
+                Entrar por {({ cliente: 'Cliente', operador: 'Operador', admin: 'Administración' })[otroLado] || 'ese acceso'}
+              </button>
+            )}
+          </div>
+        )}
 
         <button type="submit" className="axt-btn primary" style={{ width: '100%', padding: '12px' }} disabled={busy}>
           {busy ? 'Ingresando…' : 'Ingresar'}
