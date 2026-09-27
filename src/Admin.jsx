@@ -265,7 +265,7 @@ function rowError(r) {
   return null;
 }
 
-function ImportPanel({ toast, onImported }) {
+export function ImportPanel({ toast, onImported, title = 'Importar informe (Excel)' }) {
   const [rows, setRows] = useState(null);
   const [fileName, setFileName] = useState('');
   const [busy, setBusy] = useState(false);
@@ -298,7 +298,7 @@ function ImportPanel({ toast, onImported }) {
       const r = await api('/api/import', { method: 'POST', body: JSON.stringify({ rows: valid.map(({ _err, ...x }) => x) }) });
       setResult(r);
       toast(`Importado: ${r.piecesCreated} piezas, ${r.inspections} inspecciones`);
-      onImported && onImported();
+      onImported && onImported(valid);
     } catch (e) { toast('Error al importar: ' + e.message); }
     finally { setBusy(false); }
   }
@@ -308,7 +308,7 @@ function ImportPanel({ toast, onImported }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
           <Upload size={17} color="#D9B44A" />
-          <span style={{ font: '600 15px "Oswald", sans-serif', color: '#EAF0F3' }}>Importar informe (Excel)</span>
+          <span style={{ font: '600 15px "Oswald", sans-serif', color: '#EAF0F3' }}>{title}</span>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="axt-btn small" onClick={downloadTemplate}><FileDown size={14} /> Descargar plantilla</button>
@@ -445,7 +445,8 @@ function AdminPanel({ toast, onChanged }) {
     catch (e) { toast(e.message); }
   }
 
-  const roleColor = (r) => r === 'admin' ? '#D9B44A' : r === 'traza' ? '#7FB0C8' : '#9AA6B1';
+  const roleColor = (r) => r === 'admin' ? '#D9B44A' : r === 'traza' ? '#7FB0C8' : r === 'precintos' ? '#E8A33C' : '#9AA6B1';
+  const roleName = { admin: 'Administración', traza: 'Trazabilidad', precintos: 'Precintos', cliente: 'Cliente' };
 
   return (
     <div className="axt-card" style={{ padding: 0, overflow: 'hidden', marginBottom: 16 }}>
@@ -459,7 +460,7 @@ function AdminPanel({ toast, onChanged }) {
 
       {open && (
         <div style={{ padding: '0 20px 20px' }}>
-          <div className="cli-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+          <div className="adm-grid">
             <div style={{ background: '#171419', border: '1px solid #2A2732', borderRadius: 12, padding: 16 }}>
               <div className="axt-sec" style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Building2 size={14} color="#9AA6B1" /> Empresas</div>
               {clients.loading ? <Spinner label="…" /> : (clients.data || []).map((c) => (
@@ -489,7 +490,7 @@ function AdminPanel({ toast, onChanged }) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ font: '600 12.5px "IBM Plex Sans"', color: '#EAF0F3', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.email}</div>
                       <div style={{ font: '400 10.5px "IBM Plex Mono", monospace', marginTop: 3 }}>
-                        <span style={{ color: roleColor(u.role) }}>{u.role}</span>{u.client ? <span style={{ color: '#7A8792' }}> · {u.client}</span> : ''}
+                        <span style={{ color: roleColor(u.role) }}>{roleName[u.role] || u.role}</span>{u.client ? <span style={{ color: '#7A8792' }}> · {u.client}</span> : ''}
                       </div>
                     </div>
                     {u.role !== 'admin' && <button className="axt-x sm" title="Eliminar" onClick={() => delUser(u.id)}><Trash2 size={13} /></button>}
@@ -498,12 +499,13 @@ function AdminPanel({ toast, onChanged }) {
               </div>
               <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
                 <input className="axt-input" style={{ background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px' }} placeholder="email@empresa.com" value={uForm.email} onChange={(e) => setUForm({ ...uForm, email: e.target.value })} />
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input className="axt-input" style={{ flex: 1, background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px' }} placeholder="contraseña" value={uForm.password} onChange={(e) => setUForm({ ...uForm, password: e.target.value })} />
-                  <select className="axt-input" style={{ background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px', color: '#EAF0F3' }} value={uForm.role} onChange={(e) => setUForm({ ...uForm, role: e.target.value })}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <input className="axt-input" style={{ flex: 1, minWidth: 140, background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px' }} placeholder="contraseña" value={uForm.password} onChange={(e) => setUForm({ ...uForm, password: e.target.value })} />
+                  <select className="axt-input" style={{ width: 'auto', flex: 'none', background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px', color: '#EAF0F3' }} value={uForm.role} onChange={(e) => setUForm({ ...uForm, role: e.target.value })}>
                     <option value="cliente">Cliente</option>
+                    <option value="precintos">Precintos</option>
                     <option value="traza">Trazabilidad</option>
-                    <option value="admin">Programador</option>
+                    <option value="admin">Administración</option>
                   </select>
                 </div>
                 {uForm.role === 'cliente' && (

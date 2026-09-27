@@ -1,0 +1,269 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import QRCode from 'qrcode';
+import { Tag, Copy, Check, X, Undo2, Smartphone, Search, Loader2 } from 'lucide-react';
+import { api } from './api.js';
+import { Spinner, ErrorNote } from './ui.jsx';
+import { ImportPanel } from './Admin.jsx';
+
+// Estado físico del tag de cada pieza
+const EST = {
+  pendiente: { label: 'Pendiente', color: '#A9A7A2', bg: '#17171A', line: '#26262B', spine: '#3A3A40' },
+  grabado: { label: 'Grabado', color: '#E7C15A', bg: '#1C1707', line: '#8A7233', spine: '#E7C15A' },
+  colocado: { label: 'Colocado', color: '#57C98A', bg: '#12241A', line: '#1E3A2A', spine: '#57C98A' },
+  na: { label: 'Sin precinto', color: '#E5645C', bg: '#241211', line: '#3C1E1C', spine: '#E5645C' },
+};
+const estadoDe = (it) => (it.apto ? it.estado : 'na');
+const tagUrl = (token) => `${window.location.origin}/?tag=${token}`;
+
+export default function Precintos({ toast }) {
+  const [informes, setInformes] = useState(null);
+  const [err, setErr] = useState(null);
+  const [sel, setSel] = useState(null);
+  const [items, setItems] = useState(null);
+  const [itemsErr, setItemsErr] = useState(null);
+  const [loadingItems, setLoadingItems] = useState(false);
+  const [q, setQ] = useState('');
+  const [fEst, setFEst] = useState('all');
+  const [grabar, setGrabar] = useState(null);
+
+  const loadInformes = useCallback(async (pick) => {
+    try {
+      const r = await api('/api/precintos/informes');
+      setInformes(r);
+      setErr(null);
+      setSel((cur) => pick || cur || (r[0] && r[0].informe) || null);
+    } catch (e) { setErr(e.message); }
+  }, []);
+
+  const loadItems = useCallback(async (num) => {
+    if (!num) { setItems(null); return; }
+    setLoadingItems(true);
+    try { setItems(await api('/api/precintos/informes/' + encodeURIComponent(num))); setItemsErr(null); }
+    catch (e) { setItems([]); setItemsErr(e.message); }
+    finally { setLoadingItems(false); }
+  }, []);
+
+  useEffect(() => { loadInformes(); }, [loadInformes]);
+  useEffect(() => { setFEst('all'); loadItems(sel); }, [sel, loadItems]);
+
+  async function setEstado(it, estado, msg) {
+    try {
+      const r = await api(`/api/precintos/tags/${it.tag_id}/estado`, { method: 'POST', body: JSON.stringify({ estado }) });
+      setItems((xs) => xs.map((x) => (x.tag_id === it.tag_id ? { ...x, estado: r.estado } : x)));
+      loadInformes();
+      if (msg) toast(msg);
+    } catch (e) { toast('No se pudo actualizar: ' + e.message); }
+  }
+
+  function onImported(rows) {
+    const num = rows && rows[0] && String(rows[0].informe).trim();
+    loadInformes(num);
+    if (num && num === sel) loadItems(num);
+  }
+
+  const aptos = (items || []).filter((x) => x.apto);
+  const col = aptos.filter((x) => x.estado === 'colocado').length;
+  const gra = aptos.filter((x) => x.estado === 'grabado').length;
+  const pen = aptos.length - col - gra;
+  const pct = aptos.length ? Math.round((col / aptos.length) * 100) : 0;
+
+  const qn = q.trim().toLowerCase();
+  const listaInf = (informes || []).filter((i) => !qn || String(i.informe).toLowerCase().includes(qn) || (i.cliente || '').toLowerCase().includes(qn));
+  const visibles = (items || []).filter((x) => fEst === 'all' || estadoDe(x) === fEst);
+  const infSel = (informes || []).find((i) => i.informe === sel);
+
+  return (
+    <div>
+      <ImportPanel toast={toast} onImported={onImported} title="1 · Cargar Hoja 2 del informe" />
+
+      <div className="axt-card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '18px 20px 6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <Tag size={17} color="#E7C15A" />
+              <span style={{ font: '600 15px "Oswald", sans-serif', color: '#F3F1EC' }}>2 · Grabar y colocar tags</span>
+            </div>
+            <div className="pr-search">
+              <Search size={14} color="#6E6C69" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar informe o cliente" aria-label="Buscar informe o cliente" />
+            </div>
+          </div>
+
+          {err ? <div style={{ marginTop: 12 }}><ErrorNote error={err} /></div>
+            : !informes ? <Spinner label="Cargando informes…" />
+            : informes.length === 0 ? (
+              <div className="pr-empty">Todavía no hay informes cargados. Subí la Hoja 2 en el paso 1.</div>
+            ) : (
+              <div className="pr-infs" role="tablist" aria-label="Informes">
+                {listaInf.map((i) => (
+                  <button key={i.informe} role="tab" aria-selected={i.informe === sel} className={'pr-inf' + (i.informe === sel ? ' on' : '')} onClick={() => setSel(i.informe)}>
+                    <b>INF {i.informe}</b>
+                    <span>{i.cliente}{i.ibm ? ` · IBM ${i.ibm}` : ''}</span>
+                    <em>{i.colocados}/{i.aptos} colocados</em>
+                  </button>
+                ))}
+                {listaInf.length === 0 && <span className="pr-muted">Ningún informe coincide con “{q}”.</span>}
+              </div>
+            )}
+        </div>
+
+        {sel && infSel && (
+          <>
+            <div className="pr-progress">
+              <div>
+                <div className="pr-big">{col}<em> / {aptos.length}</em></div>
+                <div className="pr-muted">tags colocados del informe {sel}</div>
+              </div>
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <div className="pr-bar"><i style={{ width: pct + '%' }} /></div>
+                <div className="pr-legend">
+                  <span><i style={{ background: EST.colocado.spine }} />{col} colocados</span>
+                  <span><i style={{ background: EST.grabado.spine }} />{gra} grabados</span>
+                  <span><i style={{ background: '#6E6C69' }} />{pen} pendientes</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', padding: '0 20px 12px' }}>
+              {[['all', 'Todos'], ['pendiente', 'Pendientes'], ['grabado', 'Grabados'], ['colocado', 'Colocados']].map(([v, l]) => (
+                <button key={v} className={'fchip' + (fEst === v ? ' on' : '')} onClick={() => setFEst(v)}>{l}</button>
+              ))}
+            </div>
+
+            {loadingItems && !items ? <Spinner label="Cargando ítems…" />
+              : itemsErr ? <div style={{ padding: '0 20px 16px' }}><ErrorNote error={itemsErr} /></div>
+              : (
+                <div className="pr-ledger">
+                  <div className="pr-row pr-head"><div /><div>Pieza</div><div className="pr-hide">Resultado</div><div className="pr-hide">Tag</div><div /></div>
+                  {visibles.map((it) => <ItemRow key={it.tag_id + '-' + it.asset_id} it={it} onGrabar={() => setGrabar(it)} onEstado={setEstado} />)}
+                  {visibles.length === 0 && <div className="pr-empty">No hay piezas con ese estado.</div>}
+                </div>
+              )}
+          </>
+        )}
+      </div>
+
+      {grabar && (
+        <GrabarPanel
+          it={grabar}
+          onClose={() => setGrabar(null)}
+          onDone={() => { const it = grabar; setGrabar(null); setEstado(it, 'grabado', 'Tag grabado · falta colocarlo'); }}
+          toast={toast}
+        />
+      )}
+    </div>
+  );
+}
+
+function ItemRow({ it, onGrabar, onEstado }) {
+  const e = estadoDe(it);
+  const st = EST[e];
+  let action;
+  if (e === 'na') action = <span className="pr-muted">No aplica</span>;
+  else if (e === 'pendiente') action = <button className="axt-btn small primary" onClick={onGrabar}>Grabar tag</button>;
+  else if (e === 'grabado') action = (
+    <span className="pr-actions">
+      <button className="axt-x sm" title="Deshacer: volver a pendiente" aria-label="Deshacer grabado" onClick={() => onEstado(it, 'pendiente', 'Volvió a pendiente')}><Undo2 size={13} /></button>
+      <button className="axt-btn small" onClick={() => onEstado(it, 'colocado', 'Marcado como colocado')}>Marcar colocado</button>
+    </span>
+  );
+  else action = (
+    <span className="pr-actions">
+      <button className="axt-x sm" title="Deshacer: volver a grabado" aria-label="Deshacer colocado" onClick={() => onEstado(it, 'grabado', 'Volvió a grabado')}><Undo2 size={13} /></button>
+      <span className="pr-ok">✓ Listo</span>
+    </span>
+  );
+
+  return (
+    <div className="pr-row">
+      <div className="pr-spine" style={{ background: st.spine }} />
+      <div className="pr-cell" style={{ minWidth: 0 }}>
+        <div className="pr-serial">{it.code}</div>
+        <div className="pr-desc">{it.name}</div>
+        <div className="pr-mobile-st" style={{ color: st.color }}>{st.label}</div>
+      </div>
+      <div className="pr-cell pr-hide">
+        <span className={'pr-badge ' + (it.apto ? 'ok' : 'bad')}>{it.resultado || '—'}</span>
+      </div>
+      <div className="pr-cell pr-hide">
+        <span className="pr-pill" style={{ color: st.color, background: st.bg, borderColor: st.line }}>{st.label}</span>
+      </div>
+      <div className="pr-cell" style={{ textAlign: 'right' }}>{action}</div>
+    </div>
+  );
+}
+
+function GrabarPanel({ it, onClose, onDone, toast }) {
+  const url = tagUrl(it.token);
+  const [qr, setQr] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [writing, setWriting] = useState(null);
+  const canWrite = typeof window !== 'undefined' && 'NDEFReader' in window;
+
+  useEffect(() => {
+    QRCode.toDataURL(url, { margin: 1, width: 360, color: { dark: '#0A0A0C', light: '#FFFFFF' } }).then(setQr).catch(() => setQr(null));
+  }, [url]);
+  useEffect(() => () => writing && writing.abort(), [writing]);
+  useEffect(() => {
+    const onKey = (e) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(url); } catch { /* sin permiso de portapapeles */ }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  async function writeNfc() {
+    const ctrl = new AbortController();
+    setWriting(ctrl);
+    try {
+      const w = new window.NDEFReader();
+      await w.write({ records: [{ recordType: 'url', data: url }] }, { signal: ctrl.signal });
+      setWriting(null);
+      onDone();
+    } catch (e) {
+      setWriting(null);
+      if (e.name !== 'AbortError') toast('No se pudo grabar desde el teléfono. Usá NFC Tools. (' + e.message + ')');
+    }
+  }
+
+  return (
+    <>
+      <div className="axt-overlay" onClick={onClose} />
+      <aside className="pr-panel" role="dialog" aria-label={'Grabar tag de ' + it.code}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
+          <div style={{ minWidth: 0 }}>
+            <div className="pr-eyebrow">Grabar tag</div>
+            <div className="pr-serial" style={{ fontSize: 20, margin: '6px 0 4px' }}>{it.code}</div>
+            <div className="pr-desc">{it.name}</div>
+            <div className="pr-muted" style={{ marginTop: 4 }}>{it.cliente}{it.ibm ? ` · IBM ${it.ibm}` : ''}</div>
+          </div>
+          <button className="axt-x sm" onClick={onClose} aria-label="Cerrar"><X size={15} /></button>
+        </div>
+
+        {qr && <img src={qr} alt={'QR del tag de ' + it.code} className="pr-qr" />}
+        <div className="pr-url">{url}</div>
+        <button className="axt-btn" style={{ width: '100%' }} onClick={copy}>
+          {copied ? <><Check size={14} /> Copiada</> : <><Copy size={14} /> Copiar URL</>}
+        </button>
+
+        {canWrite && (
+          <button className="axt-btn" style={{ width: '100%', marginTop: 8 }} onClick={writing ? () => writing.abort() : writeNfc}>
+            {writing ? <><Loader2 size={14} className="spin" /> Acercá el DATABAND2… (tocá para cancelar)</> : <><Smartphone size={14} /> Grabar desde este teléfono</>}
+          </button>
+        )}
+
+        <ol className="pr-steps">
+          <li>Abrí <b>NFC Tools</b> → Escribir → Agregar registro → <b>URL</b></li>
+          <li>Pegá la URL copiada</li>
+          <li>Tocá Escribir y acercá el <b>DATABAND2</b> al teléfono</li>
+        </ol>
+
+        <button className="axt-btn primary" style={{ width: '100%' }} onClick={onDone}>Ya lo grabé</button>
+      </aside>
+    </>
+  );
+}
