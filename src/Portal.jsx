@@ -31,7 +31,7 @@ export default function Portal({ onPick, Logo }) {
             <span className="pt-steel">OLYMPUS</span><br />
             <span className="pt-gold">TRACE</span>
           </h1>
-          <p className="pt-lead">Elegí tu acceso. Cada lado tiene su propio usuario y ve solo lo que le corresponde.</p>
+          <p className="pt-lead">Elegí tu acceso para continuar.</p>
         </section>
 
         <div className="pt-doors">
@@ -49,7 +49,7 @@ export default function Portal({ onPick, Logo }) {
           ))}
         </div>
 
-        <p className="pt-foot">Un solo sistema, una sola base: la pieza que carga Precintos es la misma que ve el Cliente al escanear.</p>
+        <p className="pt-foot">Trazabilidad de activos, de la inspección al campo.</p>
       </main>
     </div>
   );
