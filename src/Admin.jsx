@@ -433,6 +433,10 @@ function AdminPanel({ toast, onChanged }) {
     catch (e) { toast(e.message); }
   }
   async function delClient(id) {
+    const c = (clients.data || []).find((x) => x.id === id);
+    const n = c ? c.users : 0;
+    const msg = `¿Borrar la empresa "${c ? c.name : ''}"?` + (n === 1 ? '\nTambién se borra su usuario.' : n > 1 ? `\nTambién se borran sus ${n} usuarios.` : '') + '\nNo se puede deshacer.';
+    if (!window.confirm(msg)) return;
     try { await api('/api/clients/' + id, { method: 'DELETE' }); toast('Cliente eliminado'); reload(); }
     catch (e) { toast(e.message); }
   }
