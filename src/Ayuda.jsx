@@ -90,6 +90,7 @@ function GuiaCliente() {
           <li><b>Arriba:</b> tipo de pieza, empresa, IBM, descripción, <b>Nº de serie</b> y el estado general.</li>
           <li><b>Certificados:</b> cada inspección de BM, con el número de informe, el resultado (<b>APTO</b> / <b>NO APTO</b>), la presión, el texto del precinto, la fecha de emisión, la de vencimiento y cuántos días faltan.</li>
           <li>Si BM habilitó el informe, aparece el botón <b>Ver informe (BM)</b> para abrirlo.</li>
+          <li>Si la pieza tuvo <b>inspecciones anteriores</b>, quedan abajo como historial, marcadas <b>Anterior</b>. El estado de la pieza sale siempre de su inspección más reciente.</li>
           <li><b>Abajo:</b> con qué usuario estás, <b>Ir a Olympus</b> (tu pantalla completa) y <b>Salir</b>.</li>
         </ul>
       </Sec>
@@ -100,6 +101,7 @@ function GuiaCliente() {
           <div><Pill status="due" /><span>Vence en <b>60 días o menos</b>. Conviene coordinar la próxima inspección con BM.</span></div>
           <div><Pill status="overdue" /><span>La fecha de vencimiento <b>ya pasó</b>.</span></div>
           <div><Pill status="sin_cert" /><span>La pieza está registrada pero todavía no tiene inspecciones cargadas.</span></div>
+          <div><Pill status="anterior" /><span>Inspección reemplazada por una más nueva. Queda como historial y no cuenta para el estado de la pieza.</span></div>
         </div>
       </Sec>
 

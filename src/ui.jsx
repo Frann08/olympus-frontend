@@ -7,6 +7,7 @@ export const STATUS = {
   due:       { label: 'Por vencer', color: '#EDA53C', band: 'amber' },
   overdue:   { label: 'Vencido',    color: '#E5605C', band: 'red' },
   sin_cert:  { label: 'Sin certificados', color: '#727E8B', band: 'gray' },
+  anterior:  { label: 'Anterior', color: '#727E8B', band: 'gray' },
 };
 const MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 export const fmtDate = (d) => {
@@ -103,7 +104,9 @@ export function CertRow({ c, last, onDownload }) {
       </div>
       <div style={{ textAlign: 'right' }}>
         <Pill status={c.status} />
-        <div style={{ font: '600 12px "IBM Plex Mono", monospace', color: (STATUS[c.status] || STATUS.sin_cert).color, marginTop: 5 }}>{daysLabel(c.expires_date)}</div>
+        <div style={{ font: '600 12px "IBM Plex Mono", monospace', color: (STATUS[c.status] || STATUS.sin_cert).color, marginTop: 5 }}>
+          {c.status === 'anterior' ? 'reemplazada' : daysLabel(c.expires_date)}
+        </div>
       </div>
     </div>
   );
