@@ -95,7 +95,7 @@ export default function App() {
           <div className="role-chip"><RoleIcon size={15} color="#D9B44A" /><span>{role.label}</span></div>
           <div className="hdr-user" style={{ textAlign: 'right', lineHeight: 1.3 }}>
             <div style={{ font: '600 13px "IBM Plex Sans"', color: '#DCE3E9' }}>{user.name}</div>
-            <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#6A7681' }}>{user.email}</div>
+            <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#6A7681' }}>{user.username || user.email}</div>
           </div>
           <button className="axt-x" onClick={() => { logout(); setUser(null); setDoor(null); }} title="Cerrar sesión" aria-label="Cerrar sesión"><LogOut size={17} /></button>
         </div>
@@ -126,7 +126,7 @@ export default function App() {
 }
 
 function Login({ side, onBack, onSwitch, onLogin }) {
-  const [email, setEmail] = useState('');
+  const [usuario, setUsuario] = useState('');
   const [password, setPassword] = useState('');
   const [err, setErr] = useState(null);
   const [otroLado, setOtroLado] = useState(null);
@@ -134,9 +134,9 @@ function Login({ side, onBack, onSwitch, onLogin }) {
 
   async function submit(e) {
     e && e.preventDefault();
-    if (!email || !password) { setErr('Completá email y contraseña'); return; }
+    if (!usuario || !password) { setErr('Completá usuario y contraseña'); return; }
     setBusy(true); setErr(null); setOtroLado(null);
-    try { const u = await login(email.trim(), password, side); onLogin(u); }
+    try { const u = await login(usuario.trim(), password, side); onLogin(u); }
     catch (e2) { setErr(e2.message); setOtroLado(e2.ladoCorrecto && e2.ladoCorrecto !== side ? e2.ladoCorrecto : null); }
     finally { setBusy(false); }
   }
@@ -150,8 +150,8 @@ function Login({ side, onBack, onSwitch, onLogin }) {
         <h1 style={{ font: '700 22px "Oswald", sans-serif', color: '#EAF0F3', margin: '6px 0 4px' }}>Ingresar</h1>
         <p style={{ font: '400 13px "IBM Plex Sans"', color: '#8B98A5', margin: '0 0 22px' }}>Usá el usuario que te dio Administración.</p>
 
-        <label className="fld" style={{ marginBottom: 12 }}><span>Email</span>
-          <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nombre@empresa.com" autoFocus />
+        <label className="fld" style={{ marginBottom: 12 }}><span>Usuario</span>
+          <input type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" value={usuario} onChange={(e) => setUsuario(e.target.value)} placeholder="tu usuario" autoFocus />
         </label>
         <label className="fld" style={{ marginBottom: 16 }}><span>Contraseña</span>
           <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />

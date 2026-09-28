@@ -7,11 +7,11 @@ export function getUser() { return user; }
 export function isAuthed() { return !!token; }
 
 // lado: puerta del portal ('cliente' | 'operador' | 'admin'); el servidor rechaza otros roles
-export async function login(email, password, lado) {
+export async function login(usuario, password, lado) {
   const res = await fetch(`${API}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, lado }),
+    body: JSON.stringify({ usuario, password, lado }),
   });
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
