@@ -270,3 +270,10 @@ body { margin: 0; background: #0A0A0B; }
 .ibm-chip { display: inline-flex; align-items: center; gap: 6px; font: 600 11.5px "IBM Plex Mono", monospace; color: #A9A7A2; background: #17171A; border: 1px solid #26262B; border-radius: 6px; padding: 5px 9px; cursor: pointer; }
 .ibm-chip.on { color: #E7C15A; background: #1C1707; border-color: #8A7233; }
 .ibm-note { font: 400 11.5px "IBM Plex Sans"; color: #8A97A2; }
+
+/* ---------- escaneo del tag (?tag=) ---------- */
+.tag-aviso { font: 500 12.5px "IBM Plex Sans"; color: #E7C15A; background: #1E1A0E; border: 1px solid #3A3216; border-radius: 8px; padding: 9px 12px; margin-bottom: 14px; }
+.tag-foot { margin-top: 20px; padding-top: 14px; border-top: 1px solid #201C24; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; font: 400 11.5px "IBM Plex Mono", monospace; color: #6A7681; }
+.tag-foot b { color: #9AA6B1; font-weight: 500; }
+.tag-foot-btns { display: flex; gap: 8px; }
+.phone.tag-phone { position: relative; top: auto; left: auto; transform: none; max-height: none; z-index: 1; animation: fadeUp .3s ease; }
