@@ -13,6 +13,7 @@ const EST = {
   na: { label: 'Sin precinto', color: '#E5645C', bg: '#241211', line: '#3C1E1C', spine: '#E5645C' },
 };
 const estadoDe = (it) => (it.apto ? it.estado : 'na');
+const keyInf = (i) => `${i.client_id}|${i.ibm || ''}|${i.informe}`;
 const tagUrl = (token) => `${window.location.origin}/?tag=${token}`;
 
 export default function Precintos({ toast }) {
@@ -26,25 +27,30 @@ export default function Precintos({ toast }) {
   const [fEst, setFEst] = useState('all');
   const [grabar, setGrabar] = useState(null);
 
-  const loadInformes = useCallback(async (pick) => {
+  const loadInformes = useCallback(async (pickKey) => {
     try {
       const r = await api('/api/precintos/informes');
       setInformes(r);
       setErr(null);
-      setSel((cur) => pick || cur || (r[0] && r[0].informe) || null);
-    } catch (e) { setErr(e.message); }
+      setSel((cur) => pickKey || cur || (r[0] && keyInf(r[0])) || null);
+      return r;
+    } catch (e) { setErr(e.message); return []; }
   }, []);
 
-  const loadItems = useCallback(async (num) => {
-    if (!num) { setItems(null); return; }
+  const loadItems = useCallback(async (inf) => {
+    if (!inf) { setItems(null); return; }
     setLoadingItems(true);
-    try { setItems(await api('/api/precintos/informes/' + encodeURIComponent(num))); setItemsErr(null); }
-    catch (e) { setItems([]); setItemsErr(e.message); }
+    try {
+      const qs = `?client=${encodeURIComponent(inf.client_id)}&ibm=${encodeURIComponent(inf.ibm || '')}`;
+      setItems(await api('/api/precintos/informes/' + encodeURIComponent(inf.informe) + qs));
+      setItemsErr(null);
+    } catch (e) { setItems([]); setItemsErr(e.message); }
     finally { setLoadingItems(false); }
   }, []);
 
   useEffect(() => { loadInformes(); }, [loadInformes]);
-  useEffect(() => { setFEst('all'); loadItems(sel); }, [sel, loadItems]);
+
+  useEffect(() => { setFEst('all'); loadItems(infSel); /* eslint-disable-next-line */ }, [sel]);
 
   async function setEstado(it, estado, msg) {
     try {
@@ -55,10 +61,16 @@ export default function Precintos({ toast }) {
     } catch (e) { toast('No se pudo actualizar: ' + e.message); }
   }
 
-  function onImported(rows) {
-    const num = rows && rows[0] && String(rows[0].informe).trim();
-    loadInformes(num);
-    if (num && num === sel) loadItems(num);
+  async function onImported(rows) {
+    const row = rows && rows[0];
+    const lista = await loadInformes();
+    if (!row) return;
+    const cli = String(row.cliente || '').trim().toLowerCase();
+    const ibm = String(row.ibm || '').trim();
+    const num = String(row.informe || '').trim();
+    const match = (lista || []).find((i) =>
+      String(i.informe) === num && String(i.ibm || '') === ibm && String(i.cliente || '').toLowerCase() === cli);
+    if (match) { setSel(keyInf(match)); loadItems(match); }
   }
 
   const aptos = (items || []).filter((x) => x.apto);
@@ -70,7 +82,7 @@ export default function Precintos({ toast }) {
   const qn = q.trim().toLowerCase();
   const listaInf = (informes || []).filter((i) => !qn || String(i.informe).toLowerCase().includes(qn) || (i.cliente || '').toLowerCase().includes(qn));
   const visibles = (items || []).filter((x) => fEst === 'all' || estadoDe(x) === fEst);
-  const infSel = (informes || []).find((i) => i.informe === sel);
+  const infSel = (informes || []).find((i) => keyInf(i) === sel) || null;
 
   return (
     <div>
@@ -96,7 +108,7 @@ export default function Precintos({ toast }) {
             ) : (
               <div className="pr-infs" role="tablist" aria-label="Informes">
                 {listaInf.map((i) => (
-                  <button key={i.informe} role="tab" aria-selected={i.informe === sel} className={'pr-inf' + (i.informe === sel ? ' on' : '')} onClick={() => setSel(i.informe)}>
+                  <button key={keyInf(i)} role="tab" aria-selected={keyInf(i) === sel} className={'pr-inf' + (keyInf(i) === sel ? ' on' : '')} onClick={() => setSel(keyInf(i))}>
                     <b>INF {i.informe}</b>
                     <span>{i.cliente}{i.ibm ? ` · IBM ${i.ibm}` : ''}</span>
                     <em>{i.colocados}/{i.aptos} colocados</em>
@@ -112,7 +124,7 @@ export default function Precintos({ toast }) {
             <div className="pr-progress">
               <div>
                 <div className="pr-big">{col}<em> / {aptos.length}</em></div>
-                <div className="pr-muted">tags colocados del informe {sel}</div>
+                <div className="pr-muted">tags colocados del informe {infSel.informe}{infSel.ibm ? ` · IBM ${infSel.ibm}` : ''}</div>
               </div>
               <div style={{ flex: 1, minWidth: 220 }}>
                 <div className="pr-bar"><i style={{ width: pct + '%' }} /></div>
