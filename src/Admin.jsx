@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Boxes, Clock, Radio, Tag, ChevronRight, Search, X, CheckCircle2, Plus, Building2, Copy, Check, QrCode, Upload, FileDown, AlertTriangle, Users, UserPlus, Trash2, ChevronDown, Pencil } from 'lucide-react';
+import { Boxes, Clock, Radio, Tag, ChevronRight, Search, X, CheckCircle2, Plus, Building2, Copy, Check, QrCode, Upload, FileDown, AlertTriangle, Users, UserPlus, Trash2, ChevronDown, Pencil, DatabaseBackup, Loader2 } from 'lucide-react';
 import QRCode from 'qrcode';
 import * as XLSX from 'xlsx';
-import { api } from './api.js';
+import { api, downloadBackup } from './api.js';
 import { useData, Band, Pill, EncChip, StatTile, CertRow, Spinner, ErrorNote, daysLabel } from './ui.jsx';
 
 export default function Admin({ toast }) {
@@ -28,6 +28,7 @@ export default function Admin({ toast }) {
     <>
       <AdminPanel toast={toast} onChanged={() => setRev((r) => r + 1)} />
       <ImportPanel toast={toast} onImported={() => setRev((r) => r + 1)} />
+      <BackupCard toast={toast} onRestored={() => setRev((r) => r + 1)} />
 
       <div className="axt-kpis" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
         {stats.loading ? <div className="axt-card axt-tile"><Spinner label="…" /></div> : stats.error ? null : (
@@ -600,6 +601,63 @@ function IbmPicker({ options, value, onChange }) {
           {sel.length === 0 && <div className="ibm-note" style={{ color: '#EDA53C', marginTop: 6 }}>Elegí al menos un IBM.</div>}
         </>
       )}
+    </div>
+  );
+}
+
+/* ============ Respaldo de la base (solo Administración) ============ */
+function BackupCard({ toast, onRestored }) {
+  const [busy, setBusy] = useState(null); // 'down' | 'up'
+
+  async function descargar() {
+    setBusy('down');
+    try { await downloadBackup(); toast('Respaldo descargado'); }
+    catch (e) { toast(e.message); }
+    finally { setBusy(null); }
+  }
+
+  function elegir(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      let dump;
+      try { dump = JSON.parse(ev.target.result); }
+      catch { toast('El archivo no es un respaldo válido'); return; }
+      if (!dump || dump.app !== 'olympus-trace') { toast('Ese archivo no es un respaldo de Olympus'); return; }
+      const fecha = dump.at ? new Date(dump.at).toLocaleString('es-AR') : 'fecha desconocida';
+      if (!window.confirm(`Vas a REEMPLAZAR todos los datos actuales por el respaldo del ${fecha}.\nSe pierde lo que haya ahora y no se puede deshacer.\n\n¿Continuar?`)) return;
+      setBusy('up');
+      try {
+        const r = await api('/api/restore', { method: 'POST', body: JSON.stringify(dump) });
+        const total = Object.values(r.counts || {}).reduce((a, b) => a + b, 0);
+        toast('Respaldo recargado (' + total + ' registros). Puede que tengas que volver a entrar.');
+        onRestored && onRestored();
+      } catch (e2) { toast(e2.message); }
+      finally { setBusy(null); }
+    };
+    reader.readAsText(file);
+  }
+
+  return (
+    <div className="axt-card" style={{ padding: 20, marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
+        <DatabaseBackup size={17} color="#D9B44A" />
+        <span style={{ font: '600 15px "Oswald", sans-serif', color: '#EAF0F3' }}>Respaldo de la base</span>
+      </div>
+      <div style={{ font: '400 12px "IBM Plex Sans"', color: '#7A8792', marginBottom: 14, lineHeight: 1.5 }}>
+        Descargá una copia de toda la base (empresas, activos, inspecciones, usuarios y tags) y guardala. Si algún día se pierde, la recargás desde ese archivo. Guardá el archivo en un lugar seguro: contiene todos los datos.
+      </div>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <button className="axt-btn primary" onClick={descargar} disabled={busy}>
+          {busy === 'down' ? <Loader2 size={14} className="spin" /> : <FileDown size={14} />} Descargar respaldo
+        </button>
+        <label className="axt-btn" style={{ cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}>
+          {busy === 'up' ? <Loader2 size={14} className="spin" /> : <Upload size={14} />} Recargar respaldo…
+          <input type="file" accept=".json,application/json" style={{ display: 'none' }} onChange={elegir} disabled={!!busy} />
+        </label>
+      </div>
     </div>
   );
 }
