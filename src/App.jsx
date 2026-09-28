@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SlidersHorizontal, ScanLine, Smartphone, LogOut, Radio, WifiOff, Tag, ArrowLeft, Lock, SearchX } from 'lucide-react';
+import { SlidersHorizontal, ScanLine, Smartphone, LogOut, Radio, WifiOff, Tag, ArrowLeft, Lock, SearchX, HelpCircle } from 'lucide-react';
 import { login, logout, getUser, isAuthed, tagInfo } from './api.js';
 import { Band, Pill, CertRow, Spinner, ErrorNote, Toast } from './ui.jsx';
 import { useOnline } from './offline.js';
@@ -8,6 +8,7 @@ import Traza from './Traza.jsx';
 import Cliente from './Cliente.jsx';
 import Precintos from './Precintos.jsx';
 import Portal, { SIDE_NAME } from './Portal.jsx';
+import Ayuda, { HojaCliente, guiasPara } from './Ayuda.jsx';
 
 const ROLES = {
   admin:     { label: 'Administración', icon: SlidersHorizontal, who: 'Administración · empresas, usuarios, carga y codificación de activos' },
@@ -56,15 +57,35 @@ function OfflineBanner() {
 }
 
 export default function App() {
+  const params = new URLSearchParams(window.location.search);
   // Lo que abre el teléfono al escanear el NFC: ?tag=TOKEN (exige sesión)
-  const tagToken = new URLSearchParams(window.location.search).get('tag');
+  const tagToken = params.get('tag');
+  // Instructivos como página suelta: ?ayuda=cliente|precintos|traza (y &hoja=1 para imprimir)
+  const ayudaParam = params.get('ayuda');
 
   const [user, setUser] = useState(isAuthed() ? getUser() : null);
   const [door, setDoor] = useState(null);
   const [view, setView] = useState('admin');
   const [toast, setToast] = useState(null);
+  const [ayuda, setAyuda] = useState(null); // { guias, inicial } · se abre encima de la pantalla actual
 
-  if (tagToken) return <TagPage token={tagToken} user={user} onUser={setUser} />;
+  const esBM = !!user && user.role !== 'cliente';
+  const abrirAyuda = (guias, inicial) => setAyuda({ guias, inicial });
+  const overlay = ayuda && (
+    <Ayuda guias={ayuda.guias} inicial={ayuda.inicial} puedeImprimir={esBM} onClose={() => setAyuda(null)} />
+  );
+
+  if (ayudaParam != null) {
+    if (params.has('hoja') && ayudaParam === 'cliente') return <HojaCliente />;
+    return <Ayuda pagina guias={guiasPara(ayudaParam)} inicial={ayudaParam} puedeImprimir={esBM} Logo={Logo} />;
+  }
+
+  if (tagToken) return (
+    <>
+      <TagPage token={tagToken} user={user} onUser={setUser} onAyuda={() => abrirAyuda(['cliente'], 'cliente')} />
+      {overlay}
+    </>
+  );
 
   const showToast = (m) => {
     setToast(m);
@@ -76,8 +97,10 @@ export default function App() {
       <div className="axt">
         <div className="axt-haz" />
         {door
-          ? <Login side={door} onBack={() => setDoor(null)} onSwitch={setDoor} onLogin={(u) => { setView('admin'); setUser(u); }} />
-          : <Portal onPick={setDoor} Logo={Logo} />}
+          ? <Login side={door} onBack={() => setDoor(null)} onSwitch={setDoor} onLogin={(u) => { setView('admin'); setUser(u); }}
+              onAyuda={() => abrirAyuda(guiasPara(door), door === 'operador' ? 'precintos' : door)} />
+          : <Portal onPick={setDoor} Logo={Logo} onAyuda={() => abrirAyuda(guiasPara('admin'), 'cliente')} />}
+        {overlay}
       </div>
     );
   }
@@ -97,6 +120,7 @@ export default function App() {
             <div style={{ font: '600 13px "IBM Plex Sans"', color: '#DCE3E9' }}>{user.name}</div>
             <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#6A7681' }}>{user.username || user.email}</div>
           </div>
+          <button className="axt-x" onClick={() => abrirAyuda(guiasPara(user.role), user.role === 'admin' ? view : user.role)} title="Ayuda" aria-label="Ayuda"><HelpCircle size={17} /></button>
           <button className="axt-x" onClick={() => { logout(); setUser(null); setDoor(null); }} title="Cerrar sesión" aria-label="Cerrar sesión"><LogOut size={17} /></button>
         </div>
       </header>
@@ -121,11 +145,12 @@ export default function App() {
       </div>
 
       {toast && <Toast msg={toast} />}
+      {overlay}
     </div>
   );
 }
 
-function Login({ side, onBack, onSwitch, onLogin }) {
+function Login({ side, onBack, onSwitch, onLogin, onAyuda }) {
   const [usuario, setUsuario] = useState('');
   const [password, setPassword] = useState('');
   const [err, setErr] = useState(null);
@@ -173,6 +198,7 @@ function Login({ side, onBack, onSwitch, onLogin }) {
           {busy ? 'Ingresando…' : 'Ingresar'}
         </button>
         <p style={{ font: '400 11.5px "IBM Plex Sans"', color: '#6E6C69', margin: '16px 0 0', textAlign: 'center' }}>¿No tenés acceso? Pedíselo a Administración de Olympus.</p>
+        <p style={{ margin: '10px 0 0', textAlign: 'center' }}><button type="button" className="ay-link" onClick={onAyuda}>¿Primera vez? Ver el instructivo</button></p>
       </form>
     </div>
   );
@@ -183,7 +209,7 @@ function Login({ side, onBack, onSwitch, onLogin }) {
    Sin sesión no se muestra ningún dato: primero hay que entrar.
    El servidor decide si la pieza le corresponde a ese usuario.
 ============================================================ */
-function TagPage({ token, user, onUser }) {
+function TagPage({ token, user, onUser, onAyuda }) {
   const [aviso, setAviso] = useState(null);
   const salir = () => { logout(); setAviso(null); onUser(null); };
   return (
@@ -192,14 +218,14 @@ function TagPage({ token, user, onUser }) {
       {user
         ? <TagView token={token} user={user} onSalir={salir}
             onExpired={() => { setAviso('Tu sesión venció. Volvé a entrar para ver la pieza.'); onUser(null); }} />
-        : <TagLogin aviso={aviso} onLogin={(u) => { setAviso(null); onUser(u); }} />}
+        : <TagLogin aviso={aviso} onAyuda={onAyuda} onLogin={(u) => { setAviso(null); onUser(u); }} />}
     </div>
   );
 }
 
 const irAOlympus = () => { window.location.href = window.location.origin + '/'; };
 
-function TagLogin({ aviso, onLogin }) {
+function TagLogin({ aviso, onLogin, onAyuda }) {
   const [usuario, setUsuario] = useState('');
   const [password, setPassword] = useState('');
   const [err, setErr] = useState(null);
@@ -240,6 +266,7 @@ function TagLogin({ aviso, onLogin }) {
           {busy ? 'Ingresando…' : 'Ver pieza'}
         </button>
         <p style={{ font: '400 11.5px "IBM Plex Sans"', color: '#6E6C69', margin: '16px 0 0', textAlign: 'center' }}>¿No tenés acceso? Pedíselo a Administración de Olympus.</p>
+        <p style={{ margin: '10px 0 0', textAlign: 'center' }}><button type="button" className="ay-link" onClick={onAyuda}>¿Cómo funciona? Ver el instructivo</button></p>
       </form>
     </div>
   );

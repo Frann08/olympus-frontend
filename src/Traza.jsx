@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ScanLine, Tag, X, Trash2, PackageCheck, Package, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { api } from './api.js';
-import { STATUS, Spinner, ErrorNote } from './ui.jsx';
+import { STATUS, Spinner } from './ui.jsx';
 
 // EPCs del seed para simular lecturas de la pistola (existen en la base)
 const DEMO_EPCS = [
@@ -16,48 +16,49 @@ const DEMO_EPCS = [
 export default function Traza({ toast }) {
   const [entradaId, setEntradaId] = useState(null);
   const [items, setItems] = useState([]);
-  const [remito, setRemito] = useState('REM-004823');
-  const [origen, setOrigen] = useState('Base Añelo');
+  const [remito, setRemito] = useState('');
+  const [origen, setOrigen] = useState('');
   const [scanning, setScanning] = useState(false);
-  const [error, setError] = useState(null);
-  const [recent, setRecent] = useState([]);
+  const [recent, setRecent] = useState(null);
 
-  async function newEntrada() {
-    setItems([]);
-    try {
-      const e = await api('/api/entradas', { method: 'POST', body: JSON.stringify({ remito, origen }) });
-      setEntradaId(e.id);
-      setError(null);
-    } catch (e) { setError(e.message); }
-  }
   async function loadRecent() {
-    try { setRecent(await api('/api/entradas')); } catch { /* noop */ }
+    try { setRecent(await api('/api/entradas')); } catch { setRecent([]); }
   }
-  useEffect(() => { newEntrada(); loadRecent(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { loadRecent(); }, []);
 
+  // La entrada se crea con el primer tag leído, así guarda el remito y el origen que se escribieron
   async function scan(epc) {
-    if (!entradaId || scanning) return;
+    if (scanning) return;
     setScanning(true);
     try {
-      const r = await api(`/api/entradas/${entradaId}/scan`, { method: 'POST', body: JSON.stringify({ epc }) });
-      const fresh = await api(`/api/entradas/${entradaId}`);
+      let id = entradaId;
+      if (!id) {
+        const e = await api('/api/entradas', { method: 'POST', body: JSON.stringify({ remito: remito.trim() || null, origen: origen.trim() || null }) });
+        id = e.id;
+        setEntradaId(id);
+        loadRecent();
+      }
+      const r = await api(`/api/entradas/${id}/scan`, { method: 'POST', body: JSON.stringify({ epc }) });
+      const fresh = await api(`/api/entradas/${id}`);
       setItems(fresh.items);
       if (r.duplicate) toast('Tag ya leído en esta entrada');
-      else if (!r.matched) toast('EPC sin activo asociado');
+      else if (!r.matched) toast('Tag sin pieza asociada');
     } catch (e) { toast(e.message); }
     finally { setScanning(false); }
   }
   async function removeItem(itemId) {
-    // el backend no expone borrado de ítem individual en esta versión; se refleja al reconfirmar
-    setItems((prev) => prev.filter((x) => x.id !== itemId));
+    try {
+      await api(`/api/entradas/${entradaId}/items/${itemId}`, { method: 'DELETE' });
+      setItems((prev) => prev.filter((x) => x.id !== itemId));
+      loadRecent();
+    } catch (e) { toast('No se pudo quitar: ' + e.message); }
   }
   async function confirmar() {
-    if (!items.length) return;
+    if (!items.length || !entradaId) return;
     try {
       const e = await api(`/api/entradas/${entradaId}/confirm`, { method: 'POST' });
-      toast(`Entrada ${e.remito || ''} confirmada · ${items.length} ítems`);
-      setRemito('REM-00' + (4824 + Math.floor(Math.random() * 9)));
-      await newEntrada();
+      toast(`Entrada ${e.remito || ''} confirmada · ${items.length} ${items.length === 1 ? 'ítem' : 'ítems'}`);
+      setEntradaId(null); setItems([]); setRemito(''); setOrigen('');
       await loadRecent();
     } catch (e) { toast(e.message); }
   }
@@ -70,12 +71,13 @@ export default function Traza({ toast }) {
         <div className="axt-card" style={{ padding: 20, marginBottom: 16 }}>
           <div className="axt-card-title">Datos de la entrada</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <label className="fld"><span>N.º de remito</span><input value={remito} onChange={(e) => setRemito(e.target.value)} /></label>
-            <label className="fld"><span>Origen / proveedor</span><input value={origen} onChange={(e) => setOrigen(e.target.value)} /></label>
+            <label className="fld"><span>N.º de remito</span><input value={remito} onChange={(e) => setRemito(e.target.value)} placeholder="Ej: REM-004823" disabled={!!entradaId} /></label>
+            <label className="fld"><span>Origen / proveedor</span><input value={origen} onChange={(e) => setOrigen(e.target.value)} placeholder="Ej: Base Añelo" disabled={!!entradaId} /></label>
+          </div>
+          <div style={{ font: '400 11.5px "IBM Plex Sans"', color: '#7A8792', marginTop: 10 }}>
+            {entradaId ? 'Entrada abierta: estos datos quedan fijos hasta confirmarla.' : 'Completalos antes de leer el primer tag.'}
           </div>
         </div>
-
-        {error && <div style={{ marginBottom: 16 }}><ErrorNote error={error} /></div>}
 
         <div className={'scan-zone' + (scanning ? ' on' : '')}>
           <div className="scan-ico">
@@ -83,10 +85,10 @@ export default function Traza({ toast }) {
             {scanning && <><span className="wave" /><span className="wave" style={{ animationDelay: '.4s' }} /></>}
           </div>
           <div style={{ font: '700 16px "Oswald", sans-serif', color: '#EAF0F3', marginTop: 14 }}>
-            {scanning ? 'Leyendo tag UHF…' : 'Simular lectura de la pistola'}
+            {scanning ? 'Leyendo tag UHF…' : 'Leer tags con la pistola'}
           </div>
           <div style={{ font: '400 12px "IBM Plex Sans"', color: '#7A8792', marginTop: 5, marginBottom: 14 }}>
-            Tocá un tag de prueba (o integrá tu lector enviando el EPC a la API)
+            Modo prueba: la pistola UHF se conecta en la próxima etapa. Tocá un tag para simular la lectura.
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
             {DEMO_EPCS.map((d) => (
@@ -117,7 +119,7 @@ export default function Traza({ toast }) {
                     <Tag size={15} color="#D9B44A" />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ font: '600 13px "IBM Plex Sans"', color: '#EAF0F3', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name || 'EPC desconocido'}</div>
+                    <div style={{ font: '600 13px "IBM Plex Sans"', color: '#EAF0F3', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name || 'Tag sin pieza asociada'}</div>
                     <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#7A8792', marginTop: 2 }}>{it.scanned_epc}{it.client ? ` · ${it.client}` : ''}</div>
                   </div>
                   {it.status && it.status !== 'certified' && (
@@ -125,14 +127,14 @@ export default function Traza({ toast }) {
                       <AlertTriangle size={12} /> {it.status === 'overdue' ? 'Cert vencido' : 'Por vencer'}
                     </span>
                   )}
-                  <button className="axt-x sm" onClick={() => removeItem(it.id)}><X size={15} /></button>
+                  <button className="axt-x sm" onClick={() => removeItem(it.id)} title="Quitar de la entrada" aria-label="Quitar de la entrada"><X size={15} /></button>
                 </div>
               ))}
             </div>
           )}
 
           <div style={{ padding: 14, borderTop: '1px solid #2A2732' }}>
-            <button className="axt-btn primary" style={{ width: '100%', opacity: items.length ? 1 : 0.5 }} onClick={confirmar}>
+            <button className="axt-btn primary" style={{ width: '100%', opacity: items.length ? 1 : 0.5 }} onClick={confirmar} disabled={!items.length}>
               <PackageCheck size={16} /> Confirmar entrada
             </button>
           </div>
@@ -142,7 +144,9 @@ export default function Traza({ toast }) {
       <div>
         <div className="axt-card" style={{ padding: 20 }}>
           <div className="axt-card-title">Entradas recientes</div>
-          {recent.length === 0 ? <Spinner label="…" /> : recent.slice(0, 8).map((h) => (
+          {recent === null ? <Spinner label="Cargando…" /> : recent.length === 0 ? (
+            <div style={{ font: '500 13px "IBM Plex Sans"', color: '#7A8792', padding: '10px 0' }}>Todavía no hay entradas.</div>
+          ) : recent.slice(0, 8).map((h) => (
             <div key={h.id} style={{ padding: '12px 0', borderBottom: '1px solid #201C24' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ font: '600 13px "IBM Plex Mono", monospace', color: '#EAF0F3' }}>{h.remito || `#${h.id}`}</span>
