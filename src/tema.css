@@ -6,6 +6,7 @@
    el HEX es el color nocturno original. Generado desde los colores de la app.
 ============================================================ */
 :root {
+  color-scheme: dark;
   --st-ok: #4FC98B; --st-due: #EDA53C; --st-bad: #E5605C; --st-gris: #727E8B;
   --grad-acero: linear-gradient(180deg, #fff, #C4CBD2);
   --grad-oro: linear-gradient(180deg, #F6E29A, #E7C15A 45%, #C79A3B);

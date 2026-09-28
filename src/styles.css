@@ -4,7 +4,9 @@
 html, body, #root { height: 100%; }
 body { margin: 0; background: var(--s-0A0A0B); }
 
-.axt { --bg:var(--s-0A0A0B); --surface:var(--s-141416); --border:var(--b-26262B); --teal:var(--t-E7C15A);
+/* variables comunes también fuera de .axt (ayuda como página suelta, hoja, etc.) */
+:root { --bg:var(--s-0A0A0B); --surface:var(--s-141416); --border:var(--b-26262B); --teal:var(--t-E7C15A); }
+.axt {
   font-family: "IBM Plex Sans", system-ui, sans-serif; color: var(--t-F3F1EC); background: var(--bg);
   min-height: 100vh; -webkit-font-smoothing: antialiased; }
 .axt code { font: 500 12px "IBM Plex Mono", monospace; color: var(--t-A9A7A2); background: var(--s-1A1A1D); padding: 1px 5px; border-radius: 4px; }
@@ -55,7 +57,8 @@ body { margin: 0; background: var(--s-0A0A0B); }
 .axt-input::placeholder { color: var(--t-5C6874); }
 .fld { display: flex; flex-direction: column; gap: 6px; }
 .fld span { font: 500 11px "IBM Plex Mono", monospace; color: var(--t-7A8792); letter-spacing: .5px; }
-.fld input { background: var(--s-151217); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; color: var(--t-EAF0F3); font: 500 13px "IBM Plex Sans"; outline: none; }
+.fld { min-width: 0; }
+.fld input { width: 100%; min-width: 0; background: var(--s-151217); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; color: var(--t-EAF0F3); font: 500 13px "IBM Plex Sans"; outline: none; }
 .fld input:focus { border-color: var(--b-8A6E2C); }
 
 /* table */
@@ -87,7 +90,7 @@ body { margin: 0; background: var(--s-0A0A0B); }
 .axt-enc-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--s-171419); border: 1px solid var(--b-2A2732); border-radius: 10px; padding: 14px 15px; }
 
 /* traza */
-.traza-grid { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
+.traza-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
 .scan-zone { background: var(--s-151217); border: 1.5px dashed var(--b-2E3A44); border-radius: 16px; padding: 28px 20px; text-align: center; transition: .18s; }
 .scan-zone.on { border-color: var(--teal); border-style: solid; background: var(--s-1B1609); }
 .scan-ico { position: relative; width: 60px; height: 60px; margin: 0 auto; border-radius: 16px; background: var(--s-110F15); border: 1px solid var(--b-2A2732); display: grid; place-items: center; }
@@ -138,7 +141,7 @@ body { margin: 0; background: var(--s-0A0A0B); }
 @keyframes ripple { 0% { transform: scale(.85); opacity: .7; } 100% { transform: scale(1.5); opacity: 0; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-@media (max-width: 1000px) { .axt-kpis { grid-template-columns: repeat(2,1fr) !important; } .traza-grid, .cli-grid { grid-template-columns: 1fr; } }
+@media (max-width: 1000px) { .axt-kpis { grid-template-columns: repeat(2,1fr) !important; } .traza-grid, .cli-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 560px) { .axt-content { padding: 16px 14px 60px; } .axt-chrome { padding: 14px 16px; } .who-bar { padding: 9px 16px; } .axt-search.sm { width: 160px; } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
@@ -258,8 +261,8 @@ body { margin: 0; background: var(--s-0A0A0B); }
 @media (prefers-reduced-motion: reduce) { .pt-door, .pr-panel, .pr-bar i { transition: none; animation: none; } }
 
 /* Panel de clientes y usuarios: dos columnas, apiladas en celular */
-.adm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-@media (max-width: 860px) { .adm-grid { grid-template-columns: 1fr; } }
+.adm-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 860px) { .adm-grid { grid-template-columns: minmax(0, 1fr); } }
 
 /* Selector de IBMs por usuario */
 .ibm-pick { background: var(--s-0F0E12); border: 1px solid var(--b-2A2732); border-radius: 10px; padding: 12px; display: grid; gap: 8px; }

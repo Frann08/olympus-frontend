@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Building2, Smartphone, ChevronRight, Radio, X, Wifi, WifiOff, RefreshCw,
   ScanLine, ClipboardList, CheckCircle2, Plus, Trash2, Loader2, History, ExternalLink, Save, Search, FileDown,
@@ -6,16 +6,21 @@ import {
 import * as XLSX from 'xlsx';
 import { api } from './api.js';
 import { getUser } from './api.js';
-import { Band, Pill, CertRow, Spinner, ErrorNote, daysLabel, daysFrom } from './ui.jsx';
+import { Band, Pill, CertRow, Spinner, ErrorNote, daysLabel, daysFrom, esNoApto, useEscape } from './ui.jsx';
 import { saveBundle, loadBundle, bundleAt, getQueue, saveQueue, useOnline, agoLabel } from './offline.js';
 
 const DUE = 60;
-const cstat = (exp) => { const d = daysFrom(exp); return d < 0 ? 'overdue' : d <= DUE ? 'due' : 'certified'; };
+// Estado de una inspección: NO APTO manda; si no, según los días que faltan para vencer
+const cstat = (c) => {
+  if (esNoApto(c)) return 'no_apto';
+  const d = daysFrom(c.expires_date);
+  return d < 0 ? 'overdue' : d <= DUE ? 'due' : 'certified';
+};
 // Una inspección reemplazada por otra más nueva (vigente === false) queda como historial
-const withStatus = (certs) => (certs || []).map((c) => ({ ...c, status: c.vigente === false ? 'anterior' : cstat(c.expires_date) }));
+const withStatus = (certs) => (certs || []).map((c) => ({ ...c, status: c.vigente === false ? 'anterior' : cstat(c) }));
 const astat = (certs) => {
-  const s = (certs || []).filter((c) => c.vigente !== false).map((c) => cstat(c.expires_date));
-  return s.includes('overdue') ? 'overdue' : s.includes('due') ? 'due' : s.length ? 'certified' : 'sin_cert';
+  const s = (certs || []).filter((c) => c.vigente !== false).map(cstat);
+  return s.includes('no_apto') ? 'no_apto' : s.includes('overdue') ? 'overdue' : s.includes('due') ? 'due' : s.length ? 'certified' : 'sin_cert';
 };
 
 export default function Cliente({ toast }) {
@@ -57,13 +62,15 @@ export default function Cliente({ toast }) {
     </div>
   );
 
-  const assets = bundle.map((a) => ({ ...a, certificates: withStatus(a.certificates), status: astat(a.certificates) }))
+  const lista = Array.isArray(bundle) ? bundle : [];
+  const assets = lista.map((a) => ({ ...a, certificates: withStatus(a.certificates), status: astat(a.certificates) }))
     .sort((a, b) => (a.next_expiry || '9999').localeCompare(b.next_expiry || '9999'));
-  const allCerts = assets.flatMap((a) => a.certificates).filter((c) => c.status !== 'anterior');
+  const allCerts = assets.flatMap((a) => a.certificates).filter((c) => c.status !== 'anterior' && c.status !== 'no_apto');
   const summary = {
     overdue: allCerts.filter((c) => daysFrom(c.expires_date) < 0).length,
     due30: allCerts.filter((c) => { const d = daysFrom(c.expires_date); return d >= 0 && d <= 30; }).length,
     due90: allCerts.filter((c) => { const d = daysFrom(c.expires_date); return d > 30 && d <= 90; }).length,
+    noApto: assets.filter((a) => a.status === 'no_apto').length,
   };
 
   const ibms = [...new Set(assets.map((a) => a.ibm).filter(Boolean))];
@@ -79,7 +86,8 @@ export default function Cliente({ toast }) {
     }
     return true;
   });
-  const EST = [['all', 'Todos'], ['certified', 'Vigentes'], ['due', 'Por vencer'], ['overdue', 'Vencidos']];
+  const EST = [['all', 'Todos'], ['certified', 'Vigentes'], ['due', 'Por vencer'], ['overdue', 'Vencidos'],
+    ...(summary.noApto ? [['no_apto', 'No aptos']] : [])];
 
   return (
     <div>
@@ -117,7 +125,7 @@ export default function Cliente({ toast }) {
             <Search size={14} color="var(--t-6E6C69)" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por serie, descripción o informe"
               style={{ border: 'none', outline: 'none', background: 'transparent', color: 'var(--t-F3F1EC)', font: '400 13px "IBM Plex Sans"', width: '100%' }} />
-            {q && <button className="axt-x sm" onClick={() => setQ('')}><X size={13} /></button>}
+            {q && <button className="axt-x sm" onClick={() => setQ('')} aria-label="Borrar búsqueda"><X size={13} /></button>}
           </div>
         </div>
 
@@ -146,7 +154,7 @@ export default function Cliente({ toast }) {
               </div>
               <div style={{ textAlign: 'right' }}>
                 <Pill status={a.status} />
-                <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-8A97A2)', marginTop: 4 }}>{daysLabel(a.next_expiry)}</div>
+                <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-8A97A2)', marginTop: 4 }}>{a.status === 'no_apto' ? 'no habilitada' : daysLabel(a.next_expiry)}</div>
               </div>
               <ChevronRight size={16} color="var(--t-5C6874)" />
             </button>
@@ -186,6 +194,11 @@ function ExpiringCard({ s }) {
           </div>
         ))}
       </div>
+      {s.noApto > 0 && (
+        <div style={{ marginTop: 12, font: '600 12.5px "IBM Plex Sans"', color: 'var(--st-bad)' }}>
+          {s.noApto} {s.noApto === 1 ? 'pieza NO APTA' : 'piezas NO APTAS'} en la última inspección
+        </div>
+      )}
     </div>
   );
 }
@@ -198,34 +211,59 @@ function Relevamiento({ assets, online, toast }) {
   const [saving, setSaving] = useState(false);
   const [nombre, setNombre] = useState('');
   const [hist, setHist] = useState([]);
+  const [histError, setHistError] = useState(false);
   const [detail, setDetail] = useState(null);
-  const setQ = (nq) => { setQueue(nq); saveQueue(nq); };
+  // La lista vive en una ref además del estado: el lector NFC queda escuchando y
+  // cada lectura tiene que sumar a la lista ACTUAL (no a la que había al empezar).
+  const queueRef = useRef(queue);
+  const setQ = (nq) => { queueRef.current = nq; setQueue(nq); saveQueue(nq); };
 
-  const loadHist = () => { if (online) api('/api/me/relevamientos').then(setHist).catch(() => {}); };
+  const loadHist = () => {
+    if (!online) { setHistError(true); return; }
+    api('/api/me/relevamientos').then((h) => { setHist(h); setHistError(false); }).catch(() => setHistError(true));
+  };
   useEffect(loadHist, [online]);
 
   const addToken = (token) => {
+    const actual = queueRef.current;
     const a = assets.find((x) => x.token === token);
-    if (queue.some((i) => i.token === token)) { toast('Ese tag ya está en esta lista'); return; }
-    setQ([...queue, { token, name: a ? a.name : 'Activo desconocido', status: a ? a.status : 'sin_cert', scanned_at: new Date().toISOString() }]);
-    toast(a ? 'Agregado: ' + a.name : 'Tag sin activo asociado');
+    if (actual.some((i) => i.token === token)) { toast('Ese tag ya está en esta lista'); return; }
+    setQ([...actual, { token, name: a ? a.name : 'Pieza no encontrada en tus activos', status: a ? a.status : 'sin_cert', scanned_at: new Date().toISOString() }]);
+    toast(a ? 'Agregado: ' + a.name : 'Tag sin pieza asociada en tus activos');
   };
+  const addRef = useRef(addToken);
+  addRef.current = addToken;
+
+  // Un solo lector a la vez; se apaga al tocar de nuevo o al salir de la pantalla
+  const lectorRef = useRef(null);
+  const pararScan = () => { if (lectorRef.current) lectorRef.current.abort(); lectorRef.current = null; setScanning(false); };
+  useEffect(() => () => { if (lectorRef.current) lectorRef.current.abort(); }, []);
 
   async function scan() {
-    if ('NDEFReader' in window) {
-      try {
-        const reader = new window.NDEFReader();
-        await reader.scan();
-        setScanning(true);
-        reader.onreading = (ev) => {
-          let url = null;
-          for (const rec of ev.message.records) {
-            try { const txt = new TextDecoder().decode(rec.data); if (txt && txt.indexOf('tag=') !== -1) url = txt; } catch { /* noop */ }
-          }
-          if (url) { const m = url.match(/tag=([A-Za-z0-9]+)/); if (m) addToken(m[1]); }
-        };
-      } catch (e) { setScanning(false); toast('No se pudo leer NFC (' + e.message + ')'); setPicker(true); }
-    } else { setPicker(true); }
+    if (lectorRef.current) { pararScan(); return; }
+    if (!('NDEFReader' in window)) { setPicker(true); return; }
+    const ctrl = new AbortController();
+    try {
+      const reader = new window.NDEFReader();
+      await reader.scan({ signal: ctrl.signal });
+      lectorRef.current = ctrl;
+      setScanning(true);
+      reader.onreading = (ev) => {
+        let url = null;
+        for (const rec of ev.message.records) {
+          try { const txt = new TextDecoder().decode(rec.data); if (txt && txt.indexOf('tag=') !== -1) url = txt; } catch { /* noop */ }
+        }
+        const m = url && url.match(/tag=([A-Za-z0-9]+)/);
+        if (m) addRef.current(m[1]); else toast('Ese tag no es de Olympus');
+      };
+      reader.onreadingerror = () => toast('No se pudo leer el tag, acercalo de nuevo');
+    } catch (e) {
+      ctrl.abort();
+      lectorRef.current = null;
+      setScanning(false);
+      toast(e && e.name === 'NotAllowedError' ? 'Permití el uso de NFC para escanear' : 'No se pudo activar el NFC: revisá que esté prendido');
+      setPicker(true);
+    }
   }
 
   async function guardar() {
@@ -250,7 +288,7 @@ function Relevamiento({ assets, online, toast }) {
         'Nº de serie': it.code || it.token || '',
         'Descripción': it.name || '',
         'IBM': it.ibm || '',
-        'Estado': estadoLabel(it.next_expiry),
+        'Estado': it.status === 'no_apto' ? 'No apto' : estadoLabel(it.next_expiry),
         'Vencimiento': vencMMAAAA(it.next_expiry),
         'Nº de informe': it.informe || '',
       }));
@@ -280,7 +318,7 @@ function Relevamiento({ assets, online, toast }) {
         </div>
 
         <button className="axt-btn primary" onClick={scan} style={{ marginBottom: 12, width: '100%' }}>
-          <ScanLine size={15} /> {scanning ? 'Escaneando… acercá un tag' : 'Escanear tag'}
+          <ScanLine size={15} /> {scanning ? 'Escaneando… acercá cada tag (tocá para terminar)' : 'Escanear tag'}
         </button>
 
         {queue.length === 0 ? (
@@ -293,7 +331,7 @@ function Relevamiento({ assets, online, toast }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ font: '600 12.5px "IBM Plex Sans"', color: 'var(--t-F3F1EC)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}</div>
                 </div>
-                <button className="axt-x sm" onClick={() => setQ(queue.filter((x) => x.token !== it.token))}><X size={14} /></button>
+                <button className="axt-x sm" onClick={() => setQ(queueRef.current.filter((x) => x.token !== it.token))} aria-label={'Quitar ' + it.name}><X size={14} /></button>
               </div>
             ))}
           </div>
@@ -315,7 +353,7 @@ function Relevamiento({ assets, online, toast }) {
         </div>
         {hist.length === 0 ? (
           <div style={{ padding: '28px 16px', textAlign: 'center', font: '500 13px "IBM Plex Sans"', color: 'var(--t-6E6C69)' }}>
-            Todavía no guardaste ninguna lista.
+            {histError ? 'Las listas guardadas se ven con conexión a internet.' : 'Todavía no guardaste ninguna lista.'}
           </div>
         ) : hist.map((h) => (
           <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 16px', borderBottom: '1px solid var(--b-1F1F23)' }}>
@@ -352,12 +390,13 @@ function fmtDateTime(s) {
 }
 
 function RelevDetail({ data, onClose, toast }) {
+  useEscape(onClose);
   return (
     <>
       <div className="axt-overlay" onClick={onClose} />
       <div className="phone" style={{ width: 360 }}>
         <div className="phone-notch" />
-        <div className="phone-bar"><ClipboardList size={13} color="var(--t-E7C15A)" /> <span>RELEVAMIENTO</span><button onClick={onClose} className="phone-x"><X size={16} /></button></div>
+        <div className="phone-bar"><ClipboardList size={13} color="var(--t-E7C15A)" /> <span>RELEVAMIENTO</span><button onClick={onClose} className="phone-x" aria-label="Cerrar"><X size={16} /></button></div>
         <div className="phone-screen">
           <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-8A97A2)', marginBottom: 12 }}>{fmtDateTime(data.created_at)} · {data.items.length} piezas</div>
           {data.items.map((it, i) => (
@@ -378,15 +417,16 @@ function RelevDetail({ data, onClose, toast }) {
 }
 
 function Picker({ assets, onPick, onClose }) {
+  useEscape(onClose);
   return (
     <>
       <div className="axt-overlay" onClick={onClose} />
       <div className="phone" style={{ width: 340 }}>
         <div className="phone-notch" />
-        <div className="phone-bar"><ScanLine size={13} color="var(--t-D9B44A)" /> <span>ELEGIR TAG</span><button onClick={onClose} className="phone-x"><X size={16} /></button></div>
+        <div className="phone-bar"><ScanLine size={13} color="var(--t-D9B44A)" /> <span>AGREGAR PIEZA</span><button onClick={onClose} className="phone-x" aria-label="Cerrar"><X size={16} /></button></div>
         <div className="phone-screen">
           <div style={{ font: '400 11.5px "IBM Plex Sans"', color: 'var(--t-7A8792)', marginBottom: 10 }}>
-            Sin lector NFC en este dispositivo: tocá un activo para agregarlo a la lista (simula el escaneo).
+            Este teléfono o navegador no puede leer tags NFC (funciona en Android con Chrome). Podés agregar la pieza eligiéndola de la lista.
           </div>
           {assets.map((a) => (
             <button key={a.id} className="cli-row" style={{ padding: '10px 4px' }} onClick={() => onPick(a.token)}>
@@ -405,12 +445,13 @@ function Picker({ assets, onPick, onClose }) {
 }
 
 function CertModal({ asset, onClose, toast }) {
+  useEscape(onClose);
   return (
     <>
       <div className="axt-overlay" onClick={onClose} />
       <div className="phone">
         <div className="phone-notch" />
-        <div className="phone-bar"><Radio size={13} color="var(--t-D9B44A)" /> <span>OLYMPUS TRACE</span><button onClick={onClose} className="phone-x"><X size={16} /></button></div>
+        <div className="phone-bar"><Radio size={13} color="var(--t-D9B44A)" /> <span>OLYMPUS TRACE</span><button onClick={onClose} className="phone-x" aria-label="Cerrar"><X size={16} /></button></div>
         <div className="phone-screen">
           <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', paddingBottom: 14, borderBottom: '1px solid var(--b-201C24)' }}>
             <Band status={asset.status} h={44} />

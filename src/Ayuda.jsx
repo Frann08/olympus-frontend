@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { ArrowLeft, X, Printer, Info, AlertTriangle, ChevronDown } from 'lucide-react';
 import { Pill } from './ui.jsx';
 import { BotonTema } from './tema.jsx';
+import { PUBLIC_URL } from './api.js';
 
 /* ============================================================
    AYUDA · instructivos de uso (Cliente, Precintos, Trazabilidad)
@@ -63,7 +64,7 @@ const IDX_CLIENTE = [
   ['activos', 'Mis activos'], ['relev', 'Relevamientos en campo'], ['senal', 'Sin señal'], ['faq', 'Preguntas frecuentes'],
 ];
 function GuiaCliente() {
-  const url = window.location.origin;
+  const url = PUBLIC_URL;
   return (
     <>
       <Sec id="entrar" n="1" titulo="Entrar a Olympus" img={{ src: 'c-login', alt: 'Pantalla de ingreso del lado Cliente', cap: 'Ingreso del lado Cliente.' }}>
@@ -102,6 +103,7 @@ function GuiaCliente() {
           <div><Pill status="due" /><span>Vence en <b>60 días o menos</b>. Conviene coordinar la próxima inspección con BM.</span></div>
           <div><Pill status="overdue" /><span>La fecha de vencimiento <b>ya pasó</b>.</span></div>
           <div><Pill status="sin_cert" /><span>La pieza está registrada pero todavía no tiene inspecciones cargadas.</span></div>
+          <div><Pill status="no_apto" /><span>La última inspección dio <b>NO APTO</b>: la pieza no está habilitada para usarse.</span></div>
           <div><Pill status="anterior" /><span>Inspección reemplazada por una más nueva. Queda como historial y no cuenta para el estado de la pieza.</span></div>
         </div>
       </Sec>
@@ -337,13 +339,17 @@ export default function Ayuda({ guias, inicial, onClose, pagina, puedeImprimir, 
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, [pagina]);
+  // onClose cambia en cada dibujo de la app: se guarda en una ref para no volver a
+  // mover el foco al botón "Volver" cada vez (solo al abrir)
+  const cerrar = useRef(onClose);
+  cerrar.current = onClose;
   useEffect(() => {
     if (pagina) return undefined;
     cerrarRef.current && cerrarRef.current.focus();
-    const onKey = (e) => e.key === 'Escape' && onClose && onClose();
+    const onKey = (e) => e.key === 'Escape' && cerrar.current && cerrar.current();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [pagina, onClose]);
+  }, [pagina]);
 
   const ir = (id) => {
     const el = document.getElementById('ay-' + id);
@@ -403,7 +409,7 @@ export default function Ayuda({ guias, inicial, onClose, pagina, puedeImprimir, 
    El QR apunta a la ayuda del cliente en este mismo dominio.
 ============================================================ */
 export function HojaCliente() {
-  const destino = `${window.location.origin}/?ayuda=cliente`;
+  const destino = `${PUBLIC_URL}/?ayuda=cliente`;
   const [qr, setQr] = useState(null);
   useEffect(() => {
     QRCode.toDataURL(destino, { margin: 1, width: 420, color: { dark: '#111111', light: '#FFFFFF' } }).then(setQr).catch(() => setQr(null));
