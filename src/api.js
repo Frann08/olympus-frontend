@@ -55,6 +55,20 @@ export async function api(path, options = {}) {
   return res.json();
 }
 
+// Descargar el respaldo completo (dispara la descarga del archivo)
+export async function downloadBackup() {
+  const res = await fetch(`${API}/api/backup`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) throw new Error('No se pudo generar el respaldo');
+  const blob = await res.blob();
+  const cd = res.headers.get('Content-Disposition') || '';
+  const m = cd.match(/filename="(.+?)"/);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = m ? m[1] : ('olympus-respaldo-' + new Date().toISOString().slice(0, 10) + '.json');
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 // Endpoint público (lo que abre el teléfono al escanear el NFC)
 export async function publicTag(tok) {
   const res = await fetch(`${API}/api/public/tag/${tok}`);
