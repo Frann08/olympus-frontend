@@ -421,7 +421,7 @@ function AdminPanel({ toast, onChanged }) {
   const reload = () => { setRev((r) => r + 1); onChanged && onChanged(); };
 
   const [cName, setCName] = useState('');
-  const EMPTY_USER = { email: '', password: '', role: 'cliente', client_id: '', ibms: null };
+  const EMPTY_USER = { username: '', email: '', password: '', role: 'cliente', client_id: '', ibms: null };
   const [uForm, setUForm] = useState(EMPTY_USER);
   const [editId, setEditId] = useState(null);
   const [editIbms, setEditIbms] = useState(null);
@@ -441,7 +441,8 @@ function AdminPanel({ toast, onChanged }) {
     catch (e) { toast(e.message); }
   }
   async function addUser() {
-    if (!uForm.email || !uForm.password) { toast('Email y contraseña'); return; }
+    if (!uForm.username.trim() || !uForm.password) { toast('Usuario y contraseña'); return; }
+    if (/\s/.test(uForm.username.trim())) { toast('El usuario no puede tener espacios'); return; }
     if (uForm.role === 'cliente' && !uForm.client_id) { toast('Elegí la empresa'); return; }
     if (uForm.role === 'cliente' && Array.isArray(uForm.ibms) && !uForm.ibms.length) { toast('Elegí al menos un IBM o marcá "Todos"'); return; }
     try {
@@ -506,19 +507,19 @@ function AdminPanel({ toast, onChanged }) {
                   <div key={u.id} style={{ padding: '9px 0', borderBottom: '1px solid #201C24' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ font: '600 12.5px "IBM Plex Sans"', color: '#EAF0F3', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.email}</div>
+                        <div style={{ font: '600 12.5px "IBM Plex Sans"', color: '#EAF0F3', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.username || u.email}{u.email && u.username !== u.email ? <span style={{ font: '400 10.5px "IBM Plex Mono", monospace', color: '#6A7681' }}>{' · ' + u.email}</span> : ''}</div>
                         <div style={{ font: '400 10.5px "IBM Plex Mono", monospace', marginTop: 3 }}>
                           <span style={{ color: roleColor(u.role) }}>{roleName[u.role] || u.role}</span>{u.client ? <span style={{ color: '#7A8792' }}> · {u.client}</span> : ''}
                           {u.role === 'cliente' && <span style={{ color: '#D9B44A' }}> · {u.ibms && u.ibms.length ? 'IBM ' + u.ibms.join(', ') : 'Todos los IBM'}</span>}
                         </div>
                       </div>
                       {u.role === 'cliente' && (
-                        <button className="axt-x sm" title="Cambiar IBM" aria-label={'Cambiar IBM de ' + u.email}
+                        <button className="axt-x sm" title="Cambiar IBM" aria-label={'Cambiar IBM de ' + (u.username || u.email)}
                           onClick={() => { if (editId === u.id) { setEditId(null); } else { setEditId(u.id); setEditIbms(u.ibms && u.ibms.length ? u.ibms : null); } }}>
                           <Pencil size={13} />
                         </button>
                       )}
-                      {u.role !== 'admin' && <button className="axt-x sm" title="Eliminar" aria-label={'Eliminar ' + u.email} onClick={() => delUser(u.id)}><Trash2 size={13} /></button>}
+                      {u.role !== 'admin' && <button className="axt-x sm" title="Eliminar" aria-label={'Eliminar ' + (u.username || u.email)} onClick={() => delUser(u.id)}><Trash2 size={13} /></button>}
                     </div>
                     {editId === u.id && (
                       <div style={{ marginTop: 10 }}>
@@ -533,7 +534,8 @@ function AdminPanel({ toast, onChanged }) {
                 ))}
               </div>
               <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
-                <input className="axt-input" style={{ background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px' }} placeholder="email@empresa.com" value={uForm.email} onChange={(e) => setUForm({ ...uForm, email: e.target.value })} />
+                <input className="axt-input" autoCapitalize="none" autoCorrect="off" style={{ background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px' }} placeholder="usuario (ej: jperez)" value={uForm.username} onChange={(e) => setUForm({ ...uForm, username: e.target.value })} />
+                <input className="axt-input" type="email" style={{ background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px' }} placeholder="correo (opcional, para recuperar contraseña)" value={uForm.email} onChange={(e) => setUForm({ ...uForm, email: e.target.value })} />
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <input className="axt-input" style={{ flex: 1, minWidth: 140, background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px' }} placeholder="contraseña" value={uForm.password} onChange={(e) => setUForm({ ...uForm, password: e.target.value })} />
                   <select className="axt-input" style={{ width: 'auto', flex: 'none', background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px', color: '#EAF0F3' }} value={uForm.role} onChange={(e) => setUForm({ ...uForm, role: e.target.value })}>
