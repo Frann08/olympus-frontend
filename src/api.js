@@ -45,11 +45,15 @@ export async function api(path, options = {}) {
   });
   if (res.status === 401) {
     logout();
-    throw new Error('Sesión expirada, volvé a entrar');
+    const err = new Error('Sesión expirada, volvé a entrar');
+    err.status = 401;
+    throw err;
   }
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
-    throw new Error(e.error || `Error ${res.status}`);
+    const err = new Error(e.error || `Error ${res.status}`);
+    err.status = res.status;
+    throw err;
   }
   if (res.status === 204) return null;
   return res.json();
@@ -69,11 +73,10 @@ export async function downloadBackup() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// Endpoint público (lo que abre el teléfono al escanear el NFC)
-export async function publicTag(tok) {
-  const res = await fetch(`${API}/api/public/tag/${tok}`);
-  if (!res.ok) throw new Error('Tag no encontrado');
-  return res.json();
+// Lo que abre el teléfono al escanear el NFC. Exige sesión: el servidor
+// muestra la pieza solo a quien le corresponde (404 si no).
+export function tagInfo(tok) {
+  return api(`/api/tag/${encodeURIComponent(tok)}`);
 }
 
 export { API };
