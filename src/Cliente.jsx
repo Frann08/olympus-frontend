@@ -11,9 +11,10 @@ import { saveBundle, loadBundle, bundleAt, getQueue, saveQueue, useOnline, agoLa
 
 const DUE = 60;
 const cstat = (exp) => { const d = daysFrom(exp); return d < 0 ? 'overdue' : d <= DUE ? 'due' : 'certified'; };
-const withStatus = (certs) => (certs || []).map((c) => ({ ...c, status: cstat(c.expires_date) }));
+// Una inspección reemplazada por otra más nueva (vigente === false) queda como historial
+const withStatus = (certs) => (certs || []).map((c) => ({ ...c, status: c.vigente === false ? 'anterior' : cstat(c.expires_date) }));
 const astat = (certs) => {
-  const s = (certs || []).map((c) => cstat(c.expires_date));
+  const s = (certs || []).filter((c) => c.vigente !== false).map((c) => cstat(c.expires_date));
   return s.includes('overdue') ? 'overdue' : s.includes('due') ? 'due' : s.length ? 'certified' : 'sin_cert';
 };
 
@@ -58,7 +59,7 @@ export default function Cliente({ toast }) {
 
   const assets = bundle.map((a) => ({ ...a, certificates: withStatus(a.certificates), status: astat(a.certificates) }))
     .sort((a, b) => (a.next_expiry || '9999').localeCompare(b.next_expiry || '9999'));
-  const allCerts = assets.flatMap((a) => a.certificates);
+  const allCerts = assets.flatMap((a) => a.certificates).filter((c) => c.status !== 'anterior');
   const summary = {
     overdue: allCerts.filter((c) => daysFrom(c.expires_date) < 0).length,
     due30: allCerts.filter((c) => { const d = daysFrom(c.expires_date); return d >= 0 && d <= 30; }).length,
