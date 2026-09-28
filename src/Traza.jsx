@@ -53,16 +53,20 @@ export default function Traza({ toast }) {
       loadRecent();
     } catch (e) { toast('No se pudo quitar: ' + e.message); }
   }
+  const [confirmando, setConfirmando] = useState(false);
   async function confirmar() {
-    if (!items.length || !entradaId) return;
+    if (!items.length || !entradaId || confirmando) return;
+    setConfirmando(true);
     try {
       const e = await api(`/api/entradas/${entradaId}/confirm`, { method: 'POST' });
       toast(`Entrada ${e.remito || ''} confirmada · ${items.length} ${items.length === 1 ? 'ítem' : 'ítems'}`);
       setEntradaId(null); setItems([]); setRemito(''); setOrigen('');
       await loadRecent();
     } catch (e) { toast(e.message); }
+    finally { setConfirmando(false); }
   }
 
+  const ALERTA = { overdue: 'Cert vencido', due: 'Por vencer', no_apto: 'No apto', sin_cert: 'Sin certificados' };
   const flags = items.filter((i) => i.status && i.status !== 'certified').length;
 
   return (
@@ -70,7 +74,7 @@ export default function Traza({ toast }) {
       <div>
         <div className="axt-card" style={{ padding: 20, marginBottom: 16 }}>
           <div className="axt-card-title">Datos de la entrada</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
             <label className="fld"><span>N.º de remito</span><input value={remito} onChange={(e) => setRemito(e.target.value)} placeholder="Ej: REM-004823" disabled={!!entradaId} /></label>
             <label className="fld"><span>Origen / proveedor</span><input value={origen} onChange={(e) => setOrigen(e.target.value)} placeholder="Ej: Base Añelo" disabled={!!entradaId} /></label>
           </div>
@@ -122,11 +126,14 @@ export default function Traza({ toast }) {
                     <div style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-EAF0F3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name || 'Tag sin pieza asociada'}</div>
                     <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)', marginTop: 2 }}>{it.scanned_epc}{it.client ? ` · ${it.client}` : ''}</div>
                   </div>
-                  {it.status && it.status !== 'certified' && (
-                    <span className="axt-flag" style={{ color: STATUS[it.status].color, borderColor: tinte(STATUS[it.status].color, 33.3), background: tinte(STATUS[it.status].color, 8.6) }}>
-                      <AlertTriangle size={12} /> {it.status === 'overdue' ? 'Cert vencido' : 'Por vencer'}
-                    </span>
-                  )}
+                  {it.status && it.status !== 'certified' && (() => {
+                    const st = STATUS[it.status] || STATUS.sin_cert;
+                    return (
+                      <span className="axt-flag" style={{ color: st.color, borderColor: tinte(st.color, 33.3), background: tinte(st.color, 8.6) }}>
+                        <AlertTriangle size={12} /> {ALERTA[it.status] || st.label}
+                      </span>
+                    );
+                  })()}
                   <button className="axt-x sm" onClick={() => removeItem(it.id)} title="Quitar de la entrada" aria-label="Quitar de la entrada"><X size={15} /></button>
                 </div>
               ))}
@@ -134,7 +141,7 @@ export default function Traza({ toast }) {
           )}
 
           <div style={{ padding: 14, borderTop: '1px solid var(--b-2A2732)' }}>
-            <button className="axt-btn primary" style={{ width: '100%', opacity: items.length ? 1 : 0.5 }} onClick={confirmar} disabled={!items.length}>
+            <button className="axt-btn primary" style={{ width: '100%', opacity: items.length ? 1 : 0.5 }} onClick={confirmar} disabled={!items.length || confirmando}>
               <PackageCheck size={16} /> Confirmar entrada
             </button>
           </div>

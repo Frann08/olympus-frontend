@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import QRCode from 'qrcode';
 import { Tag, Copy, Check, X, Undo2, Smartphone, Search, Loader2 } from 'lucide-react';
-import { api } from './api.js';
+import { api, PUBLIC_URL } from './api.js';
 import { Spinner, ErrorNote } from './ui.jsx';
 import { ImportPanel } from './Admin.jsx';
 
@@ -14,7 +14,7 @@ const EST = {
 };
 const estadoDe = (it) => (it.apto ? it.estado : 'na');
 const keyInf = (i) => `${i.client_id}|${i.ibm || ''}|${i.informe}`;
-const tagUrl = (token) => `${window.location.origin}/?tag=${token}`;
+const tagUrl = (token) => `${PUBLIC_URL}/?tag=${token}`;
 
 export default function Precintos({ toast }) {
   const [informes, setInformes] = useState(null);
@@ -37,20 +37,25 @@ export default function Precintos({ toast }) {
     } catch (e) { setErr(e.message); return []; }
   }, []);
 
-  const loadItems = useCallback(async (inf) => {
+  // Si se cambia de informe rápido, una respuesta vieja no pisa la del informe elegido
+  const pedido = useRef(0);
+  const loadItems = useCallback(async (inf, limpiar = false) => {
+    const n = ++pedido.current;
     if (!inf) { setItems(null); return; }
+    if (limpiar) setItems(null);
     setLoadingItems(true);
     try {
       const qs = `?client=${encodeURIComponent(inf.client_id)}&ibm=${encodeURIComponent(inf.ibm || '')}`;
-      setItems(await api('/api/precintos/informes/' + encodeURIComponent(inf.informe) + qs));
-      setItemsErr(null);
-    } catch (e) { setItems([]); setItemsErr(e.message); }
-    finally { setLoadingItems(false); }
+      const r = await api('/api/precintos/informes/' + encodeURIComponent(inf.informe) + qs);
+      if (n !== pedido.current) return;
+      setItems(r); setItemsErr(null);
+    } catch (e) { if (n === pedido.current) { setItems([]); setItemsErr(e.message); } }
+    finally { if (n === pedido.current) setLoadingItems(false); }
   }, []);
 
   useEffect(() => { loadInformes(); }, [loadInformes]);
 
-  useEffect(() => { setFEst('all'); loadItems(infSel); /* eslint-disable-next-line */ }, [sel]);
+  useEffect(() => { setFEst('all'); loadItems(infSel, true); /* eslint-disable-next-line */ }, [sel]);
 
   async function setEstado(it, estado, msg) {
     try {

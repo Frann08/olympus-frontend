@@ -1,7 +1,15 @@
 const API = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
+import { soloDatosDe, borrarDatosDe } from './offline.js';
 
-let token = localStorage.getItem('axtag_token') || null;
-let user = JSON.parse(localStorage.getItem('axtag_user') || 'null');
+// Lectura a prueba de datos corruptos o almacenamiento bloqueado (nunca pantalla en blanco)
+function leer(k, json) {
+  try { const v = localStorage.getItem(k); return json ? JSON.parse(v || 'null') : v; } catch { return null; }
+}
+function guardar(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* sin almacenamiento */ } }
+
+let token = leer('axtag_token') || null;
+let user = leer('axtag_user', true);
+if (!user || typeof user !== 'object' || !user.id || !user.role) { user = null; token = null; }
 
 export function getUser() { return user; }
 export function isAuthed() { return !!token; }
@@ -19,32 +27,51 @@ export async function login(usuario, password, lado) {
     err.ladoCorrecto = e.lado_correcto || null;
     throw err;
   }
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
+  if (!data.token || !data.user || !data.user.role) throw new Error('Respuesta inválida del servidor, probá de nuevo');
   token = data.token;
   user = data.user;
-  localStorage.setItem('axtag_token', token);
-  localStorage.setItem('axtag_user', JSON.stringify(user));
+  guardar('axtag_token', token);
+  guardar('axtag_user', JSON.stringify(user));
+  soloDatosDe(user.id); // en este equipo no quedan datos guardados de otro usuario
   return user;
 }
 
-export function logout() {
+// borrarDatos: al salir a propósito se borran los datos guardados para usar sin señal
+// (si la sesión solo venció, quedan: son del mismo usuario y nadie más los ve)
+export function logout({ borrarDatos = false } = {}) {
+  if (borrarDatos && user) borrarDatosDe(user.id);
   token = null;
   user = null;
-  localStorage.removeItem('axtag_token');
-  localStorage.removeItem('axtag_user');
+  guardar('axtag_token', null);
+  guardar('axtag_user', null);
+}
+
+// Aviso global de sesión vencida: App vuelve a la pantalla de ingreso
+function sesionVencida() {
+  const tenia = !!token;
+  logout();
+  if (tenia) window.dispatchEvent(new CustomEvent('ot:sesion-vencida'));
 }
 
 export async function api(path, options = {}) {
-  const res = await fetch(`${API}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
-    },
-  });
+  let res;
+  try {
+    res = await fetch(`${API}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
+      },
+    });
+  } catch {
+    const err = new Error('Sin conexión con el servidor. Revisá tu internet e intentá de nuevo.');
+    err.status = 0;
+    throw err;
+  }
   if (res.status === 401) {
-    logout();
+    sesionVencida();
     const err = new Error('Sesión expirada, volvé a entrar');
     err.status = 401;
     throw err;
@@ -62,6 +89,7 @@ export async function api(path, options = {}) {
 // Descargar el respaldo completo (dispara la descarga del archivo)
 export async function downloadBackup() {
   const res = await fetch(`${API}/api/backup`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (res.status === 401) { sesionVencida(); throw new Error('Sesión expirada, volvé a entrar'); }
   if (!res.ok) throw new Error('No se pudo generar el respaldo');
   const blob = await res.blob();
   const cd = res.headers.get('Content-Disposition') || '';
@@ -78,5 +106,9 @@ export async function downloadBackup() {
 export function tagInfo(tok) {
   return api(`/api/tag/${encodeURIComponent(tok)}`);
 }
+
+// Dirección pública de Olympus que se graba en los tags. Si se configura VITE_PUBLIC_URL
+// (por ejemplo, el dominio propio) se usa esa aunque se esté trabajando desde otra dirección.
+export const PUBLIC_URL = String(import.meta.env.VITE_PUBLIC_URL || window.location.origin).replace(/\/+$/, '');
 
 export { API };

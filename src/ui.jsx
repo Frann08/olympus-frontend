@@ -8,6 +8,7 @@ export const STATUS = {
   overdue:   { label: 'Vencido',    color: 'var(--st-bad)', band: 'red' },
   sin_cert:  { label: 'Sin certificados', color: 'var(--st-gris)', band: 'gray' },
   anterior:  { label: 'Anterior', color: 'var(--st-gris)', band: 'gray' },
+  no_apto:   { label: 'No apto', color: 'var(--st-bad)', band: 'red' },
 };
 // Color con transparencia (sirve con variables de tema): tinte(c, 33) = c al 33 %
 export const tinte = (c, pct) => `color-mix(in srgb, ${c} ${pct}%, transparent)`;
@@ -18,12 +19,30 @@ export const fmtDate = (d) => {
   const x = new Date(d);
   return `${String(x.getUTCDate()).padStart(2,'0')} ${MONTHS[x.getUTCMonth()]} ${x.getUTCFullYear()}`;
 };
-export const daysFrom = (d) => Math.round((new Date(d) - new Date()) / 86400000);
+// Días de calendario entre hoy (hora del teléfono) y una fecha 'YYYY-MM-DD'.
+// Así el último día de vigencia dice "vence hoy" todo el día, no "1 d vencido".
+export const daysFrom = (d) => {
+  const f = Date.parse(String(d).slice(0, 10));
+  const h = new Date();
+  return Math.round((f - Date.UTC(h.getFullYear(), h.getMonth(), h.getDate())) / 86400000);
+};
+export const esNoApto = (c) => String(c?.resultado || '').trim().toUpperCase() === 'NO APTO';
 export const daysLabel = (d) => {
   if (d == null) return '—';
   const n = daysFrom(d);
   return n < 0 ? `${Math.abs(n)} d vencido` : n === 0 ? 'vence hoy' : `en ${n} d`;
 };
+
+/* ---------- cerrar ventanas con Escape ---------- */
+export function useEscape(onClose) {
+  const ref = React.useRef(onClose);
+  ref.current = onClose;
+  useEffect(() => {
+    const k = (e) => { if (e.key === 'Escape') ref.current && ref.current(); };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, []);
+}
 
 /* ---------- hook de carga ---------- */
 export function useData(fn, deps = []) {
@@ -108,7 +127,7 @@ export function CertRow({ c, last, onDownload }) {
       <div style={{ textAlign: 'right' }}>
         <Pill status={c.status} />
         <div style={{ font: '600 12px "IBM Plex Mono", monospace', color: (STATUS[c.status] || STATUS.sin_cert).color, marginTop: 5 }}>
-          {c.status === 'anterior' ? 'reemplazada' : daysLabel(c.expires_date)}
+          {c.status === 'anterior' ? 'reemplazada' : c.status === 'no_apto' ? 'no habilitada' : daysLabel(c.expires_date)}
         </div>
       </div>
     </div>
@@ -130,14 +149,16 @@ export function ErrorNote({ error }) {
       <AlertTriangle size={16} color="var(--t-E5605C)" style={{ marginTop: 2, flexShrink: 0 }} />
       <div style={{ font: '500 13px "IBM Plex Sans"', color: 'var(--t-E5A3A1)' }}>
         {error}
-        <div style={{ font: '400 12px "IBM Plex Sans"', color: 'var(--t-8B98A5)', marginTop: 4 }}>
-          ¿El backend está corriendo? Verificá <code>VITE_API_BASE</code> y que la API responda en <code>/api/health</code>.
-        </div>
+        {import.meta.env.DEV && (
+          <div style={{ font: '400 12px "IBM Plex Sans"', color: 'var(--t-8B98A5)', marginTop: 4 }}>
+            ¿El backend está corriendo? Verificá <code>VITE_API_BASE</code> y que la API responda en <code>/api/health</code>.
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 export function Toast({ msg }) {
-  return <div className="axt-toast"><CheckCircle2 size={16} color="var(--t-4FC98B)" /> {msg}</div>;
+  return <div className="axt-toast" role="status" aria-live="polite"><CheckCircle2 size={16} color="var(--t-4FC98B)" /> {msg}</div>;
 }

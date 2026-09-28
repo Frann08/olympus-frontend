@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SlidersHorizontal, ScanLine, Smartphone, LogOut, Radio, WifiOff, Tag, ArrowLeft, Lock, SearchX, HelpCircle } from 'lucide-react';
 import { login, logout, getUser, isAuthed, tagInfo } from './api.js';
 import { Band, Pill, CertRow, Spinner, ErrorNote, Toast } from './ui.jsx';
@@ -69,6 +69,23 @@ export default function App() {
   const [view, setView] = useState('admin');
   const [toast, setToast] = useState(null);
   const [ayuda, setAyuda] = useState(null); // { guias, inicial } · se abre encima de la pantalla actual
+  const [avisoLogin, setAvisoLogin] = useState(null);
+  const timerToast = useRef(null);
+
+  // Sesión vencida (cualquier pedido respondió 401): volver al ingreso del mismo lado, con aviso
+  const userRef = useRef(user);
+  userRef.current = user;
+  useEffect(() => {
+    const alVencer = () => {
+      const u = userRef.current;
+      if (!u) return;
+      setUser(null);
+      setDoor(LADO_DE_ROL[u.role] || null);
+      setAvisoLogin('Tu sesión venció. Volvé a entrar.');
+    };
+    window.addEventListener('ot:sesion-vencida', alVencer);
+    return () => window.removeEventListener('ot:sesion-vencida', alVencer);
+  }, []);
 
   const esBM = !!user && user.role !== 'cliente';
   const abrirAyuda = (guias, inicial) => setAyuda({ guias, inicial });
@@ -90,7 +107,8 @@ export default function App() {
 
   const showToast = (m) => {
     setToast(m);
-    setTimeout(() => setToast(null), 2600);
+    clearTimeout(timerToast.current);
+    timerToast.current = setTimeout(() => setToast(null), 2600);
   };
 
   if (!user) {
@@ -98,7 +116,7 @@ export default function App() {
       <div className="axt">
         <div className="axt-haz" />
         {door
-          ? <Login side={door} onBack={() => setDoor(null)} onSwitch={setDoor} onLogin={(u) => { setView('admin'); setUser(u); }}
+          ? <Login side={door} aviso={avisoLogin} onBack={() => { setDoor(null); setAvisoLogin(null); }} onSwitch={setDoor} onLogin={(u) => { setView('admin'); setAvisoLogin(null); setUser(u); }}
               onAyuda={() => abrirAyuda(guiasPara(door), door === 'operador' ? 'precintos' : door)} />
           : <Portal onPick={setDoor} Logo={Logo} onAyuda={() => abrirAyuda(guiasPara('admin'), 'cliente')} />}
         {overlay}
@@ -123,7 +141,7 @@ export default function App() {
           </div>
           <BotonTema />
           <button className="axt-x" onClick={() => abrirAyuda(guiasPara(user.role), user.role === 'admin' ? view : user.role)} title="Ayuda" aria-label="Ayuda"><HelpCircle size={17} /></button>
-          <button className="axt-x" onClick={() => { logout(); setUser(null); setDoor(null); }} title="Cerrar sesión" aria-label="Cerrar sesión"><LogOut size={17} /></button>
+          <button className="axt-x" onClick={() => { logout({ borrarDatos: true }); setUser(null); setDoor(null); }} title="Cerrar sesión" aria-label="Cerrar sesión"><LogOut size={17} /></button>
         </div>
       </header>
 
@@ -139,10 +157,12 @@ export default function App() {
       <OfflineBanner />
 
       <div className="axt-content" key={screen}>
-        {screen === 'admin' && <Admin toast={showToast} />}
-        {screen === 'precintos' && <Precintos toast={showToast} />}
-        {screen === 'traza' && <Traza toast={showToast} />}
-        {screen === 'cliente' && <Cliente toast={showToast} />}
+        <Resguardo>
+          {screen === 'admin' && <Admin toast={showToast} />}
+          {screen === 'precintos' && <Precintos toast={showToast} />}
+          {screen === 'traza' && <Traza toast={showToast} />}
+          {screen === 'cliente' && <Cliente toast={showToast} />}
+        </Resguardo>
         {!ROLES[screen] && <ErrorNote error="Tu usuario no tiene un lado asignado. Pedíselo a Administración." />}
       </div>
 
@@ -152,7 +172,26 @@ export default function App() {
   );
 }
 
-function Login({ side, onBack, onSwitch, onLogin, onAyuda }) {
+// Si una pantalla falla al dibujarse, se muestra un aviso en vez de dejar todo en blanco
+class Resguardo extends React.Component {
+  constructor(p) { super(p); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error) { console.error(error); }
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div className="axt-card" style={{ padding: 22, maxWidth: 520, margin: '20px auto', textAlign: 'center' }}>
+        <div style={{ font: '700 17px "Oswald", sans-serif', color: 'var(--t-EAF0F3)', marginBottom: 8 }}>Algo falló en esta pantalla</div>
+        <p style={{ font: '400 13px "IBM Plex Sans"', color: 'var(--t-8B98A5)', margin: '0 0 14px' }}>Recargá la página. Si vuelve a pasar, avisale a Administración de Olympus.</p>
+        <button className="axt-btn primary" onClick={() => window.location.reload()}>Recargar</button>
+      </div>
+    );
+  }
+}
+
+const LADO_DE_ROL = { cliente: 'cliente', precintos: 'operador', traza: 'operador', admin: 'admin' };
+
+function Login({ side, aviso, onBack, onSwitch, onLogin, onAyuda }) {
   const [usuario, setUsuario] = useState('');
   const [password, setPassword] = useState('');
   const [err, setErr] = useState(null);
@@ -179,6 +218,7 @@ function Login({ side, onBack, onSwitch, onLogin, onAyuda }) {
         <div className="login-side">{SIDE_NAME[side] || 'Ingreso'}</div>
         <h1 style={{ font: '700 22px "Oswald", sans-serif', color: 'var(--t-EAF0F3)', margin: '6px 0 4px' }}>Ingresar</h1>
         <p style={{ font: '400 13px "IBM Plex Sans"', color: 'var(--t-8B98A5)', margin: '0 0 22px' }}>Usá el usuario que te dio Administración.</p>
+        {aviso && <div className="tag-aviso" role="status">{aviso}</div>}
 
         <label className="fld" style={{ marginBottom: 12 }}><span>Usuario</span>
           <input type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" value={usuario} onChange={(e) => setUsuario(e.target.value)} placeholder="tu usuario" autoFocus />
@@ -216,7 +256,7 @@ function Login({ side, onBack, onSwitch, onLogin, onAyuda }) {
 ============================================================ */
 function TagPage({ token, user, onUser, onAyuda }) {
   const [aviso, setAviso] = useState(null);
-  const salir = () => { logout(); setAviso(null); onUser(null); };
+  const salir = () => { logout({ borrarDatos: true }); setAviso(null); onUser(null); };
   return (
     <div className="axt">
       <div className="axt-haz" />
