@@ -1,4 +1,5 @@
 import React from 'react';
+import { BotonTema } from './tema.jsx';
 
 const DOORS = [
   {
@@ -23,7 +24,7 @@ export const SIDE_NAME = { cliente: 'Lado cliente', operador: 'Lado operador', a
 export default function Portal({ onPick, Logo, onAyuda }) {
   return (
     <div className="pt-wrap">
-      <header className="pt-top"><Logo /></header>
+      <header className="pt-top"><Logo /><BotonTema /></header>
       <main className="pt-main">
         <section className="pt-hero">
           <div className="pt-eyebrow">Plataforma de trazabilidad industrial</div>

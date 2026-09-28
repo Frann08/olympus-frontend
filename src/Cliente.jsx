@@ -51,7 +51,7 @@ export default function Cliente({ toast }) {
   if (!bundle) return (
     <div style={{ padding: '10px 0' }}>
       <ErrorNote error={error || 'Todavía no hay datos descargados.'} />
-      <div style={{ font: '500 13px "IBM Plex Sans"', color: '#8B98A5', marginTop: 12, textAlign: 'center' }}>
+      <div style={{ font: '500 13px "IBM Plex Sans"', color: 'var(--t-8B98A5)', marginTop: 12, textAlign: 'center' }}>
         Conectate a internet una vez para descargar tus activos. Después funciona sin señal.
       </div>
     </div>
@@ -85,12 +85,12 @@ export default function Cliente({ toast }) {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 11, background: '#2A2410', border: '1px solid #4A3E1E', display: 'grid', placeItems: 'center' }}>
-            <Building2 size={20} color="#D9B44A" />
+          <div style={{ width: 42, height: 42, borderRadius: 11, background: 'var(--s-2A2410)', border: '1px solid var(--b-4A3E1E)', display: 'grid', placeItems: 'center' }}>
+            <Building2 size={20} color="var(--t-D9B44A)" />
           </div>
           <div>
-            <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#6A7681' }}>SESIÓN DE CLIENTE</div>
-            <div style={{ font: '700 18px "Oswald", sans-serif', color: '#EAF0F3' }}>{user?.name || 'Cliente'}</div>
+            <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-6A7681)' }}>SESIÓN DE CLIENTE</div>
+            <div style={{ font: '700 18px "Oswald", sans-serif', color: 'var(--t-EAF0F3)' }}>{user?.name || 'Cliente'}</div>
           </div>
         </div>
         <div className={'net-pill ' + (online ? 'on' : 'off')}>
@@ -112,11 +112,11 @@ export default function Cliente({ toast }) {
 
       <div className="axt-card" style={{ padding: 0, overflow: 'hidden', marginTop: 16 }}>
         <div className="axt-toolbar" style={{ flexWrap: 'wrap', gap: 10 }}>
-          <span style={{ font: '700 15px "Oswald"', color: '#F3F1EC' }}>Tus activos</span>
-          <div className="search" style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#0F0E12', border: '1px solid #26262B', borderRadius: 8, padding: '7px 11px', flex: 1, minWidth: 180, maxWidth: 340 }}>
-            <Search size={14} color="#6E6C69" />
+          <span style={{ font: '700 15px "Oswald"', color: 'var(--t-F3F1EC)' }}>Tus activos</span>
+          <div className="search" style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s-0F0E12)', border: '1px solid var(--b-26262B)', borderRadius: 8, padding: '7px 11px', flex: 1, minWidth: 180, maxWidth: 340 }}>
+            <Search size={14} color="var(--t-6E6C69)" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por serie, descripción o informe"
-              style={{ border: 'none', outline: 'none', background: 'transparent', color: '#F3F1EC', font: '400 13px "IBM Plex Sans"', width: '100%' }} />
+              style={{ border: 'none', outline: 'none', background: 'transparent', color: 'var(--t-F3F1EC)', font: '400 13px "IBM Plex Sans"', width: '100%' }} />
             {q && <button className="axt-x sm" onClick={() => setQ('')}><X size={13} /></button>}
           </div>
         </div>
@@ -125,14 +125,14 @@ export default function Cliente({ toast }) {
           {EST.map(([v, l]) => (
             <button key={v} onClick={() => setFEstado(v)} className={'fchip' + (fEstado === v ? ' on' : '')}>{l}</button>
           ))}
-          {ibms.length > 1 && <span style={{ width: 1, background: '#26262B', margin: '2px 4px' }} />}
+          {ibms.length > 1 && <span style={{ width: 1, background: 'var(--s-26262B)', margin: '2px 4px' }} />}
           {ibms.length > 1 && <button onClick={() => setFIbm('all')} className={'fchip' + (fIbm === 'all' ? ' on' : '')}>Todos los IBM</button>}
           {ibms.length > 1 && ibms.map((ib) => (
             <button key={ib} onClick={() => setFIbm(ib)} className={'fchip' + (fIbm === ib ? ' on' : '')}>IBM {ib}</button>
           ))}
         </div>
 
-        <div style={{ padding: '0 16px 8px', font: '500 11.5px "IBM Plex Mono", monospace', color: '#6E6C69' }}>
+        <div style={{ padding: '0 16px 8px', font: '500 11.5px "IBM Plex Mono", monospace', color: 'var(--t-6E6C69)' }}>
           {filtered.length} de {assets.length} · datos {agoLabel(updatedAt)}
         </div>
 
@@ -141,18 +141,18 @@ export default function Cliente({ toast }) {
             <button key={a.id} className="cli-row" onClick={() => setModalAsset(a)}>
               <Band status={a.status} h={42} />
               <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                <div style={{ font: '600 13px "IBM Plex Sans"', color: '#F3F1EC' }}>{a.name}</div>
-                <div style={{ font: '400 11px "IBM Plex Sans"', color: '#8A97A2', marginTop: 2 }}>{a.code}{a.ibm ? ` · IBM ${a.ibm}` : ''} · {a.certificates.length} {a.certificates.length === 1 ? 'inspección' : 'inspecciones'}</div>
+                <div style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-F3F1EC)' }}>{a.name}</div>
+                <div style={{ font: '400 11px "IBM Plex Sans"', color: 'var(--t-8A97A2)', marginTop: 2 }}>{a.code}{a.ibm ? ` · IBM ${a.ibm}` : ''} · {a.certificates.length} {a.certificates.length === 1 ? 'inspección' : 'inspecciones'}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <Pill status={a.status} />
-                <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#8A97A2', marginTop: 4 }}>{daysLabel(a.next_expiry)}</div>
+                <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-8A97A2)', marginTop: 4 }}>{daysLabel(a.next_expiry)}</div>
               </div>
-              <ChevronRight size={16} color="#5C6874" />
+              <ChevronRight size={16} color="var(--t-5C6874)" />
             </button>
           ))}
           {filtered.length === 0 && (
-            <div style={{ padding: '28px 16px', textAlign: 'center', font: '500 13px "IBM Plex Sans"', color: '#6E6C69' }}>
+            <div style={{ padding: '28px 16px', textAlign: 'center', font: '500 13px "IBM Plex Sans"', color: 'var(--t-6E6C69)' }}>
               No hay activos que coincidan con el filtro.
             </div>
           )}
@@ -172,17 +172,17 @@ function ExpiringCard({ s }) {
     <div className="axt-card" style={{ padding: 22 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <div className="axt-card-title" style={{ margin: 0 }}>Tus certificaciones por vencer</div>
-        <span style={{ font: '500 11px "IBM Plex Mono", monospace', color: '#7A8792' }}>próximos 90 días</span>
+        <span style={{ font: '500 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)' }}>próximos 90 días</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '14px 0 6px' }}>
-        <span style={{ font: '700 46px "Oswald", sans-serif', color: total ? '#EDA53C' : '#4FC98B' }}>{total}</span>
-        <span style={{ font: '500 13px "IBM Plex Sans"', color: '#9AA6B1' }}>certificados requieren atención</span>
+        <span style={{ font: '700 46px "Oswald", sans-serif', color: total ? 'var(--t-EDA53C)' : 'var(--t-4FC98B)' }}>{total}</span>
+        <span style={{ font: '500 13px "IBM Plex Sans"', color: 'var(--t-9AA6B1)' }}>certificados requieren atención</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, margin: '16px 0 4px' }}>
-        {[['Vencidos', s.overdue, '#E5605C'], ['≤ 30 días', s.due30, '#EDA53C'], ['31–90 días', s.due90, '#D9B44A']].map(([l, v, c]) => (
-          <div key={l} style={{ background: '#171419', border: '1px solid #2A2732', borderRadius: 10, padding: '12px 14px' }}>
+        {[['Vencidos', s.overdue, 'var(--t-E5605C)'], ['≤ 30 días', s.due30, 'var(--t-EDA53C)'], ['31–90 días', s.due90, 'var(--t-D9B44A)']].map(([l, v, c]) => (
+          <div key={l} style={{ background: 'var(--s-171419)', border: '1px solid var(--b-2A2732)', borderRadius: 10, padding: '12px 14px' }}>
             <div style={{ font: '700 24px "Oswald"', color: c }}>{v}</div>
-            <div style={{ font: '500 11px "IBM Plex Sans"', color: '#8B98A5', marginTop: 2 }}>{l}</div>
+            <div style={{ font: '500 11px "IBM Plex Sans"', color: 'var(--t-8B98A5)', marginTop: 2 }}>{l}</div>
           </div>
         ))}
       </div>
@@ -272,10 +272,10 @@ function Relevamiento({ assets, online, toast }) {
     <div>
       <div className="axt-card" style={{ padding: 18, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <ClipboardList size={16} color="#E7C15A" />
-          <span style={{ font: '600 15px "Oswald", sans-serif', color: '#F3F1EC' }}>Nuevo relevamiento</span>
+          <ClipboardList size={16} color="var(--t-E7C15A)" />
+          <span style={{ font: '600 15px "Oswald", sans-serif', color: 'var(--t-F3F1EC)' }}>Nuevo relevamiento</span>
         </div>
-        <div style={{ font: '400 11.5px "IBM Plex Sans"', color: '#8A97A2', marginBottom: 14, lineHeight: 1.5 }}>
+        <div style={{ font: '400 11.5px "IBM Plex Sans"', color: 'var(--t-8A97A2)', marginBottom: 14, lineHeight: 1.5 }}>
           Escaneá los tags que tenés enfrente, ponele un nombre y guardá. Cada lista es tuya y queda abajo en "Listas guardadas".
         </div>
 
@@ -284,14 +284,14 @@ function Relevamiento({ assets, online, toast }) {
         </button>
 
         {queue.length === 0 ? (
-          <div style={{ font: '500 12px "IBM Plex Sans"', color: '#6E6C69', textAlign: 'center', padding: '10px 0' }}>Lista actual vacía.</div>
+          <div style={{ font: '500 12px "IBM Plex Sans"', color: 'var(--t-6E6C69)', textAlign: 'center', padding: '10px 0' }}>Lista actual vacía.</div>
         ) : (
           <div style={{ maxHeight: 220, overflowY: 'auto', marginBottom: 12 }}>
             {queue.map((it, i) => (
-              <div key={it.token + i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 0', borderBottom: '1px solid #1F1F23' }}>
+              <div key={it.token + i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 0', borderBottom: '1px solid var(--b-1F1F23)' }}>
                 <Band status={it.status} h={26} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ font: '600 12.5px "IBM Plex Sans"', color: '#F3F1EC', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}</div>
+                  <div style={{ font: '600 12.5px "IBM Plex Sans"', color: 'var(--t-F3F1EC)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}</div>
                 </div>
                 <button className="axt-x sm" onClick={() => setQ(queue.filter((x) => x.token !== it.token))}><X size={14} /></button>
               </div>
@@ -300,7 +300,7 @@ function Relevamiento({ assets, online, toast }) {
         )}
 
         <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre de la lista (ej: Locación Fortín)"
-          style={{ width: '100%', background: '#0F0E12', border: '1px solid #26262B', borderRadius: 8, padding: '10px 12px', color: '#F3F1EC', font: '400 13px "IBM Plex Sans"', marginBottom: 10, outline: 'none' }} />
+          style={{ width: '100%', background: 'var(--s-0F0E12)', border: '1px solid var(--b-26262B)', borderRadius: 8, padding: '10px 12px', color: 'var(--t-F3F1EC)', font: '400 13px "IBM Plex Sans"', marginBottom: 10, outline: 'none' }} />
 
         <button className="axt-btn primary" onClick={guardar} disabled={!queue.length || saving} style={{ width: '100%', opacity: queue.length && online ? 1 : 0.55 }}>
           {saving ? <Loader2 size={15} className="spin" /> : <Save size={15} />}
@@ -310,19 +310,19 @@ function Relevamiento({ assets, online, toast }) {
 
       <div className="axt-card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="axt-toolbar">
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8, font: '700 15px "Oswald"', color: '#F3F1EC' }}><History size={15} color="#8A97A2" /> Listas guardadas</span>
-          <span style={{ font: '500 12px "IBM Plex Mono", monospace', color: '#8A97A2' }}>{hist.length}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, font: '700 15px "Oswald"', color: 'var(--t-F3F1EC)' }}><History size={15} color="var(--t-8A97A2)" /> Listas guardadas</span>
+          <span style={{ font: '500 12px "IBM Plex Mono", monospace', color: 'var(--t-8A97A2)' }}>{hist.length}</span>
         </div>
         {hist.length === 0 ? (
-          <div style={{ padding: '28px 16px', textAlign: 'center', font: '500 13px "IBM Plex Sans"', color: '#6E6C69' }}>
+          <div style={{ padding: '28px 16px', textAlign: 'center', font: '500 13px "IBM Plex Sans"', color: 'var(--t-6E6C69)' }}>
             Todavía no guardaste ninguna lista.
           </div>
         ) : hist.map((h) => (
-          <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 16px', borderBottom: '1px solid #1F1F23' }}>
+          <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 16px', borderBottom: '1px solid var(--b-1F1F23)' }}>
             <button onClick={() => api('/api/me/relevamientos/' + h.id).then(setDetail).catch(() => toast('No se pudo abrir'))}
               style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}>
-              <div style={{ font: '600 13.5px "IBM Plex Sans"', color: '#F3F1EC' }}>{h.nombre || 'Sin nombre'}</div>
-              <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#8A97A2', marginTop: 3 }}>{h.items} {h.items === 1 ? 'pieza' : 'piezas'} · {fmtDateTime(h.created_at)}</div>
+              <div style={{ font: '600 13.5px "IBM Plex Sans"', color: 'var(--t-F3F1EC)' }}>{h.nombre || 'Sin nombre'}</div>
+              <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-8A97A2)', marginTop: 3 }}>{h.items} {h.items === 1 ? 'pieza' : 'piezas'} · {fmtDateTime(h.created_at)}</div>
             </button>
             <button className="axt-btn small" onClick={() => exportar(h)}><FileDown size={13} /> Excel</button>
             <button className="axt-x sm" title="Borrar" onClick={() => borrar(h)}><Trash2 size={13} /></button>
@@ -357,18 +357,18 @@ function RelevDetail({ data, onClose, toast }) {
       <div className="axt-overlay" onClick={onClose} />
       <div className="phone" style={{ width: 360 }}>
         <div className="phone-notch" />
-        <div className="phone-bar"><ClipboardList size={13} color="#E7C15A" /> <span>RELEVAMIENTO</span><button onClick={onClose} className="phone-x"><X size={16} /></button></div>
+        <div className="phone-bar"><ClipboardList size={13} color="var(--t-E7C15A)" /> <span>RELEVAMIENTO</span><button onClick={onClose} className="phone-x"><X size={16} /></button></div>
         <div className="phone-screen">
-          <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#8A97A2', marginBottom: 12 }}>{fmtDateTime(data.created_at)} · {data.items.length} piezas</div>
+          <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-8A97A2)', marginBottom: 12 }}>{fmtDateTime(data.created_at)} · {data.items.length} piezas</div>
           {data.items.map((it, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid #1F1F23' }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--b-1F1F23)' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ font: '600 12.5px "IBM Plex Mono", monospace', color: '#F3F1EC' }}>{it.code || it.token}</div>
-                <div style={{ font: '400 11px "IBM Plex Sans"', color: '#8A97A2', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name || '—'}</div>
+                <div style={{ font: '600 12.5px "IBM Plex Mono", monospace', color: 'var(--t-F3F1EC)' }}>{it.code || it.token}</div>
+                <div style={{ font: '400 11px "IBM Plex Sans"', color: 'var(--t-8A97A2)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name || '—'}</div>
               </div>
               {it.pdf_url
                 ? <a className="axt-btn small" style={{ textDecoration: 'none', display: 'inline-flex' }} href={it.pdf_url} target="_blank" rel="noreferrer"><ExternalLink size={12} /> Informe</a>
-                : <span style={{ font: '400 10.5px "IBM Plex Sans"', color: '#6E6C69' }}>sin informe</span>}
+                : <span style={{ font: '400 10.5px "IBM Plex Sans"', color: 'var(--t-6E6C69)' }}>sin informe</span>}
             </div>
           ))}
         </div>
@@ -383,19 +383,19 @@ function Picker({ assets, onPick, onClose }) {
       <div className="axt-overlay" onClick={onClose} />
       <div className="phone" style={{ width: 340 }}>
         <div className="phone-notch" />
-        <div className="phone-bar"><ScanLine size={13} color="#D9B44A" /> <span>ELEGIR TAG</span><button onClick={onClose} className="phone-x"><X size={16} /></button></div>
+        <div className="phone-bar"><ScanLine size={13} color="var(--t-D9B44A)" /> <span>ELEGIR TAG</span><button onClick={onClose} className="phone-x"><X size={16} /></button></div>
         <div className="phone-screen">
-          <div style={{ font: '400 11.5px "IBM Plex Sans"', color: '#7A8792', marginBottom: 10 }}>
+          <div style={{ font: '400 11.5px "IBM Plex Sans"', color: 'var(--t-7A8792)', marginBottom: 10 }}>
             Sin lector NFC en este dispositivo: tocá un activo para agregarlo a la lista (simula el escaneo).
           </div>
           {assets.map((a) => (
             <button key={a.id} className="cli-row" style={{ padding: '10px 4px' }} onClick={() => onPick(a.token)}>
               <Band status={a.status} h={34} />
               <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                <div style={{ font: '600 13px "IBM Plex Sans"', color: '#EAF0F3' }}>{a.name}</div>
-                <div style={{ font: '400 11px "IBM Plex Sans"', color: '#7A8792' }}>{a.type}</div>
+                <div style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-EAF0F3)' }}>{a.name}</div>
+                <div style={{ font: '400 11px "IBM Plex Sans"', color: 'var(--t-7A8792)' }}>{a.type}</div>
               </div>
-              <Plus size={15} color="#D9B44A" />
+              <Plus size={15} color="var(--t-D9B44A)" />
             </button>
           ))}
         </div>
@@ -410,22 +410,22 @@ function CertModal({ asset, onClose, toast }) {
       <div className="axt-overlay" onClick={onClose} />
       <div className="phone">
         <div className="phone-notch" />
-        <div className="phone-bar"><Radio size={13} color="#D9B44A" /> <span>OLYMPUS TRACE</span><button onClick={onClose} className="phone-x"><X size={16} /></button></div>
+        <div className="phone-bar"><Radio size={13} color="var(--t-D9B44A)" /> <span>OLYMPUS TRACE</span><button onClick={onClose} className="phone-x"><X size={16} /></button></div>
         <div className="phone-screen">
-          <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', paddingBottom: 14, borderBottom: '1px solid #201C24' }}>
+          <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', paddingBottom: 14, borderBottom: '1px solid var(--b-201C24)' }}>
             <Band status={asset.status} h={44} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#6A7681' }}>{asset.type}</div>
-              <div style={{ font: '700 17px "Oswald", sans-serif', color: '#EAF0F3', margin: '3px 0 6px' }}>{asset.name}</div>
+              <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-6A7681)' }}>{asset.type}</div>
+              <div style={{ font: '700 17px "Oswald", sans-serif', color: 'var(--t-EAF0F3)', margin: '3px 0 6px' }}>{asset.name}</div>
               <Pill status={asset.status} />
             </div>
           </div>
-          <div style={{ font: '600 11px "IBM Plex Mono", monospace', color: '#7A8792', letterSpacing: '.5px', margin: '16px 0 4px' }}>CERTIFICADOS</div>
+          <div style={{ font: '600 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)', letterSpacing: '.5px', margin: '16px 0 4px' }}>CERTIFICADOS</div>
           <div>
             {asset.certificates.map((c, i) => (
               <CertRow key={c.id || i} c={c} last={i === asset.certificates.length - 1} />
             ))}
-            {asset.certificates.length === 0 && <div style={{ font: '500 13px "IBM Plex Sans"', color: '#7A8792' }}>Sin certificados.</div>}
+            {asset.certificates.length === 0 && <div style={{ font: '500 13px "IBM Plex Sans"', color: 'var(--t-7A8792)' }}>Sin certificados.</div>}
           </div>
         </div>
       </div>

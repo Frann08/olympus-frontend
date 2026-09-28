@@ -33,10 +33,10 @@ export default function Admin({ toast }) {
       <div className="axt-kpis" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
         {stats.loading ? <div className="axt-card axt-tile"><Spinner label="…" /></div> : stats.error ? null : (
           <>
-            <StatTile i={0} label="Activos" value={stats.data.total} sub={`${(clients.data || []).length} clientes`} color="#D9B44A" icon={Boxes} />
-            <StatTile i={1} label="Certificados por vencer" value={stats.data.por_vencer} sub="vencidos + próximos" color="#EDA53C" icon={Clock} />
-            <StatTile i={2} label="Tags sin NFC" value={stats.data.sin_nfc} sub="URL sin escribir" color={stats.data.sin_nfc ? '#E5605C' : '#4FC98B'} icon={Radio} />
-            <StatTile i={3} label="Tags sin EPC" value={stats.data.sin_epc} sub="UHF sin asociar" color={stats.data.sin_epc ? '#E5605C' : '#4FC98B'} icon={Tag} />
+            <StatTile i={0} label="Activos" value={stats.data.total} sub={`${(clients.data || []).length} clientes`} color="var(--t-D9B44A)" icon={Boxes} />
+            <StatTile i={1} label="Certificados por vencer" value={stats.data.por_vencer} sub="vencidos + próximos" color="var(--t-EDA53C)" icon={Clock} />
+            <StatTile i={2} label="Tags sin NFC" value={stats.data.sin_nfc} sub="URL sin escribir" color={stats.data.sin_nfc ? 'var(--t-E5605C)' : 'var(--t-4FC98B)'} icon={Radio} />
+            <StatTile i={3} label="Tags sin EPC" value={stats.data.sin_epc} sub="UHF sin asociar" color={stats.data.sin_epc ? 'var(--t-E5605C)' : 'var(--t-4FC98B)'} icon={Tag} />
           </>
         )}
       </div>
@@ -45,15 +45,15 @@ export default function Admin({ toast }) {
         <div className="axt-card" style={{ padding: 22, marginTop: 16 }}>
           <div className="axt-card-title">Por vencer por cliente</div>
           {clients.data.map((cl) => (
-            <div key={cl.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 0', borderBottom: '1px solid #201C24' }}>
+            <div key={cl.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 0', borderBottom: '1px solid var(--b-201C24)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 30, height: 30, borderRadius: 8, background: '#171419', border: '1px solid #2A2732', display: 'grid', placeItems: 'center' }}>
-                  <Building2 size={15} color="#9AA6B1" />
+                <div style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--s-171419)', border: '1px solid var(--b-2A2732)', display: 'grid', placeItems: 'center' }}>
+                  <Building2 size={15} color="var(--t-9AA6B1)" />
                 </div>
-                <span style={{ font: '600 13px "IBM Plex Sans"', color: '#DCE3E9' }}>{cl.name}</span>
-                <span style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#7A8792' }}>{cl.assets} activos</span>
+                <span style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-DCE3E9)' }}>{cl.name}</span>
+                <span style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)' }}>{cl.assets} activos</span>
               </div>
-              <span className="axt-count" style={{ color: cl.por_vencer ? '#EDA53C' : '#4FC98B', borderColor: cl.por_vencer ? '#3A2C15' : '#4A3E1E', background: cl.por_vencer ? '#211A10' : '#1B1609' }}>{cl.por_vencer}</span>
+              <span className="axt-count" style={{ color: cl.por_vencer ? 'var(--t-EDA53C)' : 'var(--t-4FC98B)', borderColor: cl.por_vencer ? 'var(--b-3A2C15)' : 'var(--b-4A3E1E)', background: cl.por_vencer ? 'var(--s-211A10)' : 'var(--s-1B1609)' }}>{cl.por_vencer}</span>
             </div>
           ))}
         </div>
@@ -67,7 +67,7 @@ export default function Admin({ toast }) {
             ))}
           </div>
           <div className="axt-search sm">
-            <Search size={15} color="#7A8792" />
+            <Search size={15} color="var(--t-7A8792)" />
             <input className="axt-input" placeholder="Buscar activo o cliente…" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
         </div>
@@ -84,21 +84,21 @@ export default function Admin({ toast }) {
                   <tr key={a.id} onClick={() => setSel(a.id)} className="axt-tr">
                     <td style={{ padding: 0 }}><Band status={a.status} h={44} /></td>
                     <td>
-                      <div style={{ font: '600 13px "IBM Plex Sans"', color: '#EAF0F3' }}>{a.name}</div>
-                      <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#7A8792', marginTop: 2 }}>{a.code}</div>
+                      <div style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-EAF0F3)' }}>{a.name}</div>
+                      <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)', marginTop: 2 }}>{a.code}</div>
                     </td>
-                    <td style={{ color: '#B7C1CB' }}>{a.type}</td>
-                    <td style={{ color: '#B7C1CB' }}>{a.client}</td>
+                    <td style={{ color: 'var(--t-B7C1CB)' }}>{a.type}</td>
+                    <td style={{ color: 'var(--t-B7C1CB)' }}>{a.client}</td>
                     <td>
                       <Pill status={a.status} />
-                      <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#7A8792', marginTop: 4 }}>{daysLabel(a.next_expiry)}</div>
+                      <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)', marginTop: 4 }}>{daysLabel(a.next_expiry)}</div>
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <EncChip ok={a.nfc_written} label="NFC" /><EncChip ok={a.epc_assigned} label="EPC" />
                       </div>
                     </td>
-                    <td><ChevronRight size={16} color="#5C6874" /></td>
+                    <td><ChevronRight size={16} color="var(--t-5C6874)" /></td>
                   </tr>
                 ))}
               </tbody>
@@ -151,9 +151,9 @@ function AssetDrawer({ id, onClose, toast }) {
             <div className="axt-drawer-head">
               <Band status={data.certificates.length ? worst(data.certificates) : 'sin_cert'} h={48} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#6A7681' }}>{data.type} · {data.client}</div>
-                <h2 style={{ font: '700 20px "Oswald", sans-serif', color: '#EAF0F3', margin: '3px 0 8px' }}>{data.name}</h2>
-                <span style={{ font: '600 12px "IBM Plex Mono", monospace', color: '#9AA6B1', background: '#171419', border: '1px solid #2A2732', borderRadius: 6, padding: '3px 8px' }}>{data.code}</span>
+                <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-6A7681)' }}>{data.type} · {data.client}</div>
+                <h2 style={{ font: '700 20px "Oswald", sans-serif', color: 'var(--t-EAF0F3)', margin: '3px 0 8px' }}>{data.name}</h2>
+                <span style={{ font: '600 12px "IBM Plex Mono", monospace', color: 'var(--t-9AA6B1)', background: 'var(--s-171419)', border: '1px solid var(--b-2A2732)', borderRadius: 6, padding: '3px 8px' }}>{data.code}</span>
               </div>
               <button onClick={onClose} className="axt-x"><X size={18} /></button>
             </div>
@@ -163,8 +163,8 @@ function AssetDrawer({ id, onClose, toast }) {
               <div style={{ display: 'grid', gap: 10, marginBottom: 22 }}>
                 <div className="axt-enc-row">
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Radio size={15} color="#D9B44A" /><span style={{ font: '600 13px "IBM Plex Sans"', color: '#EAF0F3' }}>NFC (HF)</span></div>
-                    <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: data.tag?.nfc_written_at ? '#9AA6B1' : '#7A8792', marginTop: 6 }}>{data.tag?.nfc_uid || 'sin escribir'}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Radio size={15} color="var(--t-D9B44A)" /><span style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-EAF0F3)' }}>NFC (HF)</span></div>
+                    <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: data.tag?.nfc_written_at ? 'var(--t-9AA6B1)' : 'var(--t-7A8792)', marginTop: 6 }}>{data.tag?.nfc_uid || 'sin escribir'}</div>
                   </div>
                   {data.tag?.nfc_written_at
                     ? <span className="ok-badge"><CheckCircle2 size={13} /> URL escrita</span>
@@ -172,8 +172,8 @@ function AssetDrawer({ id, onClose, toast }) {
                 </div>
                 <div className="axt-enc-row">
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Tag size={15} color="#D9B44A" /><span style={{ font: '600 13px "IBM Plex Sans"', color: '#EAF0F3' }}>UHF (EPC Gen2)</span></div>
-                    <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: data.tag?.epc_assigned_at ? '#9AA6B1' : '#7A8792', marginTop: 6 }}>{data.tag?.epc || 'sin asociar'}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Tag size={15} color="var(--t-D9B44A)" /><span style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-EAF0F3)' }}>UHF (EPC Gen2)</span></div>
+                    <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: data.tag?.epc_assigned_at ? 'var(--t-9AA6B1)' : 'var(--t-7A8792)', marginTop: 6 }}>{data.tag?.epc || 'sin asociar'}</div>
                   </div>
                   {data.tag?.epc_assigned_at
                     ? <span className="ok-badge"><CheckCircle2 size={13} /> EPC asociado</span>
@@ -203,7 +203,7 @@ function AssetDrawer({ id, onClose, toast }) {
 
               <div>
                 {data.certificates.map((c, i) => <CertRow key={c.id || i} c={c} last={i === data.certificates.length - 1} />)}
-                {data.certificates.length === 0 && <div style={{ font: '500 13px "IBM Plex Sans"', color: '#7A8792', padding: '10px 0' }}>Sin certificados cargados.</div>}
+                {data.certificates.length === 0 && <div style={{ font: '500 13px "IBM Plex Sans"', color: 'var(--t-7A8792)', padding: '10px 0' }}>Sin certificados cargados.</div>}
               </div>
             </div>
           </>
@@ -308,8 +308,8 @@ export function ImportPanel({ toast, onImported, title = 'Importar informe (Exce
     <div className="axt-card" style={{ padding: 20, marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <Upload size={17} color="#D9B44A" />
-          <span style={{ font: '600 15px "Oswald", sans-serif', color: '#EAF0F3' }}>{title}</span>
+          <Upload size={17} color="var(--t-D9B44A)" />
+          <span style={{ font: '600 15px "Oswald", sans-serif', color: 'var(--t-EAF0F3)' }}>{title}</span>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="axt-btn small" onClick={downloadTemplate}><FileDown size={14} /> Descargar plantilla</button>
@@ -319,31 +319,31 @@ export function ImportPanel({ toast, onImported, title = 'Importar informe (Exce
           </label>
         </div>
       </div>
-      <div style={{ font: '400 12px "IBM Plex Sans"', color: '#7A8792', marginTop: 8 }}>
+      <div style={{ font: '400 12px "IBM Plex Sans"', color: 'var(--t-7A8792)', marginTop: 8 }}>
         Una fila por ítem del informe. Cada Nº de serie es una pieza; si ya existe, se le agrega la inspección al historial.
       </div>
 
       {rows && (
         <div style={{ marginTop: 14 }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
-            <span style={{ font: '500 12px "IBM Plex Mono", monospace', color: '#9AA6B1' }}>{fileName}</span>
-            <span className="axt-count" style={{ color: '#4FC98B', borderColor: '#1F3A2A', background: '#0F1B12' }}>{valid.length} válidas</span>
-            {invalid.length > 0 && <span className="axt-count" style={{ color: '#E5605C', borderColor: '#3A1E1D', background: '#211011' }}>{invalid.length} con error</span>}
+            <span style={{ font: '500 12px "IBM Plex Mono", monospace', color: 'var(--t-9AA6B1)' }}>{fileName}</span>
+            <span className="axt-count" style={{ color: 'var(--t-4FC98B)', borderColor: 'var(--b-1F3A2A)', background: 'var(--s-0F1B12)' }}>{valid.length} válidas</span>
+            {invalid.length > 0 && <span className="axt-count" style={{ color: 'var(--t-E5605C)', borderColor: 'var(--b-3A1E1D)', background: 'var(--s-211011)' }}>{invalid.length} con error</span>}
           </div>
 
-          <div className="axt-scroll-x" style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid #2A2732', borderRadius: 8 }}>
+          <div className="axt-scroll-x" style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--b-2A2732)', borderRadius: 8 }}>
             <table className="axt-table" style={{ minWidth: 620 }}>
               <thead><tr><th>Nº serie</th><th>Descripción</th><th>Cliente</th><th>Informe</th><th>Resultado</th><th>Vence</th><th></th></tr></thead>
               <tbody>
                 {rows.map((r, i) => (
-                  <tr key={i} style={r._err ? { background: '#1E1214' } : {}}>
-                    <td style={{ font: '600 12px "IBM Plex Mono", monospace', color: '#EAF0F3' }}>{r.nro_serie || '—'}</td>
-                    <td style={{ color: '#B7C1CB', maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.descripcion}</td>
-                    <td style={{ color: '#B7C1CB' }}>{r.cliente}</td>
-                    <td style={{ color: '#9AA6B1' }}>{r.informe}</td>
-                    <td><span style={{ font: '600 11px "IBM Plex Sans"', color: r.resultado === 'NO APTO' ? '#E5605C' : r.resultado === 'APTO' ? '#4FC98B' : '#8B98A5' }}>{r.resultado || '—'}</span></td>
-                    <td style={{ font: '500 12px "IBM Plex Mono", monospace', color: '#B7C1CB' }}>{r.vencimiento || '—'}</td>
-                    <td>{r._err && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, font: '500 11px "IBM Plex Sans"', color: '#E5605C' }}><AlertTriangle size={12} /> {r._err}</span>}</td>
+                  <tr key={i} style={r._err ? { background: 'var(--s-1E1214)' } : {}}>
+                    <td style={{ font: '600 12px "IBM Plex Mono", monospace', color: 'var(--t-EAF0F3)' }}>{r.nro_serie || '—'}</td>
+                    <td style={{ color: 'var(--t-B7C1CB)', maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.descripcion}</td>
+                    <td style={{ color: 'var(--t-B7C1CB)' }}>{r.cliente}</td>
+                    <td style={{ color: 'var(--t-9AA6B1)' }}>{r.informe}</td>
+                    <td><span style={{ font: '600 11px "IBM Plex Sans"', color: r.resultado === 'NO APTO' ? 'var(--t-E5605C)' : r.resultado === 'APTO' ? 'var(--t-4FC98B)' : 'var(--t-8B98A5)' }}>{r.resultado || '—'}</span></td>
+                    <td style={{ font: '500 12px "IBM Plex Mono", monospace', color: 'var(--t-B7C1CB)' }}>{r.vencimiento || '—'}</td>
+                    <td>{r._err && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, font: '500 11px "IBM Plex Sans"', color: 'var(--t-E5605C)' }}><AlertTriangle size={12} /> {r._err}</span>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -355,13 +355,13 @@ export function ImportPanel({ toast, onImported, title = 'Importar informe (Exce
               {busy ? 'Importando…' : `Importar ${valid.length} filas`}
             </button>
             <button className="axt-btn small" onClick={() => { setRows(null); setResult(null); setFileName(''); }}>Cancelar</button>
-            {invalid.length > 0 && <span style={{ font: '400 12px "IBM Plex Sans"', color: '#EDA53C' }}>Las filas con error se omiten. Corregí el Excel y volvé a subirlo si querés incluirlas.</span>}
+            {invalid.length > 0 && <span style={{ font: '400 12px "IBM Plex Sans"', color: 'var(--t-EDA53C)' }}>Las filas con error se omiten. Corregí el Excel y volvé a subirlo si querés incluirlas.</span>}
           </div>
 
           {result && (
-            <div style={{ marginTop: 12, padding: '12px 14px', background: '#0F1B12', border: '1px solid #1F3A2A', borderRadius: 8, font: '500 13px "IBM Plex Sans"', color: '#B7E0C4' }}>
+            <div style={{ marginTop: 12, padding: '12px 14px', background: 'var(--s-0F1B12)', border: '1px solid var(--b-1F3A2A)', borderRadius: 8, font: '500 13px "IBM Plex Sans"', color: 'var(--t-B7E0C4)' }}>
               ✓ {result.piecesCreated} piezas nuevas · {result.inspections} inspecciones nuevas · {result.updated} actualizadas · {result.clientsCreated} clientes nuevos
-              {result.errors?.length > 0 && <div style={{ color: '#E5A3A1', marginTop: 4 }}>{result.errors.length} filas con problemas en el servidor.</div>}
+              {result.errors?.length > 0 && <div style={{ color: 'var(--t-E5A3A1)', marginTop: 4 }}>{result.errors.length} filas con problemas en el servidor.</div>}
             </div>
           )}
         </div>
@@ -389,25 +389,25 @@ function NfcWriteBlock({ token }) {
   };
 
   return (
-    <div style={{ background: '#1B1609', border: '1px solid #4A3E1E', borderRadius: 12, padding: 16, marginBottom: 22 }}>
+    <div style={{ background: 'var(--s-1B1609)', border: '1px solid var(--b-4A3E1E)', borderRadius: 12, padding: 16, marginBottom: 22 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <QrCode size={16} color="#D9B44A" />
-        <span style={{ font: '600 13px "IBM Plex Sans"', color: '#EAF0F3' }}>Grabar en el tag NFC</span>
+        <QrCode size={16} color="var(--t-D9B44A)" />
+        <span style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-EAF0F3)' }}>Grabar en el tag NFC</span>
       </div>
 
       <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-        {qr && <img src={qr} alt="QR" width={104} height={104} style={{ borderRadius: 8, background: '#fff', padding: 4, flexShrink: 0 }} />}
+        {qr && <img src={qr} alt="QR" width={104} height={104} style={{ borderRadius: 8, background: 'var(--s-FFFFFF)', padding: 4, flexShrink: 0 }} />}
         <div style={{ flex: 1, minWidth: 180 }}>
-          <div style={{ font: '500 10px "IBM Plex Mono", monospace', color: '#6A7681', letterSpacing: '.5px', marginBottom: 5 }}>URL DEL ACTIVO</div>
-          <div style={{ font: '500 11.5px "IBM Plex Mono", monospace', color: '#B7C1CB', background: '#0A0A0C', border: '1px solid #2A2732', borderRadius: 8, padding: '9px 11px', wordBreak: 'break-all', marginBottom: 8 }}>{url}</div>
+          <div style={{ font: '500 10px "IBM Plex Mono", monospace', color: 'var(--t-6A7681)', letterSpacing: '.5px', marginBottom: 5 }}>URL DEL ACTIVO</div>
+          <div style={{ font: '500 11.5px "IBM Plex Mono", monospace', color: 'var(--t-B7C1CB)', background: 'var(--s-0A0A0C)', border: '1px solid var(--b-2A2732)', borderRadius: 8, padding: '9px 11px', wordBreak: 'break-all', marginBottom: 8 }}>{url}</div>
           <button className="axt-btn small" onClick={copy}>
             {copied ? <><Check size={13} /> Copiado</> : <><Copy size={13} /> Copiar URL</>}
           </button>
         </div>
       </div>
 
-      <div style={{ font: '400 11.5px "IBM Plex Sans"', color: '#7A8792', marginTop: 12, lineHeight: 1.5 }}>
-        Grabá esta URL en el tag con la app <b style={{ color: '#9AA6B1' }}>NFC Tools</b> (registro tipo "URL"). El QR abre la misma página — sirve para probar la vista del cliente desde el teléfono.
+      <div style={{ font: '400 11.5px "IBM Plex Sans"', color: 'var(--t-7A8792)', marginTop: 12, lineHeight: 1.5 }}>
+        Grabá esta URL en el tag con la app <b style={{ color: 'var(--t-9AA6B1)' }}>NFC Tools</b> (registro tipo "URL"). El QR abre la misma página — sirve para probar la vista del cliente desde el teléfono.
       </div>
     </div>
   );
@@ -464,54 +464,54 @@ function AdminPanel({ toast, onChanged }) {
     catch (e) { toast(e.message); }
   }
 
-  const roleColor = (r) => r === 'admin' ? '#D9B44A' : r === 'traza' ? '#7FB0C8' : r === 'precintos' ? '#E8A33C' : '#9AA6B1';
+  const roleColor = (r) => r === 'admin' ? 'var(--t-D9B44A)' : r === 'traza' ? 'var(--t-7FB0C8)' : r === 'precintos' ? 'var(--t-E8A33C)' : 'var(--t-9AA6B1)';
   const roleName = { admin: 'Administración', traza: 'Trazabilidad', precintos: 'Precintos', cliente: 'Cliente' };
 
   return (
     <div className="axt-card" style={{ padding: 0, overflow: 'hidden', marginBottom: 16 }}>
       <button onClick={() => setOpen((o) => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <Users size={17} color="#D9B44A" />
-          <span style={{ font: '600 15px "Oswald", sans-serif', color: '#EAF0F3' }}>Clientes y usuarios</span>
+          <Users size={17} color="var(--t-D9B44A)" />
+          <span style={{ font: '600 15px "Oswald", sans-serif', color: 'var(--t-EAF0F3)' }}>Clientes y usuarios</span>
         </span>
-        <ChevronDown size={18} color="#7A8792" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: '.2s' }} />
+        <ChevronDown size={18} color="var(--t-7A8792)" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: '.2s' }} />
       </button>
 
       {open && (
         <div style={{ padding: '0 20px 20px' }}>
           <div className="adm-grid">
-            <div style={{ background: '#171419', border: '1px solid #2A2732', borderRadius: 12, padding: 16 }}>
-              <div className="axt-sec" style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Building2 size={14} color="#9AA6B1" /> Empresas</div>
+            <div style={{ background: 'var(--s-171419)', border: '1px solid var(--b-2A2732)', borderRadius: 12, padding: 16 }}>
+              <div className="axt-sec" style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Building2 size={14} color="var(--t-9AA6B1)" /> Empresas</div>
               {clients.loading ? <Spinner label="…" /> : (clients.data || []).map((c) => (
-                <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid #201C24' }}>
+                <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--b-201C24)' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ font: '600 13px "IBM Plex Sans"', color: '#EAF0F3' }}>{c.name}</div>
+                    <div style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-EAF0F3)' }}>{c.name}</div>
                     <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 4, alignItems: 'center' }}>
-                      {(c.ibms || []).map((ib) => <span key={ib} style={{ font: '600 10px "IBM Plex Mono", monospace', color: '#D9B44A', background: '#2A2410', border: '1px solid #4A3E1E', borderRadius: 5, padding: '1px 6px' }}>IBM {ib}</span>)}
-                      <span style={{ font: '400 10.5px "IBM Plex Mono", monospace', color: '#7A8792' }}>{c.assets} activos · {c.users} usuarios</span>
+                      {(c.ibms || []).map((ib) => <span key={ib} style={{ font: '600 10px "IBM Plex Mono", monospace', color: 'var(--t-D9B44A)', background: 'var(--s-2A2410)', border: '1px solid var(--b-4A3E1E)', borderRadius: 5, padding: '1px 6px' }}>IBM {ib}</span>)}
+                      <span style={{ font: '400 10.5px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)' }}>{c.assets} activos · {c.users} usuarios</span>
                     </div>
                   </div>
                   {c.assets === 0 && <button className="axt-x sm" title="Eliminar" onClick={() => delClient(c.id)}><Trash2 size={13} /></button>}
                 </div>
               ))}
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <input className="axt-input" style={{ flex: 1, background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px' }} placeholder="Nombre de la empresa" value={cName} onChange={(e) => setCName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addClient()} />
+                <input className="axt-input" style={{ flex: 1, background: 'var(--s-0F0E12)', border: '1px solid var(--b-2A2732)', borderRadius: 8, padding: '8px 11px' }} placeholder="Nombre de la empresa" value={cName} onChange={(e) => setCName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addClient()} />
                 <button className="axt-btn small primary" onClick={addClient}><Plus size={13} /> Crear</button>
               </div>
-              <div style={{ font: '400 10.5px "IBM Plex Sans"', color: '#6A7681', marginTop: 8 }}>Los IBM se cargan solos al importar activos de esa empresa.</div>
+              <div style={{ font: '400 10.5px "IBM Plex Sans"', color: 'var(--t-6A7681)', marginTop: 8 }}>Los IBM se cargan solos al importar activos de esa empresa.</div>
             </div>
 
-            <div style={{ background: '#171419', border: '1px solid #2A2732', borderRadius: 12, padding: 16 }}>
-              <div className="axt-sec" style={{ display: 'flex', alignItems: 'center', gap: 7 }}><UserPlus size={14} color="#9AA6B1" /> Accesos</div>
+            <div style={{ background: 'var(--s-171419)', border: '1px solid var(--b-2A2732)', borderRadius: 12, padding: 16 }}>
+              <div className="axt-sec" style={{ display: 'flex', alignItems: 'center', gap: 7 }}><UserPlus size={14} color="var(--t-9AA6B1)" /> Accesos</div>
               <div style={{ maxHeight: 320, overflowY: 'auto' }}>
                 {users.loading ? <Spinner label="…" /> : (users.data || []).map((u) => (
-                  <div key={u.id} style={{ padding: '9px 0', borderBottom: '1px solid #201C24' }}>
+                  <div key={u.id} style={{ padding: '9px 0', borderBottom: '1px solid var(--b-201C24)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ font: '600 12.5px "IBM Plex Sans"', color: '#EAF0F3', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.username || u.email}{u.email && u.username !== u.email ? <span style={{ font: '400 10.5px "IBM Plex Mono", monospace', color: '#6A7681' }}>{' · ' + u.email}</span> : ''}</div>
+                        <div style={{ font: '600 12.5px "IBM Plex Sans"', color: 'var(--t-EAF0F3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.username || u.email}{u.email && u.username !== u.email ? <span style={{ font: '400 10.5px "IBM Plex Mono", monospace', color: 'var(--t-6A7681)' }}>{' · ' + u.email}</span> : ''}</div>
                         <div style={{ font: '400 10.5px "IBM Plex Mono", monospace', marginTop: 3 }}>
-                          <span style={{ color: roleColor(u.role) }}>{roleName[u.role] || u.role}</span>{u.client ? <span style={{ color: '#7A8792' }}> · {u.client}</span> : ''}
-                          {u.role === 'cliente' && <span style={{ color: '#D9B44A' }}> · {u.ibms && u.ibms.length ? 'IBM ' + u.ibms.join(', ') : 'Todos los IBM'}</span>}
+                          <span style={{ color: roleColor(u.role) }}>{roleName[u.role] || u.role}</span>{u.client ? <span style={{ color: 'var(--t-7A8792)' }}> · {u.client}</span> : ''}
+                          {u.role === 'cliente' && <span style={{ color: 'var(--t-D9B44A)' }}> · {u.ibms && u.ibms.length ? 'IBM ' + u.ibms.join(', ') : 'Todos los IBM'}</span>}
                         </div>
                       </div>
                       {u.role === 'cliente' && (
@@ -535,11 +535,11 @@ function AdminPanel({ toast, onChanged }) {
                 ))}
               </div>
               <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
-                <input className="axt-input" autoCapitalize="none" autoCorrect="off" style={{ background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px' }} placeholder="usuario (ej: jperez)" value={uForm.username} onChange={(e) => setUForm({ ...uForm, username: e.target.value })} />
-                <input className="axt-input" type="email" style={{ background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px' }} placeholder="correo (opcional, para recuperar contraseña)" value={uForm.email} onChange={(e) => setUForm({ ...uForm, email: e.target.value })} />
+                <input className="axt-input" autoCapitalize="none" autoCorrect="off" style={{ background: 'var(--s-0F0E12)', border: '1px solid var(--b-2A2732)', borderRadius: 8, padding: '8px 11px' }} placeholder="usuario (ej: jperez)" value={uForm.username} onChange={(e) => setUForm({ ...uForm, username: e.target.value })} />
+                <input className="axt-input" type="email" style={{ background: 'var(--s-0F0E12)', border: '1px solid var(--b-2A2732)', borderRadius: 8, padding: '8px 11px' }} placeholder="correo (opcional, para recuperar contraseña)" value={uForm.email} onChange={(e) => setUForm({ ...uForm, email: e.target.value })} />
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <input className="axt-input" style={{ flex: 1, minWidth: 140, background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px' }} placeholder="contraseña" value={uForm.password} onChange={(e) => setUForm({ ...uForm, password: e.target.value })} />
-                  <select className="axt-input" style={{ width: 'auto', flex: 'none', background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px', color: '#EAF0F3' }} value={uForm.role} onChange={(e) => setUForm({ ...uForm, role: e.target.value })}>
+                  <input className="axt-input" style={{ flex: 1, minWidth: 140, background: 'var(--s-0F0E12)', border: '1px solid var(--b-2A2732)', borderRadius: 8, padding: '8px 11px' }} placeholder="contraseña" value={uForm.password} onChange={(e) => setUForm({ ...uForm, password: e.target.value })} />
+                  <select className="axt-input" style={{ width: 'auto', flex: 'none', background: 'var(--s-0F0E12)', border: '1px solid var(--b-2A2732)', borderRadius: 8, padding: '8px 11px', color: 'var(--t-EAF0F3)' }} value={uForm.role} onChange={(e) => setUForm({ ...uForm, role: e.target.value })}>
                     <option value="cliente">Cliente</option>
                     <option value="precintos">Precintos</option>
                     <option value="traza">Trazabilidad</option>
@@ -547,7 +547,7 @@ function AdminPanel({ toast, onChanged }) {
                   </select>
                 </div>
                 {uForm.role === 'cliente' && (
-                  <select className="axt-input" style={{ background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '8px 11px', color: '#EAF0F3' }} value={uForm.client_id} onChange={(e) => setUForm({ ...uForm, client_id: e.target.value, ibms: null })}>
+                  <select className="axt-input" style={{ background: 'var(--s-0F0E12)', border: '1px solid var(--b-2A2732)', borderRadius: 8, padding: '8px 11px', color: 'var(--t-EAF0F3)' }} value={uForm.client_id} onChange={(e) => setUForm({ ...uForm, client_id: e.target.value, ibms: null })}>
                     <option value="">— Elegí la empresa —</option>
                     {(clients.data || []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
@@ -594,11 +594,11 @@ function IbmPicker({ options, value, onChange }) {
             {all.length === 0 && <span className="ibm-note">Esta empresa todavía no tiene IBM cargados. Escribilo abajo.</span>}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <input className="axt-input" style={{ flex: 1, minWidth: 0, background: '#0F0E12', border: '1px solid #2A2732', borderRadius: 8, padding: '7px 10px' }}
+            <input className="axt-input" style={{ flex: 1, minWidth: 0, background: 'var(--s-0F0E12)', border: '1px solid var(--b-2A2732)', borderRadius: 8, padding: '7px 10px' }}
               placeholder="Otro IBM (ej: 210)" value={otro} onChange={(e) => setOtro(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} aria-label="Agregar otro IBM" />
             <button className="axt-btn small" onClick={add}><Plus size={13} /> Agregar</button>
           </div>
-          {sel.length === 0 && <div className="ibm-note" style={{ color: '#EDA53C', marginTop: 6 }}>Elegí al menos un IBM.</div>}
+          {sel.length === 0 && <div className="ibm-note" style={{ color: 'var(--t-EDA53C)', marginTop: 6 }}>Elegí al menos un IBM.</div>}
         </>
       )}
     </div>
@@ -643,10 +643,10 @@ function BackupCard({ toast, onRestored }) {
   return (
     <div className="axt-card" style={{ padding: 20, marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
-        <DatabaseBackup size={17} color="#D9B44A" />
-        <span style={{ font: '600 15px "Oswald", sans-serif', color: '#EAF0F3' }}>Respaldo de la base</span>
+        <DatabaseBackup size={17} color="var(--t-D9B44A)" />
+        <span style={{ font: '600 15px "Oswald", sans-serif', color: 'var(--t-EAF0F3)' }}>Respaldo de la base</span>
       </div>
-      <div style={{ font: '400 12px "IBM Plex Sans"', color: '#7A8792', marginBottom: 14, lineHeight: 1.5 }}>
+      <div style={{ font: '400 12px "IBM Plex Sans"', color: 'var(--t-7A8792)', marginBottom: 14, lineHeight: 1.5 }}>
         Descargá una copia de toda la base (empresas, activos, inspecciones, usuarios y tags) y guardala. Si algún día se pierde, la recargás desde ese archivo. Guardá el archivo en un lugar seguro: contiene todos los datos.
       </div>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>

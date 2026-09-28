@@ -9,6 +9,7 @@ import Cliente from './Cliente.jsx';
 import Precintos from './Precintos.jsx';
 import Portal, { SIDE_NAME } from './Portal.jsx';
 import Ayuda, { HojaCliente, guiasPara } from './Ayuda.jsx';
+import { BotonTema } from './tema.jsx';
 
 const ROLES = {
   admin:     { label: 'Administración', icon: SlidersHorizontal, who: 'Administración · empresas, usuarios, carga y codificación de activos' },
@@ -37,10 +38,10 @@ function Logo() {
       </svg>
       <div style={{ lineHeight: 1 }}>
         <div style={{ font: '700 18px "Oswald", sans-serif', letterSpacing: '.14em' }}>
-          <span style={{ background: 'linear-gradient(180deg,#FFFFFF,#C4CBD2)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>OLYMPUS</span>{' '}
-          <span style={{ letterSpacing: '.3em', background: 'linear-gradient(180deg,#F6E29A,#E7C15A 45%,#C79A3B)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>TRACE</span>
+          <span style={{ background: 'var(--grad-acero)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>OLYMPUS</span>{' '}
+          <span style={{ letterSpacing: '.3em', background: 'var(--grad-oro)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>TRACE</span>
         </div>
-        <div style={{ font: '500 8px "IBM Plex Mono", monospace', letterSpacing: '.32em', color: '#8A7233', marginTop: 4 }}>ASSET INTELLIGENCE</div>
+        <div style={{ font: '500 8px "IBM Plex Mono", monospace', letterSpacing: '.32em', color: 'var(--t-8A7233)', marginTop: 4 }}>ASSET INTELLIGENCE</div>
       </div>
     </div>
   );
@@ -115,11 +116,12 @@ export default function App() {
       <header className="axt-chrome">
         <Logo />
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div className="role-chip"><RoleIcon size={15} color="#D9B44A" /><span>{role.label}</span></div>
+          <div className="role-chip"><RoleIcon size={15} color="var(--t-D9B44A)" /><span>{role.label}</span></div>
           <div className="hdr-user" style={{ textAlign: 'right', lineHeight: 1.3 }}>
-            <div style={{ font: '600 13px "IBM Plex Sans"', color: '#DCE3E9' }}>{user.name}</div>
-            <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#6A7681' }}>{user.username || user.email}</div>
+            <div style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-DCE3E9)' }}>{user.name}</div>
+            <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-6A7681)' }}>{user.username || user.email}</div>
           </div>
+          <BotonTema />
           <button className="axt-x" onClick={() => abrirAyuda(guiasPara(user.role), user.role === 'admin' ? view : user.role)} title="Ayuda" aria-label="Ayuda"><HelpCircle size={17} /></button>
           <button className="axt-x" onClick={() => { logout(); setUser(null); setDoor(null); }} title="Cerrar sesión" aria-label="Cerrar sesión"><LogOut size={17} /></button>
         </div>
@@ -132,7 +134,7 @@ export default function App() {
           ))}
         </nav>
       ) : (
-        <div className="who-bar"><RoleIcon size={14} color="#D9B44A" /><span>{role.who}</span></div>
+        <div className="who-bar"><RoleIcon size={14} color="var(--t-D9B44A)" /><span>{role.who}</span></div>
       )}
       <OfflineBanner />
 
@@ -169,11 +171,14 @@ function Login({ side, onBack, onSwitch, onLogin, onAyuda }) {
   return (
     <div className="login-wrap">
       <form className="login-card" onSubmit={submit}>
-        <button type="button" className="login-back" onClick={onBack}><ArrowLeft size={14} /> Portal</button>
+        <div className="login-top">
+          <button type="button" className="login-back" onClick={onBack}><ArrowLeft size={14} /> Portal</button>
+          <BotonTema className="axt-x sm" size={14} />
+        </div>
         <div style={{ margin: '14px 0 22px' }}><Logo /></div>
         <div className="login-side">{SIDE_NAME[side] || 'Ingreso'}</div>
-        <h1 style={{ font: '700 22px "Oswald", sans-serif', color: '#EAF0F3', margin: '6px 0 4px' }}>Ingresar</h1>
-        <p style={{ font: '400 13px "IBM Plex Sans"', color: '#8B98A5', margin: '0 0 22px' }}>Usá el usuario que te dio Administración.</p>
+        <h1 style={{ font: '700 22px "Oswald", sans-serif', color: 'var(--t-EAF0F3)', margin: '6px 0 4px' }}>Ingresar</h1>
+        <p style={{ font: '400 13px "IBM Plex Sans"', color: 'var(--t-8B98A5)', margin: '0 0 22px' }}>Usá el usuario que te dio Administración.</p>
 
         <label className="fld" style={{ marginBottom: 12 }}><span>Usuario</span>
           <input type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" value={usuario} onChange={(e) => setUsuario(e.target.value)} placeholder="tu usuario" autoFocus />
@@ -183,7 +188,7 @@ function Login({ side, onBack, onSwitch, onLogin, onAyuda }) {
         </label>
 
         {err && (
-          <div role="alert" style={{ font: '500 12.5px "IBM Plex Sans"', color: '#E5A3A1', background: '#211011', border: '1px solid #3A1E1D', borderRadius: 8, padding: '9px 12px', marginBottom: 14 }}>
+          <div role="alert" style={{ font: '500 12.5px "IBM Plex Sans"', color: 'var(--t-E5A3A1)', background: 'var(--s-211011)', border: '1px solid var(--b-3A1E1D)', borderRadius: 8, padding: '9px 12px', marginBottom: 14 }}>
             {err}
             {otroLado && (
               <button type="button" className="axt-btn small" style={{ display: 'flex', marginTop: 8 }}
@@ -197,7 +202,7 @@ function Login({ side, onBack, onSwitch, onLogin, onAyuda }) {
         <button type="submit" className="axt-btn primary" style={{ width: '100%', padding: '12px' }} disabled={busy}>
           {busy ? 'Ingresando…' : 'Ingresar'}
         </button>
-        <p style={{ font: '400 11.5px "IBM Plex Sans"', color: '#6E6C69', margin: '16px 0 0', textAlign: 'center' }}>¿No tenés acceso? Pedíselo a Administración de Olympus.</p>
+        <p style={{ font: '400 11.5px "IBM Plex Sans"', color: 'var(--t-6E6C69)', margin: '16px 0 0', textAlign: 'center' }}>¿No tenés acceso? Pedíselo a Administración de Olympus.</p>
         <p style={{ margin: '10px 0 0', textAlign: 'center' }}><button type="button" className="ay-link" onClick={onAyuda}>¿Primera vez? Ver el instructivo</button></p>
       </form>
     </div>
@@ -242,10 +247,10 @@ function TagLogin({ aviso, onLogin, onAyuda }) {
   return (
     <div className="login-wrap">
       <form className="login-card" onSubmit={submit}>
-        <div style={{ margin: '0 0 22px' }}><Logo /></div>
+        <div className="login-top" style={{ margin: '0 0 22px' }}><Logo /><BotonTema className="axt-x sm" size={14} /></div>
         <div className="login-side" style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Lock size={12} /> Pieza registrada</div>
-        <h1 style={{ font: '700 21px "Oswald", sans-serif', color: '#EAF0F3', margin: '6px 0 6px' }}>Iniciá sesión para ver esta pieza</h1>
-        <p style={{ font: '400 13px "IBM Plex Sans"', color: '#8B98A5', margin: '0 0 20px', lineHeight: 1.5 }}>
+        <h1 style={{ font: '700 21px "Oswald", sans-serif', color: 'var(--t-EAF0F3)', margin: '6px 0 6px' }}>Iniciá sesión para ver esta pieza</h1>
+        <p style={{ font: '400 13px "IBM Plex Sans"', color: 'var(--t-8B98A5)', margin: '0 0 20px', lineHeight: 1.5 }}>
           Esta pieza está registrada en Olympus Trace. Su información la ve solo quien tiene acceso.
         </p>
 
@@ -259,13 +264,13 @@ function TagLogin({ aviso, onLogin, onAyuda }) {
         </label>
 
         {err && (
-          <div role="alert" style={{ font: '500 12.5px "IBM Plex Sans"', color: '#E5A3A1', background: '#211011', border: '1px solid #3A1E1D', borderRadius: 8, padding: '9px 12px', marginBottom: 14 }}>{err}</div>
+          <div role="alert" style={{ font: '500 12.5px "IBM Plex Sans"', color: 'var(--t-E5A3A1)', background: 'var(--s-211011)', border: '1px solid var(--b-3A1E1D)', borderRadius: 8, padding: '9px 12px', marginBottom: 14 }}>{err}</div>
         )}
 
         <button type="submit" className="axt-btn primary" style={{ width: '100%', padding: '12px' }} disabled={busy}>
           {busy ? 'Ingresando…' : 'Ver pieza'}
         </button>
-        <p style={{ font: '400 11.5px "IBM Plex Sans"', color: '#6E6C69', margin: '16px 0 0', textAlign: 'center' }}>¿No tenés acceso? Pedíselo a Administración de Olympus.</p>
+        <p style={{ font: '400 11.5px "IBM Plex Sans"', color: 'var(--t-6E6C69)', margin: '16px 0 0', textAlign: 'center' }}>¿No tenés acceso? Pedíselo a Administración de Olympus.</p>
         <p style={{ margin: '10px 0 0', textAlign: 'center' }}><button type="button" className="ay-link" onClick={onAyuda}>¿Cómo funciona? Ver el instructivo</button></p>
       </form>
     </div>
@@ -294,7 +299,7 @@ function TagView({ token, user, onExpired, onSalir }) {
     <div style={{ display: 'grid', placeItems: 'center', minHeight: '100vh', padding: 16 }}>
       <div className="phone tag-phone">
         <div className="phone-notch" />
-        <div className="phone-bar"><Radio size={13} color="#D9B44A" /> <span>OLYMPUS TRACE</span></div>
+        <div className="phone-bar"><Radio size={13} color="var(--t-D9B44A)" /> <span>OLYMPUS TRACE</span></div>
         <div className="phone-screen">
           {st.loading ? <Spinner />
             : st.data ? <PiezaInfo data={st.data} />
@@ -303,6 +308,7 @@ function TagView({ token, user, onExpired, onSalir }) {
           <div className="tag-foot">
             <span>Usuario: <b>{user.username || user.email}</b></span>
             <span className="tag-foot-btns">
+              <BotonTema className="axt-x" size={15} />
               <button type="button" className="axt-btn small" onClick={irAOlympus}>Ir a Olympus</button>
               <button type="button" className="axt-btn small" onClick={onSalir}>Salir</button>
             </span>
@@ -317,24 +323,24 @@ function PiezaInfo({ data }) {
   const a = data.asset;
   return (
     <>
-      <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', paddingBottom: 14, borderBottom: '1px solid #201C24' }}>
+      <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', paddingBottom: 14, borderBottom: '1px solid var(--b-201C24)' }}>
         <Band status={data.status} h={44} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#6A7681' }}>
+          <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-6A7681)' }}>
             {a.type} · {a.client}{a.ibm ? ` · IBM ${a.ibm}` : ''}
           </div>
-          <div style={{ font: '700 17px "Oswald", sans-serif', color: '#EAF0F3', margin: '3px 0 2px' }}>{a.name}</div>
-          <div style={{ font: '400 11.5px "IBM Plex Mono", monospace', color: '#8B98A5', marginBottom: 7 }}>Nº {a.code}</div>
+          <div style={{ font: '700 17px "Oswald", sans-serif', color: 'var(--t-EAF0F3)', margin: '3px 0 2px' }}>{a.name}</div>
+          <div style={{ font: '400 11.5px "IBM Plex Mono", monospace', color: 'var(--t-8B98A5)', marginBottom: 7 }}>Nº {a.code}</div>
           <Pill status={data.status} />
         </div>
       </div>
-      <div style={{ font: '600 11px "IBM Plex Mono", monospace', color: '#7A8792', letterSpacing: '.5px', margin: '16px 0 4px' }}>CERTIFICADOS</div>
+      <div style={{ font: '600 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)', letterSpacing: '.5px', margin: '16px 0 4px' }}>CERTIFICADOS</div>
       {data.certificates.length ? (
         <div>
           {data.certificates.map((c, i) => <CertRow key={c.id || i} c={c} last={i === data.certificates.length - 1} />)}
         </div>
       ) : (
-        <div style={{ font: '400 12.5px "IBM Plex Sans"', color: '#8B98A5', padding: '8px 0' }}>Sin inspecciones registradas.</div>
+        <div style={{ font: '400 12.5px "IBM Plex Sans"', color: 'var(--t-8B98A5)', padding: '8px 0' }}>Sin inspecciones registradas.</div>
       )}
     </>
   );
@@ -344,11 +350,11 @@ function TagProblema({ code, onRetry }) {
   const noEsta = code === 404;
   return (
     <div style={{ textAlign: 'center', padding: '26px 4px 8px' }}>
-      <SearchX size={30} color={noEsta ? '#8B98A5' : '#E5605C'} />
-      <div style={{ font: '700 16px "Oswald", sans-serif', color: '#EAF0F3', margin: '12px 0 6px' }}>
+      <SearchX size={30} color={noEsta ? 'var(--t-8B98A5)' : 'var(--t-E5605C)'} />
+      <div style={{ font: '700 16px "Oswald", sans-serif', color: 'var(--t-EAF0F3)', margin: '12px 0 6px' }}>
         {noEsta ? 'Pieza no disponible' : 'No pudimos cargar la pieza'}
       </div>
-      <p style={{ font: '400 13px "IBM Plex Sans"', color: '#8B98A5', margin: '0 0 14px', lineHeight: 1.5 }}>
+      <p style={{ font: '400 13px "IBM Plex Sans"', color: 'var(--t-8B98A5)', margin: '0 0 14px', lineHeight: 1.5 }}>
         {noEsta
           ? 'No encontramos esta pieza o no tenés permiso para verla. Si tenés otro usuario, tocá Salir y entrá con ese.'
           : 'Revisá tu conexión a internet e intentá de nuevo.'}

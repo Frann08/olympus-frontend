@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Olympus Trace</title>
+    <meta name="theme-color" content="#0A0A0C" />
+    <script>
+      // Modo día/noche antes de dibujar (sin parpadeo): lo elegido en este equipo o, si no, el del teléfono
+      (function () {
+        var t = null;
+        try { t = localStorage.getItem('ot_tema'); } catch (e) {}
+        if (t !== 'dia' && t !== 'noche') t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'dia' : 'noche';
+        document.documentElement.setAttribute('data-tema', t);
+        if (t === 'dia') document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ECE9E2');
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

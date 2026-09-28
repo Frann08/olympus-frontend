@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
 import { ArrowLeft, X, Printer, Info, AlertTriangle, ChevronDown } from 'lucide-react';
 import { Pill } from './ui.jsx';
+import { BotonTema } from './tema.jsx';
 
 /* ============================================================
    AYUDA · instructivos de uso (Cliente, Precintos, Trazabilidad)
@@ -226,10 +227,10 @@ function GuiaPrecintos() {
         </ol>
         <p>El informe está terminado cuando todas las piezas APTO están colocadas (por ejemplo, 7 / 7).</p>
         <ul className="ay-lista">
-          <li><b style={{ color: '#A9A7A2' }}>Pendiente:</b> falta grabar el tag.</li>
-          <li><b style={{ color: '#E7C15A' }}>Grabado:</b> el tag está grabado pero todavía no se marcó como colocado.</li>
-          <li><b style={{ color: '#57C98A' }}>Colocado:</b> terminado.</li>
-          <li><b style={{ color: '#E5645C' }}>Sin precinto:</b> pieza NO APTO (ver punto 7).</li>
+          <li><b style={{ color: 'var(--t-A9A7A2)' }}>Pendiente:</b> falta grabar el tag.</li>
+          <li><b style={{ color: 'var(--t-E7C15A)' }}>Grabado:</b> el tag está grabado pero todavía no se marcó como colocado.</li>
+          <li><b style={{ color: 'var(--t-57C98A)' }}>Colocado:</b> terminado.</li>
+          <li><b style={{ color: 'var(--t-E5645C)' }}>Sin precinto:</b> pieza NO APTO (ver punto 7).</li>
         </ul>
       </Sec>
 
@@ -286,7 +287,7 @@ function GuiaTraza() {
       <Sec id="revisar" n="4" titulo="Revisar la lista" img={{ src: 't-lista', alt: 'Lista de entrada con cuatro tags leídos y dos alertas', cap: '4 leídos, 2 con alerta.' }}>
         <ul className="ay-lista">
           <li>Arriba ves cuántos tags se leyeron y cuántos tienen <b>alerta</b>.</li>
-          <li><b style={{ color: '#E5605C' }}>Cert vencido</b> o <b style={{ color: '#EDA53C' }}>Por vencer</b>: la pieza entra con el certificado vencido o próximo a vencer. Separala o avisá, según el procedimiento del depósito.</li>
+          <li><b style={{ color: 'var(--t-E5605C)' }}>Cert vencido</b> o <b style={{ color: 'var(--t-EDA53C)' }}>Por vencer</b>: la pieza entra con el certificado vencido o próximo a vencer. Separala o avisá, según el procedimiento del depósito.</li>
           <li><b>Tag sin pieza asociada:</b> el tag no corresponde a ninguna pieza registrada. Apartala y avisá a Precintos.</li>
           <li>Si se leyó una pieza que no es de esta entrada (por ejemplo, una que ya estaba en el depósito), quitala con la <b>✕</b>.</li>
         </ul>
@@ -356,6 +357,7 @@ export default function Ayuda({ guias, inicial, onClose, pagina, puedeImprimir, 
           ? (Logo ? <Logo /> : <span className="ay-eyebrow">Olympus Trace</span>)
           : <button ref={cerrarRef} className="ay-back" onClick={onClose}><ArrowLeft size={15} /> Volver</button>}
         <span className="ay-top-r">
+          <BotonTema className="axt-x sm" size={15} />
           {pagina
             ? <a className="axt-btn small" href={window.location.origin + '/'}>Ir a Olympus</a>
             : <button className="axt-x sm" onClick={onClose} aria-label="Cerrar ayuda"><X size={15} /></button>}
