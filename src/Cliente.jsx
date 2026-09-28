@@ -422,7 +422,7 @@ function CertModal({ asset, onClose, toast }) {
           <div style={{ font: '600 11px "IBM Plex Mono", monospace', color: '#7A8792', letterSpacing: '.5px', margin: '16px 0 4px' }}>CERTIFICADOS</div>
           <div>
             {asset.certificates.map((c, i) => (
-              <CertRow key={c.id || i} c={c} last={i === asset.certificates.length - 1} onDownload={() => toast('Descargando ' + c.number + '.pdf')} />
+              <CertRow key={c.id || i} c={c} last={i === asset.certificates.length - 1} />
             ))}
             {asset.certificates.length === 0 && <div style={{ font: '500 13px "IBM Plex Sans"', color: '#7A8792' }}>Sin certificados.</div>}
           </div>

@@ -20,7 +20,7 @@ const DOORS = [
 
 export const SIDE_NAME = { cliente: 'Lado cliente', operador: 'Lado operador', admin: 'Administración' };
 
-export default function Portal({ onPick, Logo }) {
+export default function Portal({ onPick, Logo, onAyuda }) {
   return (
     <div className="pt-wrap">
       <header className="pt-top"><Logo /></header>
@@ -50,6 +50,7 @@ export default function Portal({ onPick, Logo }) {
         </div>
 
         <p className="pt-foot">Trazabilidad de activos, de la inspección al campo.</p>
+        {onAyuda && <p style={{ textAlign: 'center', margin: '12px 0 0' }}><button type="button" className="ay-link" onClick={onAyuda}>Instructivos de uso</button></p>}
       </main>
     </div>
   );
