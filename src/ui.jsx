@@ -3,12 +3,15 @@ import { CheckCircle2, X, Loader2, AlertTriangle, Download } from 'lucide-react'
 
 /* ---------- estado / formato ---------- */
 export const STATUS = {
-  certified: { label: 'Vigente',    color: '#4FC98B', band: 'solid' },
-  due:       { label: 'Por vencer', color: '#EDA53C', band: 'amber' },
-  overdue:   { label: 'Vencido',    color: '#E5605C', band: 'red' },
-  sin_cert:  { label: 'Sin certificados', color: '#727E8B', band: 'gray' },
-  anterior:  { label: 'Anterior', color: '#727E8B', band: 'gray' },
+  certified: { label: 'Vigente',    color: 'var(--st-ok)', band: 'solid' },
+  due:       { label: 'Por vencer', color: 'var(--st-due)', band: 'amber' },
+  overdue:   { label: 'Vencido',    color: 'var(--st-bad)', band: 'red' },
+  sin_cert:  { label: 'Sin certificados', color: 'var(--st-gris)', band: 'gray' },
+  anterior:  { label: 'Anterior', color: 'var(--st-gris)', band: 'gray' },
 };
+// Color con transparencia (sirve con variables de tema): tinte(c, 33) = c al 33 %
+export const tinte = (c, pct) => `color-mix(in srgb, ${c} ${pct}%, transparent)`;
+
 const MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 export const fmtDate = (d) => {
   if (!d) return '—';
@@ -48,7 +51,7 @@ export function Band({ status, h = 26 }) {
 export function Pill({ status }) {
   const s = STATUS[status] || STATUS.sin_cert;
   return (
-    <span className="axt-pill" style={{ color: s.color, borderColor: s.color + '55', background: s.color + '16' }}>
+    <span className="axt-pill" style={{ color: s.color, borderColor: tinte(s.color, 33.3), background: tinte(s.color, 8.6) }}>
       <span style={{ width: 6, height: 6, borderRadius: 6, background: s.color, display: 'inline-block' }} />{s.label}
     </span>
   );
@@ -56,7 +59,7 @@ export function Pill({ status }) {
 
 export function EncChip({ ok, label }) {
   return (
-    <span className="enc" style={{ color: ok ? '#4FC98B' : '#7A8792', borderColor: ok ? '#4A3E1E' : '#322D38', background: ok ? '#1B1609' : '#171419' }}>
+    <span className="enc" style={{ color: ok ? 'var(--t-4FC98B)' : 'var(--t-7A8792)', borderColor: ok ? 'var(--b-4A3E1E)' : 'var(--b-322D38)', background: ok ? 'var(--s-1B1609)' : 'var(--s-171419)' }}>
       {ok ? <CheckCircle2 size={12} /> : <X size={12} />} {label}
     </span>
   );
@@ -66,10 +69,10 @@ export function StatTile({ label, value, sub, color, icon: Icon, i = 0 }) {
   return (
     <div className="axt-card axt-tile" style={{ animationDelay: `${i * 55}ms` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <span style={{ font: '500 12px "IBM Plex Sans"', color: '#8B98A5' }}>{label}</span>
+        <span style={{ font: '500 12px "IBM Plex Sans"', color: 'var(--t-8B98A5)' }}>{label}</span>
         {Icon && <Icon size={16} color={color} />}
       </div>
-      <div style={{ font: '700 30px "Oswald", sans-serif', color: '#EAF0F3', marginTop: 10, lineHeight: 1 }}>{value}</div>
+      <div style={{ font: '700 30px "Oswald", sans-serif', color: 'var(--t-EAF0F3)', marginTop: 10, lineHeight: 1 }}>{value}</div>
       {sub && <div style={{ font: '500 11px "IBM Plex Mono", monospace', color, marginTop: 7 }}>{sub}</div>}
     </div>
   );
@@ -77,24 +80,24 @@ export function StatTile({ label, value, sub, color, icon: Icon, i = 0 }) {
 
 export function CertRow({ c, last, onDownload }) {
   const isInsp = !!(c.resultado || c.precinto || c.cert_type === 'Inspección');
-  const resColor = c.resultado === 'NO APTO' ? '#E5605C' : c.resultado === 'APTO' ? '#4FC98B' : '#8B98A5';
+  const resColor = c.resultado === 'NO APTO' ? 'var(--t-E5605C)' : c.resultado === 'APTO' ? 'var(--t-4FC98B)' : 'var(--t-8B98A5)';
   return (
-    <div style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: last ? 'none' : '1px solid #201C24' }}>
+    <div style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: last ? 'none' : '1px solid var(--b-201C24)' }}>
       <Band status={c.status} h={onDownload || c.pdf_url ? 58 : 40} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ font: '600 13px "IBM Plex Sans"', color: '#EAF0F3' }}>{isInsp ? `Inspección · Informe ${c.number}` : c.cert_type}</span>
-          {c.resultado && <span style={{ font: '600 10.5px "IBM Plex Sans"', color: resColor, border: `1px solid ${resColor}55`, background: resColor + '16', padding: '1px 7px', borderRadius: 20 }}>{c.resultado}</span>}
+          <span style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-EAF0F3)' }}>{isInsp ? `Inspección · Informe ${c.number}` : c.cert_type}</span>
+          {c.resultado && <span style={{ font: '600 10.5px "IBM Plex Sans"', color: resColor, border: `1px solid ${tinte(resColor, 33.3)}`, background: tinte(resColor, 8.6), padding: '1px 7px', borderRadius: 20 }}>{c.resultado}</span>}
         </div>
-        <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: '#7A8792', marginTop: 3 }}>
+        <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)', marginTop: 3 }}>
           {isInsp ? (c.inspector || '') : `${c.number}${c.inspector ? ` · ${c.inspector}` : ''}`}{c.presion ? ` · ${c.presion}` : ''}
         </div>
         {c.precinto && c.precinto !== 'N/A' && (
-          <div style={{ font: '400 10.5px "IBM Plex Mono", monospace', color: '#8A7A55', marginTop: 4, wordBreak: 'break-all' }}>Precinto: {c.precinto}</div>
+          <div style={{ font: '400 10.5px "IBM Plex Mono", monospace', color: 'var(--t-8A7A55)', marginTop: 4, wordBreak: 'break-all' }}>Precinto: {c.precinto}</div>
         )}
         <div style={{ display: 'flex', gap: 16, marginTop: 6, flexWrap: 'wrap' }}>
-          <span style={{ font: '400 11px "IBM Plex Sans"', color: '#8B98A5' }}>Emitido {fmtDate(c.issued_date)}</span>
-          <span style={{ font: '400 11px "IBM Plex Sans"', color: '#8B98A5' }}>Vence {fmtDate(c.expires_date)}</span>
+          <span style={{ font: '400 11px "IBM Plex Sans"', color: 'var(--t-8B98A5)' }}>Emitido {fmtDate(c.issued_date)}</span>
+          <span style={{ font: '400 11px "IBM Plex Sans"', color: 'var(--t-8B98A5)' }}>Vence {fmtDate(c.expires_date)}</span>
         </div>
         {c.pdf_url ? (
           <a className="axt-btn small" style={{ marginTop: 9, textDecoration: 'none', display: 'inline-flex' }} href={c.pdf_url} target="_blank" rel="noreferrer"><Download size={13} /> Ver informe (BM)</a>
@@ -114,7 +117,7 @@ export function CertRow({ c, last, onDownload }) {
 
 export function Spinner({ label = 'Cargando…' }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '48px 0', color: '#7A8792' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '48px 0', color: 'var(--t-7A8792)' }}>
       <Loader2 size={18} className="spin" />
       <span style={{ font: '500 13px "IBM Plex Sans"' }}>{label}</span>
     </div>
@@ -123,11 +126,11 @@ export function Spinner({ label = 'Cargando…' }) {
 
 export function ErrorNote({ error }) {
   return (
-    <div className="axt-card" style={{ padding: 18, display: 'flex', gap: 10, alignItems: 'flex-start', borderColor: '#3A1E1D' }}>
-      <AlertTriangle size={16} color="#E5605C" style={{ marginTop: 2, flexShrink: 0 }} />
-      <div style={{ font: '500 13px "IBM Plex Sans"', color: '#E5A3A1' }}>
+    <div className="axt-card" style={{ padding: 18, display: 'flex', gap: 10, alignItems: 'flex-start', borderColor: 'var(--b-3A1E1D)' }}>
+      <AlertTriangle size={16} color="var(--t-E5605C)" style={{ marginTop: 2, flexShrink: 0 }} />
+      <div style={{ font: '500 13px "IBM Plex Sans"', color: 'var(--t-E5A3A1)' }}>
         {error}
-        <div style={{ font: '400 12px "IBM Plex Sans"', color: '#8B98A5', marginTop: 4 }}>
+        <div style={{ font: '400 12px "IBM Plex Sans"', color: 'var(--t-8B98A5)', marginTop: 4 }}>
           ¿El backend está corriendo? Verificá <code>VITE_API_BASE</code> y que la API responda en <code>/api/health</code>.
         </div>
       </div>
@@ -136,5 +139,5 @@ export function ErrorNote({ error }) {
 }
 
 export function Toast({ msg }) {
-  return <div className="axt-toast"><CheckCircle2 size={16} color="#4FC98B" /> {msg}</div>;
+  return <div className="axt-toast"><CheckCircle2 size={16} color="var(--t-4FC98B)" /> {msg}</div>;
 }

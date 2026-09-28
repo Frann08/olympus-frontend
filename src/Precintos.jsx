@@ -7,10 +7,10 @@ import { ImportPanel } from './Admin.jsx';
 
 // Estado físico del tag de cada pieza
 const EST = {
-  pendiente: { label: 'Pendiente', color: '#A9A7A2', bg: '#17171A', line: '#26262B', spine: '#3A3A40' },
-  grabado: { label: 'Grabado', color: '#E7C15A', bg: '#1C1707', line: '#8A7233', spine: '#E7C15A' },
-  colocado: { label: 'Colocado', color: '#57C98A', bg: '#12241A', line: '#1E3A2A', spine: '#57C98A' },
-  na: { label: 'Sin precinto', color: '#E5645C', bg: '#241211', line: '#3C1E1C', spine: '#E5645C' },
+  pendiente: { label: 'Pendiente', color: 'var(--t-A9A7A2)', bg: 'var(--s-17171A)', line: 'var(--b-26262B)', spine: 'var(--s-3A3A40)' },
+  grabado: { label: 'Grabado', color: 'var(--t-E7C15A)', bg: 'var(--s-1C1707)', line: 'var(--b-8A7233)', spine: 'var(--s-E7C15A)' },
+  colocado: { label: 'Colocado', color: 'var(--t-57C98A)', bg: 'var(--s-12241A)', line: 'var(--b-1E3A2A)', spine: 'var(--s-57C98A)' },
+  na: { label: 'Sin precinto', color: 'var(--t-E5645C)', bg: 'var(--s-241211)', line: 'var(--b-3C1E1C)', spine: 'var(--s-E5645C)' },
 };
 const estadoDe = (it) => (it.apto ? it.estado : 'na');
 const keyInf = (i) => `${i.client_id}|${i.ibm || ''}|${i.informe}`;
@@ -92,11 +92,11 @@ export default function Precintos({ toast }) {
         <div style={{ padding: '18px 20px 6px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-              <Tag size={17} color="#E7C15A" />
-              <span style={{ font: '600 15px "Oswald", sans-serif', color: '#F3F1EC' }}>2 · Grabar y colocar tags</span>
+              <Tag size={17} color="var(--t-E7C15A)" />
+              <span style={{ font: '600 15px "Oswald", sans-serif', color: 'var(--t-F3F1EC)' }}>2 · Grabar y colocar tags</span>
             </div>
             <div className="pr-search">
-              <Search size={14} color="#6E6C69" />
+              <Search size={14} color="var(--t-6E6C69)" />
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar informe o cliente" aria-label="Buscar informe o cliente" />
             </div>
           </div>
@@ -131,7 +131,7 @@ export default function Precintos({ toast }) {
                 <div className="pr-legend">
                   <span><i style={{ background: EST.colocado.spine }} />{col} colocados</span>
                   <span><i style={{ background: EST.grabado.spine }} />{gra} grabados</span>
-                  <span><i style={{ background: '#6E6C69' }} />{pen} pendientes</span>
+                  <span><i style={{ background: 'var(--s-6E6C69)' }} />{pen} pendientes</span>
                 </div>
               </div>
             </div>
