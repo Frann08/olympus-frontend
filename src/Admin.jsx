@@ -1,39 +1,46 @@
-import React, { useState, useEffect } from 'react';
-import { Boxes, Clock, Radio, Tag, ChevronRight, Search, X, CheckCircle2, Plus, Building2, Copy, Check, QrCode, Upload, FileDown, AlertTriangle, Users, UserPlus, Trash2, ChevronDown, Pencil, DatabaseBackup, Loader2, KeyRound } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Boxes, Clock, Radio, Tag, ChevronRight, Search, X, CheckCircle2, Plus, Building2, Copy, Check, QrCode, Upload, FileDown, AlertTriangle, Trash2, Pencil } from 'lucide-react';
 import QRCode from 'qrcode';
 import * as XLSX from 'xlsx';
-import { api, downloadBackup, getUser, PUBLIC_URL } from './api.js';
-import { useData, Band, Pill, EncChip, StatTile, CertRow, Spinner, ErrorNote, daysLabel, useEscape } from './ui.jsx';
+import { api, PUBLIC_URL } from './api.js';
+import { useData, Band, Pill, EncChip, StatTile, CertRow, Spinner, ErrorNote, daysLabel, useEscape, sinTildes, useTanda, MostrarMas } from './ui.jsx';
 
-export default function Admin({ toast }) {
+export default function Admin({ toast, ir, inicial }) {
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState('all');
+  const [empresa, setEmpresa] = useState(inicial && inicial.empresa ? String(inicial.empresa) : '');
   const [sel, setSel] = useState(null);
   const [rev, setRev] = useState(0);
+  const tablaRef = useRef(null);
 
   const stats = useData(() => api('/api/stats'), [rev]);
   const clients = useData(() => api('/api/clients'), [rev]);
   const assets = useData(() => api('/api/assets'), [rev]);
+  const [n, mas] = useTanda(q, filter, empresa);
 
+  const s = sinTildes(q);
   const rows = (assets.data || []).filter((a) => {
-    const s = q.trim().toLowerCase();
-    const mq = !s || [a.name, a.code, a.type, a.client].some((f) => (f || '').toLowerCase().includes(s));
+    const mq = !s || [a.name, a.code, a.type, a.client].some((f) => sinTildes(f).includes(s));
+    const me = !empresa || String(a.client_id) === String(empresa);
     const mf = filter === 'all' ? true
       : filter === 'unc' ? (!a.nfc_written || !a.epc_assigned)
       : a.status !== 'certified';
-    return mq && mf;
+    return mq && me && mf;
   });
+
+  // Por vencer por cliente: solo las empresas que tienen algo por vencer, las más urgentes primero
+  const conVencer = (clients.data || []).filter((c) => c.por_vencer > 0).sort((x, y) => y.por_vencer - x.por_vencer);
+  const verEmpresa = (id) => {
+    setEmpresa(String(id)); setFilter('exp'); setQ('');
+    setTimeout(() => tablaRef.current && tablaRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  };
 
   return (
     <>
-      <AdminPanel toast={toast} onChanged={() => setRev((r) => r + 1)} />
-      <ImportPanel toast={toast} onImported={() => setRev((r) => r + 1)} />
-      <BackupCard toast={toast} onRestored={() => setRev((r) => r + 1)} />
-
-      <div className="axt-kpis" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
-        {stats.loading ? <div className="axt-card axt-tile"><Spinner label="…" /></div> : stats.error ? null : (
+      <div className="axt-kpis" style={{ gridTemplateColumns: 'repeat(4,1fr)', marginTop: 0 }}>
+        {stats.loading && !stats.data ? <div className="axt-card axt-tile"><Spinner label="…" /></div> : stats.error ? null : (
           <>
-            <StatTile i={0} label="Activos" value={stats.data.total} sub={`${(clients.data || []).length} clientes`} color="var(--t-D9B44A)" icon={Boxes} />
+            <StatTile i={0} label="Activos" value={stats.data.total} sub={`${(clients.data || []).length} empresas`} color="var(--t-D9B44A)" icon={Boxes} />
             <StatTile i={1} label="Certificados por vencer" value={stats.data.por_vencer} sub="vencidos + próximos" color="var(--t-EDA53C)" icon={Clock} />
             <StatTile i={2} label="Tags sin NFC" value={stats.data.sin_nfc} sub="URL sin escribir" color={stats.data.sin_nfc ? 'var(--t-E5605C)' : 'var(--t-4FC98B)'} icon={Radio} />
             <StatTile i={3} label="Tags sin EPC" value={stats.data.sin_epc} sub="UHF sin asociar" color={stats.data.sin_epc ? 'var(--t-E5605C)' : 'var(--t-4FC98B)'} icon={Tag} />
@@ -41,38 +48,66 @@ export default function Admin({ toast }) {
         )}
       </div>
 
+      <div className="gs-imp">
+        <ImportPanel toast={toast} onImported={() => setRev((r) => r + 1)} />
+      </div>
+
       {clients.data && (
         <div className="axt-card" style={{ padding: 22, marginTop: 16 }}>
-          <div className="axt-card-title">Por vencer por cliente</div>
-          {clients.data.map((cl) => (
-            <div key={cl.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 0', borderBottom: '1px solid var(--b-201C24)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--s-171419)', border: '1px solid var(--b-2A2732)', display: 'grid', placeItems: 'center' }}>
-                  <Building2 size={15} color="var(--t-9AA6B1)" />
+          <div className="gs-pvh">
+            <div className="axt-card-title" style={{ margin: 0 }}>Por vencer por empresa</div>
+            {ir && <button className="axt-btn small" onClick={() => ir('empresas')}><Building2 size={13} /> Ver todas las empresas</button>}
+          </div>
+          {!conVencer.length ? (
+            <div style={{ font: '400 12.5px "IBM Plex Sans"', color: 'var(--t-7A8792)', paddingTop: 12 }}>Ninguna empresa tiene inspecciones vencidas ni por vencer.</div>
+          ) : (
+            <>
+              {conVencer.slice(0, 6).map((cl) => (
+                <button key={cl.id} className="gs-pvrow" onClick={() => verEmpresa(cl.id)} title={'Ver lo que vence de ' + cl.name}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                    <span className="gs-pvico"><Building2 size={15} color="var(--t-9AA6B1)" /></span>
+                    <span style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-DCE3E9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cl.name}</span>
+                    <span style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)', whiteSpace: 'nowrap' }}>{cl.assets} activos</span>
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span className="axt-count" style={{ color: 'var(--t-EDA53C)', borderColor: 'var(--b-3A2C15)', background: 'var(--s-211A10)' }}>{cl.por_vencer}</span>
+                    <ChevronRight size={15} color="var(--t-5C6874)" />
+                  </span>
+                </button>
+              ))}
+              {conVencer.length > 6 && ir && (
+                <div style={{ font: '400 12px "IBM Plex Sans"', color: 'var(--t-7A8792)', paddingTop: 12 }}>
+                  y {conVencer.length - 6} empresas más. <button className="gs-link" onClick={() => ir('empresas', { filtro: 'vencer' })}>Verlas en Empresas</button>
                 </div>
-                <span style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-DCE3E9)' }}>{cl.name}</span>
-                <span style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)' }}>{cl.assets} activos</span>
-              </div>
-              <span className="axt-count" style={{ color: cl.por_vencer ? 'var(--t-EDA53C)' : 'var(--t-4FC98B)', borderColor: cl.por_vencer ? 'var(--b-3A2C15)' : 'var(--b-4A3E1E)', background: cl.por_vencer ? 'var(--s-211A10)' : 'var(--s-1B1609)' }}>{cl.por_vencer}</span>
-            </div>
-          ))}
+              )}
+            </>
+          )}
         </div>
       )}
 
-      <div className="axt-card" style={{ padding: 0, overflow: 'hidden', marginTop: 16 }}>
+      <div ref={tablaRef} className="axt-card" style={{ padding: 0, overflow: 'hidden', marginTop: 16, scrollMarginTop: 16 }}>
         <div className="axt-toolbar">
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {[['all', 'Todos'], ['exp', 'Por vencer'], ['unc', 'Sin codificar']].map(([k, l]) => (
               <button key={k} onClick={() => setFilter(k)} className={'axt-chip' + (filter === k ? ' active' : '')}>{l}</button>
             ))}
           </div>
-          <div className="axt-search sm">
-            <Search size={15} color="var(--t-7A8792)" />
-            <input className="axt-input" placeholder="Buscar activo o cliente…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <div className="gs-filtros">
+            <select className="cor-select gs-sel" value={empresa} onChange={(e) => setEmpresa(e.target.value)} aria-label="Filtrar por empresa">
+              <option value="">Todas las empresas</option>
+              {(clients.data || []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <div className="axt-search sm gs-buscar">
+              <Search size={15} color="var(--t-7A8792)" />
+              <input className="axt-input" placeholder="Buscar activo o serie…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar activo o serie" />
+              {q && <button className="gs-limpiar" onClick={() => setQ('')} aria-label="Borrar búsqueda"><X size={14} /></button>}
+            </div>
           </div>
         </div>
 
-        {assets.loading ? <Spinner /> : assets.error ? <div style={{ padding: 18 }}><ErrorNote error={assets.error} /></div> : (
+        {assets.loading && !assets.data ? <Spinner /> : assets.error ? <div style={{ padding: 18 }}><ErrorNote error={assets.error} /></div> : !rows.length ? (
+          <div className="gs-vacio">{(assets.data || []).length ? 'Ningún activo coincide con la búsqueda o el filtro.' : 'Todavía no hay activos. Importalos desde el Excel de arriba.'}</div>
+        ) : (
           <div className="axt-scroll-x">
             <table className="axt-table">
               <thead><tr>
@@ -80,7 +115,7 @@ export default function Admin({ toast }) {
                 <th>Certificación</th><th>Codificación</th><th></th>
               </tr></thead>
               <tbody>
-                {rows.map((a) => (
+                {rows.slice(0, n).map((a) => (
                   <tr key={a.id} onClick={() => setSel(a.id)} className="axt-tr">
                     <td style={{ padding: 0 }}><Band status={a.status} h={44} /></td>
                     <td>
@@ -105,6 +140,7 @@ export default function Admin({ toast }) {
             </table>
           </div>
         )}
+        <MostrarMas total={rows.length} visibles={Math.min(n, rows.length)} onMas={mas} />
       </div>
 
       {sel && <AssetDrawer id={sel} onClose={() => setSel(null)} toast={toast} onChanged={() => setRev((r) => r + 1)} />}
@@ -624,296 +660,6 @@ function NfcWriteBlock({ token }) {
 
       <div style={{ font: '400 11.5px "IBM Plex Sans"', color: 'var(--t-7A8792)', marginTop: 12, lineHeight: 1.5 }}>
         Grabá esta URL en el tag con la app <b style={{ color: 'var(--t-9AA6B1)' }}>NFC Tools</b> (registro tipo "URL"). El QR abre la misma página — sirve para probar la vista del cliente desde el teléfono.
-      </div>
-    </div>
-  );
-}
-
-/* ============ Clientes y usuarios ============ */
-function AdminPanel({ toast, onChanged }) {
-  const [open, setOpen] = useState(true);
-  const [rev, setRev] = useState(0);
-  const clients = useData(() => api('/api/clients'), [rev]);
-  const users = useData(() => api('/api/users'), [rev]);
-  const reload = () => { setRev((r) => r + 1); onChanged && onChanged(); };
-
-  const [cName, setCName] = useState('');
-  const EMPTY_USER = { username: '', email: '', password: '', role: 'cliente', client_id: '', ibms: null };
-  const [uForm, setUForm] = useState(EMPTY_USER);
-  const [editId, setEditId] = useState(null);
-  const [editIbms, setEditIbms] = useState(null);
-  const [pwId, setPwId] = useState(null);
-  const [pw, setPw] = useState('');
-  const [ocupado, setOcupado] = useState(false);
-  const yo = getUser();
-  // evita mandar dos veces lo mismo con un doble toque
-  const unaVez = async (fn) => { if (ocupado) return; setOcupado(true); try { await fn(); } finally { setOcupado(false); } };
-  const ibmsDe = (clientId) => ((clients.data || []).find((c) => String(c.id) === String(clientId)) || {}).ibms || [];
-
-  async function addClient() {
-    if (!cName.trim()) { toast('Escribí el nombre'); return; }
-    await unaVez(async () => {
-      try { await api('/api/clients', { method: 'POST', body: JSON.stringify({ name: cName.trim() }) }); toast('Cliente creado'); setCName(''); reload(); }
-      catch (e) { toast(e.message); }
-    });
-  }
-  async function delClient(id) {
-    const c = (clients.data || []).find((x) => x.id === id);
-    const n = c ? c.users : 0;
-    const msg = `¿Borrar la empresa "${c ? c.name : ''}"?` + (n === 1 ? '\nTambién se borra su usuario.' : n > 1 ? `\nTambién se borran sus ${n} usuarios.` : '') + '\nNo se puede deshacer.';
-    if (!window.confirm(msg)) return;
-    try { await api('/api/clients/' + id, { method: 'DELETE' }); toast('Cliente eliminado'); reload(); }
-    catch (e) { toast(e.message); }
-  }
-  async function addUser() {
-    if (!uForm.username.trim() || !uForm.password) { toast('Usuario y contraseña'); return; }
-    if (/\s/.test(uForm.username.trim())) { toast('El usuario no puede tener espacios'); return; }
-    if (uForm.role === 'cliente' && !uForm.client_id) { toast('Elegí la empresa'); return; }
-    if (uForm.role === 'cliente' && Array.isArray(uForm.ibms) && !uForm.ibms.length) { toast('Elegí al menos un IBM o marcá "Todos"'); return; }
-    if (uForm.password.trim().length < 6) { toast('La contraseña debe tener al menos 6 caracteres'); return; }
-    await unaVez(async () => {
-      try {
-        const esCli = uForm.role === 'cliente';
-        const body = { ...uForm, username: uForm.username.trim(), email: uForm.email.trim(), client_id: esCli ? uForm.client_id : null, ibms: esCli ? uForm.ibms : null };
-        await api('/api/users', { method: 'POST', body: JSON.stringify(body) });
-        toast('Usuario creado'); setUForm(EMPTY_USER); reload();
-      } catch (e) { toast(e.message); }
-    });
-  }
-  async function saveIbms(u) {
-    if (Array.isArray(editIbms) && !editIbms.length) { toast('Elegí al menos un IBM o marcá "Todos"'); return; }
-    await unaVez(async () => {
-      try {
-        await api('/api/users/' + u.id, { method: 'PATCH', body: JSON.stringify({ ibms: editIbms || [] }) });
-        toast('IBM actualizados para ' + (u.username || u.email)); setEditId(null); reload();
-      } catch (e) { toast(e.message); }
-    });
-  }
-  async function delUser(u) {
-    if (!window.confirm(`¿Borrar el acceso de "${u.username || u.email}"?\nNo va a poder entrar más. No se puede deshacer.`)) return;
-    await unaVez(async () => {
-      try { await api('/api/users/' + u.id, { method: 'DELETE' }); toast('Usuario eliminado'); reload(); }
-      catch (e) { toast(e.message); }
-    });
-  }
-  async function savePw(u) {
-    if (pw.trim().length < 6) { toast('La contraseña debe tener al menos 6 caracteres'); return; }
-    const propia = yo && String(yo.id) === String(u.id);
-    await unaVez(async () => {
-      try {
-        await api(`/api/users/${u.id}/password`, { method: 'PATCH', body: JSON.stringify({ password: pw }) });
-        setPwId(null); setPw('');
-        toast(propia ? 'Contraseña cambiada: volvé a entrar' : 'Contraseña cambiada para ' + (u.username || u.email));
-      } catch (e) { toast(e.message); }
-    });
-  }
-
-  const roleColor = (r) => r === 'admin' ? 'var(--t-D9B44A)' : r === 'traza' ? 'var(--t-7FB0C8)' : r === 'precintos' ? 'var(--t-E8A33C)' : 'var(--t-9AA6B1)';
-  const roleName = { admin: 'Administración', traza: 'Trazabilidad', precintos: 'Precintos', cliente: 'Cliente' };
-
-  return (
-    <div className="axt-card" style={{ padding: 0, overflow: 'hidden', marginBottom: 16 }}>
-      <button onClick={() => setOpen((o) => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <Users size={17} color="var(--t-D9B44A)" />
-          <span style={{ font: '600 15px "Oswald", sans-serif', color: 'var(--t-EAF0F3)' }}>Clientes y usuarios</span>
-        </span>
-        <ChevronDown size={18} color="var(--t-7A8792)" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: '.2s' }} />
-      </button>
-
-      {open && (
-        <div style={{ padding: '0 20px 20px' }}>
-          <div className="adm-grid">
-            <div style={{ background: 'var(--s-171419)', border: '1px solid var(--b-2A2732)', borderRadius: 12, padding: 16 }}>
-              <div className="axt-sec" style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Building2 size={14} color="var(--t-9AA6B1)" /> Empresas</div>
-              {clients.loading ? <Spinner label="…" /> : (clients.data || []).map((c) => (
-                <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--b-201C24)' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-EAF0F3)' }}>{c.name}</div>
-                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 4, alignItems: 'center' }}>
-                      {(c.ibms || []).map((ib) => <span key={ib} style={{ font: '600 10px "IBM Plex Mono", monospace', color: 'var(--t-D9B44A)', background: 'var(--s-2A2410)', border: '1px solid var(--b-4A3E1E)', borderRadius: 5, padding: '1px 6px' }}>IBM {ib}</span>)}
-                      <span style={{ font: '400 10.5px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)' }}>{c.assets} activos · {c.users} usuarios</span>
-                    </div>
-                  </div>
-                  {c.assets === 0 && <button className="axt-x sm" title="Eliminar" aria-label={'Eliminar ' + c.name} onClick={() => delClient(c.id)}><Trash2 size={13} /></button>}
-                </div>
-              ))}
-              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <input className="axt-input" style={{ flex: 1, background: 'var(--s-0F0E12)', border: '1px solid var(--b-2A2732)', borderRadius: 8, padding: '8px 11px' }} placeholder="Nombre de la empresa" value={cName} onChange={(e) => setCName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addClient()} />
-                <button className="axt-btn small primary" onClick={addClient} disabled={ocupado}><Plus size={13} /> Crear</button>
-              </div>
-              <div style={{ font: '400 10.5px "IBM Plex Sans"', color: 'var(--t-6A7681)', marginTop: 8 }}>Los IBM se cargan solos al importar activos de esa empresa.</div>
-            </div>
-
-            <div style={{ background: 'var(--s-171419)', border: '1px solid var(--b-2A2732)', borderRadius: 12, padding: 16 }}>
-              <div className="axt-sec" style={{ display: 'flex', alignItems: 'center', gap: 7 }}><UserPlus size={14} color="var(--t-9AA6B1)" /> Accesos</div>
-              <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-                {users.loading ? <Spinner label="…" /> : (users.data || []).map((u) => (
-                  <div key={u.id} style={{ padding: '9px 0', borderBottom: '1px solid var(--b-201C24)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ font: '600 12.5px "IBM Plex Sans"', color: 'var(--t-EAF0F3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.username || u.email}{u.email && u.username !== u.email ? <span style={{ font: '400 10.5px "IBM Plex Mono", monospace', color: 'var(--t-6A7681)' }}>{' · ' + u.email}</span> : ''}</div>
-                        <div style={{ font: '400 10.5px "IBM Plex Mono", monospace', marginTop: 3 }}>
-                          <span style={{ color: roleColor(u.role) }}>{roleName[u.role] || u.role}</span>{u.client ? <span style={{ color: 'var(--t-7A8792)' }}> · {u.client}</span> : ''}
-                          {u.role === 'cliente' && <span style={{ color: 'var(--t-D9B44A)' }}> · {u.ibms && u.ibms.length ? 'IBM ' + u.ibms.join(', ') : 'Todos los IBM'}</span>}
-                        </div>
-                      </div>
-                      {u.role === 'cliente' && (
-                        <button className="axt-x sm" title="Cambiar IBM" aria-label={'Cambiar IBM de ' + (u.username || u.email)}
-                          onClick={() => { if (editId === u.id) { setEditId(null); } else { setEditId(u.id); setEditIbms(u.ibms && u.ibms.length ? u.ibms : null); } }}>
-                          <Pencil size={13} />
-                        </button>
-                      )}
-                      <button className="axt-x sm" title="Cambiar contraseña" aria-label={'Cambiar contraseña de ' + (u.username || u.email)}
-                        onClick={() => { setPw(''); setPwId(pwId === u.id ? null : u.id); }}>
-                        <KeyRound size={13} />
-                      </button>
-                      {u.role !== 'admin' && <button className="axt-x sm" title="Eliminar" aria-label={'Eliminar ' + (u.username || u.email)} onClick={() => delUser(u)}><Trash2 size={13} /></button>}
-                    </div>
-                    {pwId === u.id && (
-                      <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-                        <input className="axt-input" autoFocus autoComplete="new-password" style={{ flex: 1, minWidth: 150, background: 'var(--s-0F0E12)', border: '1px solid var(--b-2A2732)', borderRadius: 8, padding: '8px 11px' }}
-                          placeholder="nueva contraseña (mín. 6)" value={pw} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && savePw(u)} />
-                        <button className="axt-btn small primary" onClick={() => savePw(u)} disabled={ocupado}>Guardar</button>
-                        <button className="axt-btn small" onClick={() => setPwId(null)}>Cancelar</button>
-                        {yo && String(yo.id) === String(u.id) && <div style={{ width: '100%', font: '400 11px "IBM Plex Sans"', color: 'var(--t-7A8792)' }}>Es tu propia contraseña: después de cambiarla vas a tener que volver a entrar.</div>}
-                      </div>
-                    )}
-                    {editId === u.id && (
-                      <div style={{ marginTop: 10 }}>
-                        <IbmPicker options={ibmsDe(u.client_id)} value={editIbms} onChange={setEditIbms} />
-                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                          <button className="axt-btn small primary" onClick={() => saveIbms(u)} disabled={ocupado}>Guardar IBM</button>
-                          <button className="axt-btn small" onClick={() => setEditId(null)}>Cancelar</button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
-                <input className="axt-input" autoCapitalize="none" autoCorrect="off" style={{ background: 'var(--s-0F0E12)', border: '1px solid var(--b-2A2732)', borderRadius: 8, padding: '8px 11px' }} placeholder="usuario (ej: jperez)" value={uForm.username} onChange={(e) => setUForm({ ...uForm, username: e.target.value })} />
-                <input className="axt-input" type="email" style={{ background: 'var(--s-0F0E12)', border: '1px solid var(--b-2A2732)', borderRadius: 8, padding: '8px 11px' }} placeholder="correo (opcional, para recuperar contraseña)" value={uForm.email} onChange={(e) => setUForm({ ...uForm, email: e.target.value })} />
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <input className="axt-input" style={{ flex: 1, minWidth: 140, background: 'var(--s-0F0E12)', border: '1px solid var(--b-2A2732)', borderRadius: 8, padding: '8px 11px' }} placeholder="contraseña" value={uForm.password} onChange={(e) => setUForm({ ...uForm, password: e.target.value })} />
-                  <select className="axt-input" style={{ width: 'auto', flex: 'none', background: 'var(--s-0F0E12)', border: '1px solid var(--b-2A2732)', borderRadius: 8, padding: '8px 11px', color: 'var(--t-EAF0F3)' }} value={uForm.role} onChange={(e) => setUForm({ ...uForm, role: e.target.value })}>
-                    <option value="cliente">Cliente</option>
-                    <option value="precintos">Precintos</option>
-                    <option value="traza">Trazabilidad</option>
-                    <option value="admin">Administración</option>
-                  </select>
-                </div>
-                {uForm.role === 'cliente' && (
-                  <select className="axt-input" style={{ background: 'var(--s-0F0E12)', border: '1px solid var(--b-2A2732)', borderRadius: 8, padding: '8px 11px', color: 'var(--t-EAF0F3)' }} value={uForm.client_id} onChange={(e) => setUForm({ ...uForm, client_id: e.target.value, ibms: null })}>
-                    <option value="">— Elegí la empresa —</option>
-                    {(clients.data || []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                )}
-                {uForm.role === 'cliente' && uForm.client_id && (
-                  <IbmPicker options={ibmsDe(uForm.client_id)} value={uForm.ibms} onChange={(v) => setUForm({ ...uForm, ibms: v })} />
-                )}
-                <button className="axt-btn small primary" onClick={addUser} disabled={ocupado}><UserPlus size={13} /> Crear acceso</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* IBMs que puede ver un usuario cliente: null = todos; array = solo esos */
-function IbmPicker({ options, value, onChange }) {
-  const [otro, setOtro] = useState('');
-  const todos = value === null;
-  const sel = value || [];
-  const all = [...new Set([...(options || []), ...sel])];
-  const toggle = (ib) => onChange(sel.includes(ib) ? sel.filter((x) => x !== ib) : [...sel, ib]);
-  const add = () => {
-    const v = otro.replace(/^\s*ibm\s*/i, '').trim();
-    if (!v) return;
-    onChange([...sel.filter((x) => x !== v), v]);
-    setOtro('');
-  };
-  return (
-    <div className="ibm-pick">
-      <div className="ibm-pick-h">IBM que puede ver</div>
-      <label className="ibm-opt"><input type="radio" checked={todos} onChange={() => onChange(null)} /> Todos los IBM de la empresa</label>
-      <label className="ibm-opt"><input type="radio" checked={!todos} onChange={() => onChange(sel)} /> Solo algunos</label>
-      {!todos && (
-        <>
-          <div className="ibm-chips">
-            {all.map((ib) => (
-              <label key={ib} className={'ibm-chip' + (sel.includes(ib) ? ' on' : '')}>
-                <input type="checkbox" checked={sel.includes(ib)} onChange={() => toggle(ib)} /> IBM {ib}
-              </label>
-            ))}
-            {all.length === 0 && <span className="ibm-note">Esta empresa todavía no tiene IBM cargados. Escribilo abajo.</span>}
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input className="axt-input" style={{ flex: 1, minWidth: 0, background: 'var(--s-0F0E12)', border: '1px solid var(--b-2A2732)', borderRadius: 8, padding: '7px 10px' }}
-              placeholder="Otro IBM (ej: 210)" value={otro} onChange={(e) => setOtro(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} aria-label="Agregar otro IBM" />
-            <button className="axt-btn small" onClick={add}><Plus size={13} /> Agregar</button>
-          </div>
-          {sel.length === 0 && <div className="ibm-note" style={{ color: 'var(--t-EDA53C)', marginTop: 6 }}>Elegí al menos un IBM.</div>}
-        </>
-      )}
-    </div>
-  );
-}
-
-/* ============ Respaldo de la base (solo Administración) ============ */
-function BackupCard({ toast, onRestored }) {
-  const [busy, setBusy] = useState(null); // 'down' | 'up'
-
-  async function descargar() {
-    setBusy('down');
-    try { await downloadBackup(); toast('Respaldo descargado'); }
-    catch (e) { toast(e.message); }
-    finally { setBusy(null); }
-  }
-
-  function elegir(e) {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      let dump;
-      try { dump = JSON.parse(ev.target.result); }
-      catch { toast('El archivo no es un respaldo válido'); return; }
-      if (!dump || dump.app !== 'olympus-trace') { toast('Ese archivo no es un respaldo de Olympus'); return; }
-      const fecha = dump.at ? new Date(dump.at).toLocaleString('es-AR') : 'fecha desconocida';
-      if (!window.confirm(`Vas a REEMPLAZAR todos los datos actuales por el respaldo del ${fecha}.\nSe pierde lo que haya ahora y no se puede deshacer.\n\n¿Continuar?`)) return;
-      setBusy('up');
-      try {
-        const r = await api('/api/restore', { method: 'POST', body: JSON.stringify(dump) });
-        const total = Object.values(r.counts || {}).reduce((a, b) => a + b, 0);
-        toast('Respaldo recargado (' + total + ' registros). Puede que tengas que volver a entrar.');
-        onRestored && onRestored();
-      } catch (e2) { toast(e2.message); }
-      finally { setBusy(null); }
-    };
-    reader.readAsText(file);
-  }
-
-  return (
-    <div className="axt-card" style={{ padding: 20, marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
-        <DatabaseBackup size={17} color="var(--t-D9B44A)" />
-        <span style={{ font: '600 15px "Oswald", sans-serif', color: 'var(--t-EAF0F3)' }}>Respaldo de la base</span>
-      </div>
-      <div style={{ font: '400 12px "IBM Plex Sans"', color: 'var(--t-7A8792)', marginBottom: 14, lineHeight: 1.5 }}>
-        Descargá una copia de toda la base (empresas, activos, inspecciones, usuarios y tags) y guardala. Si algún día se pierde, la recargás desde ese archivo. Guardá el archivo en un lugar seguro: contiene todos los datos.
-      </div>
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <button className="axt-btn primary" onClick={descargar} disabled={busy}>
-          {busy === 'down' ? <Loader2 size={14} className="spin" /> : <FileDown size={14} />} Descargar respaldo
-        </button>
-        <label className="axt-btn" style={{ cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}>
-          {busy === 'up' ? <Loader2 size={14} className="spin" /> : <Upload size={14} />} Recargar respaldo…
-          <input type="file" accept=".json,application/json" style={{ display: 'none' }} onChange={elegir} disabled={!!busy} />
-        </label>
       </div>
     </div>
   );
