@@ -121,7 +121,7 @@ export default function Cliente({ toast }) {
       <div className="axt-card" style={{ padding: 0, overflow: 'hidden', marginTop: 16 }}>
         <div className="axt-toolbar" style={{ flexWrap: 'wrap', gap: 10 }}>
           <span style={{ font: '700 15px "Oswald"', color: 'var(--t-F3F1EC)' }}>Tus activos</span>
-          <div className="search" style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s-0F0E12)', border: '1px solid var(--b-26262B)', borderRadius: 8, padding: '7px 11px', flex: 1, minWidth: 180, maxWidth: 340 }}>
+          <div className="search cli-buscar" style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s-0F0E12)', border: '1px solid var(--b-26262B)', borderRadius: 8, padding: '7px 11px', flex: 1, minWidth: 180, maxWidth: 340 }}>
             <Search size={14} color="var(--t-6E6C69)" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por serie, descripción o informe"
               style={{ border: 'none', outline: 'none', background: 'transparent', color: 'var(--t-F3F1EC)', font: '400 13px "IBM Plex Sans"', width: '100%' }} />
@@ -178,7 +178,7 @@ function ExpiringCard({ s }) {
   const total = s.overdue + s.due30 + s.due90;
   return (
     <div className="axt-card" style={{ padding: 22 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '4px 12px', flexWrap: 'wrap' }}>
         <div className="axt-card-title" style={{ margin: 0 }}>Tus certificaciones por vencer</div>
         <span style={{ font: '500 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)' }}>próximos 90 días</span>
       </div>

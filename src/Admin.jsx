@@ -109,7 +109,7 @@ export default function Admin({ toast, ir, inicial }) {
           <div className="gs-vacio">{(assets.data || []).length ? 'Ningún activo coincide con la búsqueda o el filtro.' : 'Todavía no hay activos. Importalos desde el Excel de arriba.'}</div>
         ) : (
           <div className="axt-scroll-x">
-            <table className="axt-table">
+            <table className="axt-table tabla-cel">
               <thead><tr>
                 <th style={{ width: 6 }}></th><th>Activo</th><th>Tipo</th><th>Cliente</th>
                 <th>Certificación</th><th>Codificación</th><th></th>

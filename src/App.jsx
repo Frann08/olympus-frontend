@@ -30,8 +30,8 @@ function vistaGuardada() {
 
 function Logo() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <svg width="36" height="36" viewBox="0 0 44 44" aria-hidden>
+    <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+      <svg className="logo-svg" width="36" height="36" viewBox="0 0 44 44" aria-hidden style={{ flex: 'none' }}>
         <defs>
           <linearGradient id="olymGold" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stopColor="#F6E29A" />
@@ -44,11 +44,11 @@ function Logo() {
         <path d="M15 36.6 H29" stroke="url(#olymGold)" strokeWidth="1.6" strokeLinecap="round" />
       </svg>
       <div style={{ lineHeight: 1 }}>
-        <div style={{ font: '700 18px "Oswald", sans-serif', letterSpacing: '.14em' }}>
+        <div className="logo-txt" style={{ font: '700 18px "Oswald", sans-serif', letterSpacing: '.14em', whiteSpace: 'nowrap' }}>
           <span style={{ background: 'var(--grad-acero)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>OLYMPUS</span>{' '}
-          <span style={{ letterSpacing: '.3em', background: 'var(--grad-oro)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>TRACE</span>
+          <span className="logo-trace" style={{ letterSpacing: '.3em', background: 'var(--grad-oro)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>TRACE</span>
         </div>
-        <div style={{ font: '500 8px "IBM Plex Mono", monospace', letterSpacing: '.32em', color: 'var(--t-8A7233)', marginTop: 4 }}>ASSET INTELLIGENCE</div>
+        <div className="logo-sub" style={{ font: '500 8px "IBM Plex Mono", monospace', letterSpacing: '.32em', color: 'var(--t-8A7233)', marginTop: 4 }}>ASSET INTELLIGENCE</div>
       </div>
     </div>
   );
@@ -145,7 +145,7 @@ export default function App() {
       <div className="axt-haz" />
       <header className="axt-chrome">
         <Logo />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div className="hdr-der" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div className="role-chip"><RoleIcon size={15} color="var(--t-D9B44A)" /><span>{role.label}</span></div>
           <div className="hdr-user" style={{ textAlign: 'right', lineHeight: 1.3 }}>
             <div style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-DCE3E9)' }}>{user.name}</div>
@@ -351,7 +351,7 @@ function TagView({ token, user, onExpired, onSalir }) {
   }, [token, intento]);
 
   return (
-    <div style={{ display: 'grid', placeItems: 'center', minHeight: '100vh', padding: 16 }}>
+    <div className="tag-wrap" style={{ display: 'grid', placeItems: 'center', minHeight: '100vh', padding: 16 }}>
       <div className="phone tag-phone">
         <div className="phone-notch" />
         <div className="phone-bar"><Radio size={13} color="var(--t-D9B44A)" /> <span>OLYMPUS TRACE</span></div>

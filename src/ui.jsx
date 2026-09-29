@@ -137,7 +137,7 @@ export function CertRow({ c, last, onDownload }) {
           {isInsp ? (c.inspector || '') : `${c.number}${c.inspector ? ` · ${c.inspector}` : ''}`}{c.presion ? ` · ${c.presion}` : ''}
         </div>
         {c.precinto && c.precinto !== 'N/A' && (
-          <div style={{ font: '400 10.5px "IBM Plex Mono", monospace', color: 'var(--t-8A7A55)', marginTop: 4, wordBreak: 'break-all' }}>Precinto: {c.precinto}</div>
+          <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-8A7A55)', marginTop: 4, overflowWrap: 'anywhere' }}>Precinto: {c.precinto}</div>
         )}
         <div style={{ display: 'flex', gap: 16, marginTop: 6, flexWrap: 'wrap' }}>
           <span style={{ font: '400 11px "IBM Plex Sans"', color: 'var(--t-8B98A5)' }}>Emitido {fmtDate(c.issued_date)}</span>
