@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import QRCode from 'qrcode';
-import { Tag, Copy, Check, X, Undo2, Smartphone, Search, Loader2 } from 'lucide-react';
-import { api, PUBLIC_URL } from './api.js';
+import { Tag, Copy, Check, X, Undo2, Smartphone, Search, Loader2, Pencil } from 'lucide-react';
+import { api, PUBLIC_URL, getUser } from './api.js';
 import { Spinner, ErrorNote } from './ui.jsx';
 import { ImportPanel } from './Admin.jsx';
 
@@ -88,6 +88,8 @@ export default function Precintos({ toast }) {
   const listaInf = (informes || []).filter((i) => !qn || String(i.informe).toLowerCase().includes(qn) || (i.cliente || '').toLowerCase().includes(qn));
   const visibles = (items || []).filter((x) => fEst === 'all' || estadoDe(x) === fEst);
   const infSel = (informes || []).find((i) => keyInf(i) === sel) || null;
+  const esAdmin = getUser()?.role === 'admin';
+  const [corregir, setCorregir] = useState(false);
 
   return (
     <div>
@@ -130,6 +132,11 @@ export default function Precintos({ toast }) {
               <div>
                 <div className="pr-big">{col}<em> / {aptos.length}</em></div>
                 <div className="pr-muted">tags colocados del informe {infSel.informe}{infSel.ibm ? ` · IBM ${infSel.ibm}` : ''}</div>
+                {esAdmin && (
+                  <button className="axt-btn small" style={{ marginTop: 8 }} onClick={() => setCorregir((v) => !v)}>
+                    <Pencil size={12} /> Corregir informe
+                  </button>
+                )}
               </div>
               <div style={{ flex: 1, minWidth: 220 }}>
                 <div className="pr-bar"><i style={{ width: pct + '%' }} /></div>
@@ -140,6 +147,16 @@ export default function Precintos({ toast }) {
                 </div>
               </div>
             </div>
+
+            {esAdmin && corregir && (
+              <CorregirInforme inf={infSel} toast={toast} onCancel={() => setCorregir(false)}
+                onSaved={async (r) => {
+                  setCorregir(false);
+                  const nueva = `${r.client_id}|${r.ibm || ''}|${r.informe}`;
+                  await loadInformes(nueva);
+                  setSel(nueva);
+                }} />
+            )}
 
             <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', padding: '0 20px 12px' }}>
               {[['all', 'Todos'], ['pendiente', 'Pendientes'], ['grabado', 'Grabados'], ['colocado', 'Colocados']].map(([v, l]) => (
@@ -168,6 +185,47 @@ export default function Precintos({ toast }) {
           toast={toast}
         />
       )}
+    </div>
+  );
+}
+
+// Corregir el Nº de informe y/o el IBM de todas las piezas de un informe (solo Administración)
+function CorregirInforme({ inf, toast, onCancel, onSaved }) {
+  const [numero, setNumero] = useState(String(inf.informe));
+  const [ibm, setIbm] = useState(inf.ibm || '');
+  const [motivo, setMotivo] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  async function guardar() {
+    const cambiaNum = numero.trim() !== String(inf.informe);
+    const cambiaIbm = ibm.trim() !== (inf.ibm || '');
+    if (!cambiaNum && !cambiaIbm) { toast('No cambiaste nada'); return; }
+    if (!numero.trim()) { toast('Escribí el Nº de informe'); return; }
+    const txt = [cambiaNum && `informe ${inf.informe} → ${numero.trim()}`, cambiaIbm && `IBM ${inf.ibm || '(vacío)'} → ${ibm.trim() || '(vacío)'}`].filter(Boolean).join(' y ');
+    if (!window.confirm(`¿Corregir ${txt} en las ${inf.items} piezas de este informe?\nQueda registrado. El cliente lo va a ver corregido al escanear.`)) return;
+    setOcupado(true);
+    try {
+      const r = await api('/api/precintos/informes/corregir', {
+        method: 'POST',
+        body: JSON.stringify({ client_id: inf.client_id, ibm: inf.ibm || null, numero: inf.informe, nuevo_numero: numero.trim(), nuevo_ibm: ibm.trim() || null, motivo }),
+      });
+      toast(`Informe corregido en ${r.piezas} ${r.piezas === 1 ? 'pieza' : 'piezas'}`);
+      await onSaved(r);
+    } catch (e) { toast(e.message); }
+    finally { setOcupado(false); }
+  }
+  return (
+    <div className="cor-form" style={{ margin: '0 20px 14px' }}>
+      <div className="cor-titulo">Corregir informe {inf.informe} · {inf.cliente}</div>
+      <div className="cor-grid">
+        <label className="fld"><span>Nº de informe</span><input value={numero} onChange={(e) => setNumero(e.target.value)} /></label>
+        <label className="fld"><span>IBM</span><input value={ibm} onChange={(e) => setIbm(e.target.value)} placeholder="ej: 195" /></label>
+      </div>
+      <label className="fld"><span>Motivo (opcional)</span><input value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="ej: Informes Técnicos pasó el 400 y era el 401" /></label>
+      <div className="cor-botones">
+        <button className="axt-btn primary small" onClick={guardar} disabled={ocupado}>{ocupado ? 'Guardando…' : 'Guardar corrección'}</button>
+        <button className="axt-btn small" onClick={onCancel}>Cancelar</button>
+      </div>
+      <div className="cor-nota">Cambia el dato en todas las piezas de este informe. Los tags no se tocan. Para corregir una sola pieza (serie, presión, descripción…), abrila desde Administración.</div>
     </div>
   );
 }

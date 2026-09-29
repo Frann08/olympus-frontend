@@ -178,6 +178,7 @@ function GuiaCliente() {
 const IDX_PRECINTOS = [
   ['entrar', 'Entrar'], ['cargar', 'Cargar la Hoja 2'], ['informe', 'Elegir el informe'], ['grabar', 'Grabar el tag'],
   ['colocar', 'Colocar el tag'], ['deshacer', 'Deshacer un paso'], ['noapto', 'Piezas NO APTO'], ['controlar', 'Controlar el trabajo'],
+  ['corregir', 'Si un dato vino mal'],
 ];
 function GuiaPrecintos() {
   return (
@@ -247,6 +248,16 @@ function GuiaPrecintos() {
       <Sec id="controlar" n="8" titulo="Controlar el trabajo">
         <p>Al terminar un informe, escaneá con el celular algunos de los tags ya colocados: se tiene que abrir la ficha con el <b>mismo Nº de serie</b> que tiene la pieza. Así te asegurás de que cada tag quedó en su pieza.</p>
         <p>El QR del panel de grabado abre la misma ficha: sirve para ver lo que va a ver el cliente.</p>
+      </Sec>
+
+      <Sec id="corregir" n="9" titulo="Si un dato vino mal">
+        <p>Si Informes Técnicos pasó mal un dato (el Nº de informe, el IBM, la serie, la presión, la descripción), <b>Administración lo corrige en Olympus</b>. No hace falta el tag ni tener la pieza: el tag solo identifica a la pieza, y al escanearlo se ven los datos corregidos.</p>
+        <ul className="ay-lista">
+          <li><b>Un informe entero</b> (por ejemplo, era el 401 y no el 400): Administración abre el informe en Precintos y toca <b>Corregir informe</b>.</li>
+          <li><b>Una sola pieza</b>: Administración la abre desde su lista de activos, toca el lápiz y corrige la serie, la descripción, el IBM o los datos de la inspección.</li>
+        </ul>
+        <Nota>Cada corrección queda registrada: quién la hizo, cuándo, qué había antes y el motivo.</Nota>
+        <Aviso>Si el <b>tag quedó puesto en otra pieza</b> (se grabó el de la serie equivocada), avisale a Administración: eso se resuelve aparte.</Aviso>
       </Sec>
     </>
   );
