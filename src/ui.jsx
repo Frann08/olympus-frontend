@@ -59,6 +59,31 @@ export function useData(fn, deps = []) {
   return state;
 }
 
+/* ---------- búsqueda y listas largas ---------- */
+// para buscar sin importar mayúsculas ni tildes
+export const sinTildes = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+// Las listas largas se dibujan de a tandas. Vuelve a la primera tanda cuando cambian la búsqueda o los filtros.
+export const TANDA = 50;
+export function useTanda(...claves) {
+  const [n, setN] = useState(TANDA);
+  const clave = JSON.stringify(claves);
+  useEffect(() => { setN(TANDA); }, [clave]);
+  return [n, (todo) => setN((x) => (todo === true ? Infinity : x + TANDA))];
+}
+
+export function MostrarMas({ total, visibles, onMas }) {
+  if (total <= visibles) return null;
+  const quedan = total - visibles;
+  return (
+    <div className="gs-mas">
+      <span>Mostrando {visibles} de {total}</span>
+      <button className="axt-btn small" onClick={() => onMas()}>Mostrar {Math.min(TANDA, quedan)} más</button>
+      {quedan > TANDA && <button className="axt-btn small" onClick={() => onMas(true)}>Ver todos</button>}
+    </div>
+  );
+}
+
 /* ---------- componentes ---------- */
 export function Band({ status, h = 26 }) {
   const s = STATUS[status] || STATUS.sin_cert;

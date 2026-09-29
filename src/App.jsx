@@ -4,6 +4,7 @@ import { login, logout, getUser, isAuthed, tagInfo } from './api.js';
 import { Band, Pill, CertRow, Spinner, ErrorNote, Toast } from './ui.jsx';
 import { useOnline } from './offline.js';
 import Admin from './Admin.jsx';
+import { Empresas, Usuarios, Respaldo } from './AdminGestion.jsx';
 import Traza from './Traza.jsx';
 import Cliente from './Cliente.jsx';
 import Precintos from './Precintos.jsx';
@@ -18,8 +19,14 @@ const ROLES = {
   cliente:   { label: 'Cliente', icon: Smartphone, who: 'Cliente · tus activos, vencimientos y relevamientos' },
 };
 
-// Administración también puede entrar a las pantallas de operador
-const ADMIN_VIEWS = [['admin', 'Administración'], ['precintos', 'Precintos'], ['traza', 'Trazabilidad']];
+// Páginas de Administración (también puede entrar a las pantallas de operador)
+const ADMIN_VIEWS = [['admin', 'Activos'], ['empresas', 'Empresas'], ['usuarios', 'Usuarios'], ['precintos', 'Precintos'], ['traza', 'Trazabilidad'], ['respaldo', 'Respaldo']];
+
+// Al recargar, Administración vuelve a la página en la que estaba
+function vistaGuardada() {
+  try { const v = sessionStorage.getItem('ot_vista'); if (ADMIN_VIEWS.some(([k]) => k === v)) return v; } catch { /* nada */ }
+  return 'admin';
+}
 
 function Logo() {
   return (
@@ -66,7 +73,8 @@ export default function App() {
 
   const [user, setUser] = useState(isAuthed() ? getUser() : null);
   const [door, setDoor] = useState(null);
-  const [view, setView] = useState('admin');
+  const [view, setView] = useState(vistaGuardada);
+  const [vistaParams, setVistaParams] = useState(null); // p. ej. { empresa: 3 } al saltar de Empresas a Usuarios
   const [toast, setToast] = useState(null);
   const [ayuda, setAyuda] = useState(null); // { guias, inicial } · se abre encima de la pantalla actual
   const [avisoLogin, setAvisoLogin] = useState(null);
@@ -116,7 +124,7 @@ export default function App() {
       <div className="axt">
         <div className="axt-haz" />
         {door
-          ? <Login side={door} aviso={avisoLogin} onBack={() => { setDoor(null); setAvisoLogin(null); }} onSwitch={setDoor} onLogin={(u) => { setView('admin'); setAvisoLogin(null); setUser(u); }}
+          ? <Login side={door} aviso={avisoLogin} onBack={() => { setDoor(null); setAvisoLogin(null); }} onSwitch={setDoor} onLogin={(u) => { setView('admin'); setVistaParams(null); setAvisoLogin(null); setUser(u); try { sessionStorage.removeItem('ot_vista'); } catch { /* nada */ } }}
               onAyuda={() => abrirAyuda(guiasPara(door), door === 'operador' ? 'precintos' : door)} />
           : <Portal onPick={setDoor} Logo={Logo} onAyuda={() => abrirAyuda(guiasPara('admin'), 'cliente')} />}
         {overlay}
@@ -127,6 +135,10 @@ export default function App() {
   const role = ROLES[user.role] || ROLES.cliente;
   const RoleIcon = role.icon;
   const screen = user.role === 'admin' ? view : user.role;
+  const ir = (k, p) => {
+    setVistaParams(p || null); setView(k);
+    try { sessionStorage.setItem('ot_vista', k); } catch { /* sin almacenamiento: no pasa nada */ }
+  };
 
   return (
     <div className="axt">
@@ -148,7 +160,7 @@ export default function App() {
       {user.role === 'admin' ? (
         <nav className="adm-nav" aria-label="Secciones">
           {ADMIN_VIEWS.map(([k, l]) => (
-            <button key={k} className={'adm-tab' + (view === k ? ' on' : '')} aria-current={view === k ? 'page' : undefined} onClick={() => setView(k)}>{l}</button>
+            <button key={k} className={'adm-tab' + (view === k ? ' on' : '')} aria-current={view === k ? 'page' : undefined} onClick={() => ir(k)}>{l}</button>
           ))}
         </nav>
       ) : (
@@ -156,14 +168,17 @@ export default function App() {
       )}
       <OfflineBanner />
 
-      <div className="axt-content" key={screen}>
+      <div className="axt-content" key={screen + (vistaParams ? ':' + JSON.stringify(vistaParams) : '')}>
         <Resguardo>
-          {screen === 'admin' && <Admin toast={showToast} />}
+          {screen === 'admin' && <Admin toast={showToast} ir={ir} inicial={vistaParams} />}
+          {screen === 'empresas' && <Empresas toast={showToast} ir={ir} inicial={vistaParams} />}
+          {screen === 'usuarios' && <Usuarios toast={showToast} inicial={vistaParams} />}
+          {screen === 'respaldo' && <Respaldo toast={showToast} />}
           {screen === 'precintos' && <Precintos toast={showToast} />}
           {screen === 'traza' && <Traza toast={showToast} />}
           {screen === 'cliente' && <Cliente toast={showToast} />}
         </Resguardo>
-        {!ROLES[screen] && <ErrorNote error="Tu usuario no tiene un lado asignado. Pedíselo a Administración." />}
+        {user.role !== 'admin' && !ROLES[screen] && <ErrorNote error="Tu usuario no tiene un lado asignado. Pedíselo a Administración." />}
       </div>
 
       {toast && <Toast msg={toast} />}
