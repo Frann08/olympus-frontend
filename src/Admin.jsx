@@ -122,6 +122,8 @@ function AssetDrawer({ id, onClose, toast, onChanged }) {
 
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ cert_type: '', number: '', issued_date: '', expires_date: '', inspector: '' });
+  const [editPieza, setEditPieza] = useState(false);
+  const [editCert, setEditCert] = useState(null); // id de la inspección que se está corrigiendo
 
   async function writeNfc(tagId) {
     const uid = window.prompt('UID del chip NFC (ej. 04:1A:2B:3C:4D:5E:6F)');
@@ -161,10 +163,15 @@ function AssetDrawer({ id, onClose, toast, onChanged }) {
                 <h2 style={{ font: '700 20px "Oswald", sans-serif', color: 'var(--t-EAF0F3)', margin: '3px 0 8px' }}>{data.name}</h2>
                 <span style={{ font: '600 12px "IBM Plex Mono", monospace', color: 'var(--t-9AA6B1)', background: 'var(--s-171419)', border: '1px solid var(--b-2A2732)', borderRadius: 6, padding: '3px 8px' }}>{data.code}</span>
               </div>
+              <button onClick={() => setEditPieza((v) => !v)} className="axt-x" title="Corregir datos de la pieza" aria-label="Corregir datos de la pieza"><Pencil size={16} /></button>
               <button onClick={onClose} className="axt-x" aria-label="Cerrar"><X size={18} /></button>
             </div>
 
             <div className="axt-drawer-body">
+              {editPieza && (
+                <EditarPieza data={data} toast={toast} onCancel={() => setEditPieza(false)}
+                  onSaved={() => { setEditPieza(false); reload(); }} />
+              )}
               <div className="axt-sec">Codificación del tag</div>
               <div style={{ display: 'grid', gap: 10, marginBottom: 22 }}>
                 <div className="axt-enc-row">
@@ -208,14 +215,166 @@ function AssetDrawer({ id, onClose, toast, onChanged }) {
               )}
 
               <div>
-                {data.certificates.map((c, i) => <CertRow key={c.id || i} c={c} last={i === data.certificates.length - 1} />)}
+                {data.certificates.map((c, i) => (
+                  <div key={c.id || i}>
+                    <CertRow c={c} last={i === data.certificates.length - 1 && editCert !== c.id} />
+                    <div className="cor-acciones">
+                      <button className="axt-btn small" onClick={() => setEditCert(editCert === c.id ? null : c.id)}><Pencil size={12} /> Corregir</button>
+                    </div>
+                    {editCert === c.id && (
+                      <EditarInspeccion c={c} toast={toast} onCancel={() => setEditCert(null)}
+                        onSaved={() => { setEditCert(null); reload(); }} />
+                    )}
+                  </div>
+                ))}
                 {data.certificates.length === 0 && <div style={{ font: '500 13px "IBM Plex Sans"', color: 'var(--t-7A8792)', padding: '10px 0' }}>Sin certificados cargados.</div>}
               </div>
+
+              <Cambios assetId={id} rev={rev} />
             </div>
           </>
         )}
       </div>
     </>
+  );
+}
+
+/* ============ Correcciones (solo Administración) ============
+   Todo cambio queda registrado con quién, cuándo, qué había y el motivo.
+   El tag no se toca: identifica a la pieza, no a sus datos. */
+const inputCor = { width: '100%', minWidth: 0 };
+
+function EditarPieza({ data, toast, onCancel, onSaved }) {
+  const clientes = useData(() => api('/api/clients'), []);
+  const [f, setF] = useState({ code: data.code || '', name: data.name || '', type: data.type || '', ibm: data.ibm || '', client_id: String(data.client_id || ''), motivo: '' });
+  const [ocupado, setOcupado] = useState(false);
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+
+  async function guardar() {
+    const body = {};
+    for (const k of ['code', 'name', 'type', 'ibm', 'client_id']) {
+      if (String(f[k]).trim() !== String((k === 'client_id' ? data.client_id : data[k]) ?? '')) body[k] = f[k];
+    }
+    if (!Object.keys(body).length) { toast('No cambiaste ningún dato'); return; }
+    if (body.client_id) {
+      const nuevo = (clientes.data || []).find((c) => String(c.id) === String(body.client_id));
+      if (!window.confirm(`¿Pasar la pieza a ${nuevo ? nuevo.name : 'otra empresa'}?\nLa van a ver los usuarios de esa empresa y dejan de verla los de ${data.client}.`)) return;
+    }
+    body.motivo = f.motivo;
+    setOcupado(true);
+    try {
+      await api(`/api/assets/${data.id}`, { method: 'PATCH', body: JSON.stringify(body) });
+      toast('Pieza corregida'); onSaved();
+    } catch (e) { toast(e.message); }
+    finally { setOcupado(false); }
+  }
+
+  return (
+    <div className="cor-form">
+      <div className="cor-titulo">Corregir datos de la pieza</div>
+      <div className="cor-grid">
+        <label className="fld"><span>Nº de serie</span><input style={inputCor} value={f.code} onChange={set('code')} /></label>
+        <label className="fld"><span>IBM</span><input style={inputCor} value={f.ibm} onChange={set('ibm')} placeholder="ej: 195" /></label>
+      </div>
+      <label className="fld"><span>Descripción</span><input style={inputCor} value={f.name} onChange={set('name')} /></label>
+      <div className="cor-grid">
+        <label className="fld"><span>Tipo</span><input style={inputCor} value={f.type} onChange={set('type')} /></label>
+        <label className="fld"><span>Empresa</span>
+          <select className="axt-input cor-select" value={f.client_id} onChange={set('client_id')}>
+            {(clientes.data || [{ id: data.client_id, name: data.client }]).map((c) => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+          </select>
+        </label>
+      </div>
+      <label className="fld"><span>Motivo (opcional)</span><input style={inputCor} value={f.motivo} onChange={set('motivo')} placeholder="ej: Informes Técnicos pasó mal la serie" /></label>
+      <div className="cor-botones">
+        <button className="axt-btn primary small" onClick={guardar} disabled={ocupado}>{ocupado ? 'Guardando…' : 'Guardar corrección'}</button>
+        <button className="axt-btn small" onClick={onCancel}>Cancelar</button>
+      </div>
+      <div className="cor-nota">No hace falta el tag: al escanearlo se van a ver los datos corregidos.</div>
+    </div>
+  );
+}
+
+function EditarInspeccion({ c, toast, onCancel, onSaved }) {
+  const [f, setF] = useState({
+    number: c.number || '', resultado: c.resultado || '', presion: c.presion || '', precinto: c.precinto || '',
+    issued_date: String(c.issued_date || '').slice(0, 10), expires_date: String(c.expires_date || '').slice(0, 10),
+    pdf_url: c.pdf_url || '', motivo: '',
+  });
+  const [ocupado, setOcupado] = useState(false);
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const original = { number: c.number, resultado: c.resultado, presion: c.presion, precinto: c.precinto, issued_date: String(c.issued_date || '').slice(0, 10), expires_date: String(c.expires_date || '').slice(0, 10), pdf_url: c.pdf_url };
+
+  async function guardar() {
+    const body = {};
+    for (const k of Object.keys(original)) if (String(f[k]).trim() !== String(original[k] ?? '')) body[k] = f[k];
+    if (!Object.keys(body).length) { toast('No cambiaste ningún dato'); return; }
+    body.motivo = f.motivo;
+    setOcupado(true);
+    try {
+      await api(`/api/certificates/${c.id}`, { method: 'PATCH', body: JSON.stringify(body) });
+      toast('Inspección corregida'); onSaved();
+    } catch (e) { toast(e.message); }
+    finally { setOcupado(false); }
+  }
+  async function borrar() {
+    if (!window.confirm(`¿Borrar la inspección del informe ${c.number}?\nUsalo solo si se cargó por error. Queda registrado.`)) return;
+    setOcupado(true);
+    try {
+      await api(`/api/certificates/${c.id}`, { method: 'DELETE', body: JSON.stringify({ motivo: f.motivo }) });
+      toast('Inspección borrada'); onSaved();
+    } catch (e) { toast(e.message); }
+    finally { setOcupado(false); }
+  }
+
+  return (
+    <div className="cor-form">
+      <div className="cor-titulo">Corregir inspección · informe {c.number}</div>
+      <div className="cor-grid">
+        <label className="fld"><span>Nº de informe</span><input style={inputCor} value={f.number} onChange={set('number')} /></label>
+        <label className="fld"><span>Resultado</span>
+          <select className="axt-input cor-select" value={f.resultado} onChange={set('resultado')}>
+            <option value="APTO">APTO</option>
+            <option value="NO APTO">NO APTO</option>
+            <option value="">(sin dato)</option>
+            {f.resultado && !['APTO', 'NO APTO'].includes(f.resultado) && <option value={f.resultado}>{f.resultado}</option>}
+          </select>
+        </label>
+      </div>
+      <div className="cor-grid">
+        <label className="fld"><span>Presión</span><input style={inputCor} value={f.presion} onChange={set('presion')} placeholder="ej: 15 KPSI" /></label>
+        <label className="fld"><span>Vence</span><input style={inputCor} type="date" value={f.expires_date} onChange={set('expires_date')} /></label>
+      </div>
+      <div className="cor-grid">
+        <label className="fld"><span>Emitido</span><input style={inputCor} type="date" value={f.issued_date} onChange={set('issued_date')} /></label>
+        <label className="fld"><span>Link al informe (BM)</span><input style={inputCor} value={f.pdf_url} onChange={set('pdf_url')} placeholder="https://…" /></label>
+      </div>
+      <label className="fld"><span>Precinto</span><input style={inputCor} value={f.precinto} onChange={set('precinto')} /></label>
+      <label className="fld"><span>Motivo (opcional)</span><input style={inputCor} value={f.motivo} onChange={set('motivo')} placeholder="ej: el informe correcto es el 401" /></label>
+      <div className="cor-botones">
+        <button className="axt-btn primary small" onClick={guardar} disabled={ocupado}>{ocupado ? 'Guardando…' : 'Guardar corrección'}</button>
+        <button className="axt-btn small" onClick={onCancel}>Cancelar</button>
+        <button className="axt-btn small cor-borrar" onClick={borrar} disabled={ocupado}><Trash2 size={12} /> Borrar inspección</button>
+      </div>
+    </div>
+  );
+}
+
+function Cambios({ assetId, rev }) {
+  const { data } = useData(() => api(`/api/assets/${assetId}/cambios`), [assetId, rev]);
+  if (!data || !data.length) return null;
+  const fecha = (s) => { try { return new Date(s).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return s; } };
+  return (
+    <div style={{ marginTop: 22 }}>
+      <div className="axt-sec">Correcciones</div>
+      {data.map((c) => (
+        <div key={c.id} className="cor-item">
+          <div className="cor-item-top"><b>{c.campo}</b><span>{fecha(c.created_at)}{c.usuario ? ' · ' + c.usuario : ''}</span></div>
+          <div className="cor-item-val">{c.antes ?? '(vacío)'} <span>→</span> {c.despues ?? '(vacío)'}</div>
+          {c.motivo && <div className="cor-item-mot">Motivo: {c.motivo}</div>}
+        </div>
+      ))}
+    </div>
   );
 }
 
