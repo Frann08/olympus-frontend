@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import QRCode from 'qrcode';
-import { Tag, Copy, Check, X, Undo2, Smartphone, Search, Loader2, Pencil } from 'lucide-react';
+import { Tag, Copy, Check, X, Undo2, Smartphone, Search, Pencil } from 'lucide-react';
 import { api, PUBLIC_URL, getUser } from './api.js';
 import { Spinner, ErrorNote } from './ui.jsx';
 import { ImportPanel } from './Admin.jsx';
+import GrabarSerie, { puedeGrabar } from './GrabarSerie.jsx';
 
 // Estado físico del tag de cada pieza
 const EST = {
@@ -26,6 +27,7 @@ export default function Precintos({ toast }) {
   const [q, setQ] = useState('');
   const [fEst, setFEst] = useState('all');
   const [grabar, setGrabar] = useState(null);
+  const [serie, setSerie] = useState(null); // { cola, titulo } · grabado seguido desde el teléfono
 
   const loadInformes = useCallback(async (pickKey) => {
     try {
@@ -57,13 +59,21 @@ export default function Precintos({ toast }) {
 
   useEffect(() => { setFEst('all'); loadItems(infSel, true); /* eslint-disable-next-line */ }, [sel]);
 
+  // Guarda el estado del tag (y el número de chip y el link que tenía antes, si se grabó desde el
+  // teléfono). Si el tag era de otra pieza, esa queda sin tag y se recarga la lista. Tira error si falla.
+  async function guardarEstado(it, estado, uid, antesToken) {
+    const body = { estado };
+    if (uid) body.uid = uid;
+    if (antesToken && antesToken !== it.token) body.antes_token = antesToken;
+    const r = await api(`/api/precintos/tags/${it.tag_id}/estado`, { method: 'POST', body: JSON.stringify(body) });
+    setItems((xs) => (xs || []).map((x) => (x.tag_id === it.tag_id ? { ...x, estado: r.estado } : x)));
+    if (r.liberadas && r.liberadas.length) loadItems(infSel);
+    loadInformes();
+    return r;
+  }
   async function setEstado(it, estado, msg) {
-    try {
-      const r = await api(`/api/precintos/tags/${it.tag_id}/estado`, { method: 'POST', body: JSON.stringify({ estado }) });
-      setItems((xs) => xs.map((x) => (x.tag_id === it.tag_id ? { ...x, estado: r.estado } : x)));
-      loadInformes();
-      if (msg) toast(msg);
-    } catch (e) { toast('No se pudo actualizar: ' + e.message); }
+    try { await guardarEstado(it, estado); if (msg) toast(msg); }
+    catch (e) { toast('No se pudo actualizar: ' + e.message); }
   }
 
   async function onImported(rows) {
@@ -89,6 +99,8 @@ export default function Precintos({ toast }) {
   const visibles = (items || []).filter((x) => fEst === 'all' || estadoDe(x) === fEst);
   const infSel = (informes || []).find((i) => keyInf(i) === sel) || null;
   const esAdmin = getUser()?.role === 'admin';
+  const tituloInf = infSel ? `INF ${infSel.informe} · ${infSel.cliente}${infSel.ibm ? ` · IBM ${infSel.ibm}` : ''}` : '';
+  const pendientes = aptos.filter((x) => x.estado === 'pendiente');
   const [corregir, setCorregir] = useState(false);
 
   return (
@@ -132,11 +144,20 @@ export default function Precintos({ toast }) {
               <div>
                 <div className="pr-big">{col}<em> / {aptos.length}</em></div>
                 <div className="pr-muted">tags colocados del informe {infSel.informe}{infSel.ibm ? ` · IBM ${infSel.ibm}` : ''}</div>
-                {esAdmin && (
-                  <button className="axt-btn small" style={{ marginTop: 8 }} onClick={() => setCorregir((v) => !v)}>
-                    <Pencil size={12} /> Corregir informe
-                  </button>
-                )}
+                <div className="pr-prog-btns">
+                  {pendientes.length > 0 && (puedeGrabar() ? (
+                    <button className="axt-btn primary" onClick={() => setSerie({ cola: pendientes, titulo: tituloInf })}>
+                      <Smartphone size={14} /> Grabar en serie ({pendientes.length})
+                    </button>
+                  ) : (
+                    <span className="pr-muted pr-nota-serie">Para grabar varios seguidos, abrí Olympus en Chrome desde un Android.</span>
+                  ))}
+                  {esAdmin && (
+                    <button className="axt-btn small" onClick={() => setCorregir((v) => !v)}>
+                      <Pencil size={12} /> Corregir informe
+                    </button>
+                  )}
+                </div>
               </div>
               <div style={{ flex: 1, minWidth: 220 }}>
                 <div className="pr-bar"><i style={{ width: pct + '%' }} /></div>
@@ -182,7 +203,17 @@ export default function Precintos({ toast }) {
           it={grabar}
           onClose={() => setGrabar(null)}
           onDone={() => { const it = grabar; setGrabar(null); setEstado(it, 'grabado', 'Tag grabado · falta colocarlo'); }}
-          toast={toast}
+          onTelefono={() => { const it = grabar; setGrabar(null); setSerie({ cola: [it], titulo: tituloInf }); }}
+        />
+      )}
+
+      {serie && (
+        <GrabarSerie
+          cola={serie.cola}
+          todos={items}
+          titulo={serie.titulo}
+          guardar={guardarEstado}
+          onClose={() => setSerie(null)}
         />
       )}
     </div>
@@ -268,17 +299,15 @@ function ItemRow({ it, onGrabar, onEstado }) {
   );
 }
 
-function GrabarPanel({ it, onClose, onDone, toast }) {
+function GrabarPanel({ it, onClose, onDone, onTelefono }) {
   const url = tagUrl(it.token);
   const [qr, setQr] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [writing, setWriting] = useState(null);
-  const canWrite = typeof window !== 'undefined' && 'NDEFReader' in window;
+  const canWrite = puedeGrabar();
 
   useEffect(() => {
     QRCode.toDataURL(url, { margin: 1, width: 360, color: { dark: '#0A0A0C', light: '#FFFFFF' } }).then(setQr).catch(() => setQr(null));
   }, [url]);
-  useEffect(() => () => writing && writing.abort(), [writing]);
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
@@ -290,20 +319,6 @@ function GrabarPanel({ it, onClose, onDone, toast }) {
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
-
-  async function writeNfc() {
-    const ctrl = new AbortController();
-    setWriting(ctrl);
-    try {
-      const w = new window.NDEFReader();
-      await w.write({ records: [{ recordType: 'url', data: url }] }, { signal: ctrl.signal });
-      setWriting(null);
-      onDone();
-    } catch (e) {
-      setWriting(null);
-      if (e.name !== 'AbortError') toast('No se pudo grabar desde el teléfono. Usá NFC Tools. (' + e.message + ')');
-    }
-  }
 
   return (
     <>
@@ -326,8 +341,8 @@ function GrabarPanel({ it, onClose, onDone, toast }) {
         </button>
 
         {canWrite && (
-          <button className="axt-btn" style={{ width: '100%', marginTop: 8 }} onClick={writing ? () => writing.abort() : writeNfc}>
-            {writing ? <><Loader2 size={14} className="spin" /> Acercá el DATABAND2… (tocá para cancelar)</> : <><Smartphone size={14} /> Grabar desde este teléfono</>}
+          <button className="axt-btn" style={{ width: '100%', marginTop: 8 }} onClick={onTelefono}>
+            <Smartphone size={14} /> Grabar desde este teléfono
           </button>
         )}
 
