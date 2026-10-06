@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { SlidersHorizontal, ScanLine, Smartphone, LogOut, Radio, WifiOff, Tag, ArrowLeft, Lock, SearchX, HelpCircle } from 'lucide-react';
+import { SlidersHorizontal, ScanLine, Smartphone, LogOut, Radio, WifiOff, Tag, ArrowLeft, Lock, SearchX, HelpCircle, MapPin } from 'lucide-react';
 import { login, logout, getUser, isAuthed, tagInfo } from './api.js';
 import { Band, Pill, CertRow, Spinner, ErrorNote, Toast } from './ui.jsx';
 import { useOnline } from './offline.js';
@@ -389,6 +389,15 @@ function PiezaInfo({ data }) {
           <Pill status={data.status} />
         </div>
       </div>
+      {a.destino && (
+        <div className="cli-dest-ficha">
+          <MapPin size={14} />
+          <div style={{ minWidth: 0 }}>
+            <div><b>Destino:</b> {[a.destino.nombre, a.destino.yacimiento, a.destino.pozo, a.destino.lugar].filter(Boolean).filter((x, i, xs) => xs.indexOf(x) === i).join(' · ')}</div>
+            {a.destino.desde && <div className="cli-dest-desde">desde {new Date(a.destino.desde).toLocaleDateString('es-AR')}</div>}
+          </div>
+        </div>
+      )}
       <div style={{ font: '600 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)', letterSpacing: '.5px', margin: '16px 0 4px' }}>CERTIFICADOS</div>
       {data.certificates.length ? (
         <div>

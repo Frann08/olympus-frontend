@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Boxes, Clock, Radio, Tag, ChevronRight, Search, X, CheckCircle2, Plus, Building2, Copy, Check, QrCode, Upload, FileDown, AlertTriangle, Trash2, Pencil } from 'lucide-react';
+import { Boxes, Clock, Radio, Tag, ChevronRight, Search, X, CheckCircle2, Plus, Building2, Copy, Check, QrCode, Upload, FileDown, AlertTriangle, Trash2, Pencil, MapPin } from 'lucide-react';
 import QRCode from 'qrcode';
 import * as XLSX from 'xlsx';
 import { api, PUBLIC_URL } from './api.js';
@@ -20,7 +20,7 @@ export default function Admin({ toast, ir, inicial }) {
 
   const s = sinTildes(q);
   const rows = (assets.data || []).filter((a) => {
-    const mq = !s || [a.name, a.code, a.type, a.client].some((f) => sinTildes(f).includes(s));
+    const mq = !s || [a.name, a.code, a.type, a.client, a.destino].some((f) => sinTildes(f).includes(s));
     const me = !empresa || String(a.client_id) === String(empresa);
     const mf = filter === 'all' ? true
       : filter === 'unc' ? (!a.nfc_written || !a.epc_assigned)
@@ -123,7 +123,7 @@ export default function Admin({ toast, ir, inicial }) {
                       <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)', marginTop: 2 }}>{a.code}</div>
                     </td>
                     <td style={{ color: 'var(--t-B7C1CB)' }}>{a.type}</td>
-                    <td style={{ color: 'var(--t-B7C1CB)' }}>{a.client}</td>
+                    <td style={{ color: 'var(--t-B7C1CB)' }}>{a.client}{a.destino && <div className="adm-dest"><MapPin size={11} /> {a.destino}</div>}</td>
                     <td>
                       <Pill status={a.status} />
                       <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)', marginTop: 4 }}>{daysLabel(a.next_expiry)}</div>
@@ -265,6 +265,27 @@ function AssetDrawer({ id, onClose, toast, onChanged }) {
                 ))}
                 {data.certificates.length === 0 && <div style={{ font: '500 13px "IBM Plex Sans"', color: 'var(--t-7A8792)', padding: '10px 0' }}>Sin certificados cargados.</div>}
               </div>
+
+              <div className="axt-sec" style={{ marginTop: 22 }}>Destino (lo arma el cliente)</div>
+              {data.destino ? (
+                <div className="cli-dest-ficha" style={{ marginTop: 0 }}>
+                  <MapPin size={14} />
+                  <div style={{ minWidth: 0 }}>
+                    <div><b>{data.destino.nombre}</b>{[data.destino.yacimiento, data.destino.pozo, data.destino.lugar].filter(Boolean).length ? ' · ' + [data.destino.yacimiento, data.destino.pozo, data.destino.lugar].filter(Boolean).join(' · ') : ''}</div>
+                    {data.destino.desde && <div className="cli-dest-desde">desde {new Date(data.destino.desde).toLocaleDateString('es-AR')}</div>}
+                  </div>
+                </div>
+              ) : <div style={{ font: '400 12.5px "IBM Plex Sans"', color: 'var(--t-7A8792)' }}>Sin destino.</div>}
+              {(data.destinos_historial || []).length > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  {data.destinos_historial.map((m) => (
+                    <div key={m.id} className="cli-mov">
+                      <span>{m.hacia_nombre ? <>→ <b>{m.hacia_nombre}</b></> : <>Salió de <b>{m.desde_nombre}</b></>}</span>
+                      <span className="cli-mov-f">{new Date(m.created_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}{m.usuario ? ' · ' + m.usuario : ''}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <Cambios assetId={id} rev={rev} />
             </div>
