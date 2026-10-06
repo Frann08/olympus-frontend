@@ -19,7 +19,7 @@ function useUnaVez() {
   return [ocupado, unaVez];
 }
 
-function Encabezado({ icon: Icon, titulo, sub, children }) {
+export function Encabezado({ icon: Icon, titulo, sub, children }) {
   return (
     <div className="gs-head">
       <div style={{ minWidth: 0 }}>

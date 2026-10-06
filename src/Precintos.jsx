@@ -65,6 +65,7 @@ export default function Precintos({ toast }) {
     const body = { estado };
     if (uid) body.uid = uid;
     if (antesToken && antesToken !== it.token) body.antes_token = antesToken;
+    if (infSel && infSel.informe) body.informe = infSel.informe; // queda en el registro de grabados (para facturar)
     const r = await api(`/api/precintos/tags/${it.tag_id}/estado`, { method: 'POST', body: JSON.stringify(body) });
     setItems((xs) => (xs || []).map((x) => (x.tag_id === it.tag_id ? { ...x, estado: r.estado } : x)));
     if (r.liberadas && r.liberadas.length) loadItems(infSel);
