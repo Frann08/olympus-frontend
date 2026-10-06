@@ -59,10 +59,15 @@ export default function Precintos({ toast }) {
 
   useEffect(() => { setFEst('all'); loadItems(infSel, true); /* eslint-disable-next-line */ }, [sel]);
 
-  // Guarda el estado del tag (y el número de chip, si se grabó desde el teléfono). Tira error si falla.
-  async function guardarEstado(it, estado, uid) {
-    const r = await api(`/api/precintos/tags/${it.tag_id}/estado`, { method: 'POST', body: JSON.stringify(uid ? { estado, uid } : { estado }) });
+  // Guarda el estado del tag (y el número de chip y el link que tenía antes, si se grabó desde el
+  // teléfono). Si el tag era de otra pieza, esa queda sin tag y se recarga la lista. Tira error si falla.
+  async function guardarEstado(it, estado, uid, antesToken) {
+    const body = { estado };
+    if (uid) body.uid = uid;
+    if (antesToken && antesToken !== it.token) body.antes_token = antesToken;
+    const r = await api(`/api/precintos/tags/${it.tag_id}/estado`, { method: 'POST', body: JSON.stringify(body) });
     setItems((xs) => (xs || []).map((x) => (x.tag_id === it.tag_id ? { ...x, estado: r.estado } : x)));
+    if (r.liberadas && r.liberadas.length) loadItems(infSel);
     loadInformes();
     return r;
   }
@@ -140,11 +145,13 @@ export default function Precintos({ toast }) {
                 <div className="pr-big">{col}<em> / {aptos.length}</em></div>
                 <div className="pr-muted">tags colocados del informe {infSel.informe}{infSel.ibm ? ` · IBM ${infSel.ibm}` : ''}</div>
                 <div className="pr-prog-btns">
-                  {pendientes.length > 0 && (
+                  {pendientes.length > 0 && (puedeGrabar() ? (
                     <button className="axt-btn primary" onClick={() => setSerie({ cola: pendientes, titulo: tituloInf })}>
                       <Smartphone size={14} /> Grabar en serie ({pendientes.length})
                     </button>
-                  )}
+                  ) : (
+                    <span className="pr-muted pr-nota-serie">Para grabar varios seguidos, abrí Olympus en Chrome desde un Android.</span>
+                  ))}
                   {esAdmin && (
                     <button className="axt-btn small" onClick={() => setCorregir((v) => !v)}>
                       <Pencil size={12} /> Corregir informe

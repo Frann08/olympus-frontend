@@ -175,12 +175,14 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
       vibrar(140);
 
       let guardado = true;
-      try { await guardar(pieza, col ? 'colocado' : 'grabado', uid); } catch { guardado = false; }
-      const nueva = xs.map((x, k) => (k === i ? { ...x, local: guardado ? 'grabado' : 'sin_guardar', uid, colocado: col } : x));
+      let liberadas = [];
+      try { const r = await guardar(pieza, col ? 'colocado' : 'grabado', uid, token); liberadas = (r && r.liberadas) || []; } catch { guardado = false; }
+      const nueva = xs.map((x, k) => (k === i ? { ...x, local: guardado ? 'grabado' : 'sin_guardar', uid, antes: token, colocado: col } : x));
       setCola(nueva);
       const sig = siguientePendiente(nueva, i);
+      const libre = liberadas.length ? ` ${liberadas.join(', ')} quedó sin tag (volvió a pendiente).` : '';
       setAviso(guardado
-        ? { tipo: 'ok', texto: `✓ ${pieza.code} grabado${col ? ' y colocado' : ''}.${sig >= 0 ? ' Sacá el tag y acercá el siguiente.' : ''}` }
+        ? { tipo: 'ok', texto: `✓ ${pieza.code} grabado${col ? ' y colocado' : ''}.${libre}${sig >= 0 ? ' Sacá el tag y acercá el siguiente.' : ''}` }
         : { tipo: 'error', texto: `${pieza.code}: el tag quedó grabado pero no se pudo guardar en Olympus (sin conexión). Tocá "Reintentar" en la lista.` });
       if (sig >= 0) setActual(sig);
       else { parar(); setFase('fin'); }
@@ -193,7 +195,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   async function reintentar(k) {
     const x = cola[k];
     try {
-      await guardar(x, x.colocado ? 'colocado' : 'grabado', x.uid);
+      await guardar(x, x.colocado ? 'colocado' : 'grabado', x.uid, x.antes);
       setCola((xs) => xs.map((y, j) => (j === k ? { ...y, local: 'grabado' } : y)));
       setAviso({ tipo: 'ok', texto: `✓ ${x.code} guardado.` });
     } catch (e) { setAviso({ tipo: 'error', texto: 'Todavía no se pudo guardar: ' + e.message }); }
@@ -259,7 +261,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
               <div>{aviso.texto}</div>
               {aviso.reusar && (
                 <button className="axt-btn small" style={{ marginTop: 8 }}
-                  onClick={() => { permitir.current = aviso.reusar.clave; setAviso({ tipo: 'ok', texto: `Listo: ese tag se va a regrabar para ${it ? it.code : 'esta pieza'} (deja de ser de ${aviso.reusar.code}). Acercalo de nuevo.` }); }}>
+                  onClick={() => { permitir.current = aviso.reusar.clave; setAviso({ tipo: 'ok', texto: `Listo: acercalo de nuevo y se graba para ${it ? it.code : 'esta pieza'}. ${aviso.reusar.code} va a quedar sin tag (vuelve a pendiente).` }); }}>
                   Es un tag recuperado: reusarlo
                 </button>
               )}

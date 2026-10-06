@@ -622,7 +622,8 @@ a.axt-btn { text-decoration: none; }
 }
 
 /* ---------- Precintos: grabado en serie ---------- */
-.pr-prog-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.pr-prog-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+.pr-nota-serie { max-width: 300px; }
 .pr-panel.ser { width: 440px; display: flex; flex-direction: column; gap: 14px; }
 .ser-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
 .ser-titulo { font: 600 14px "IBM Plex Sans"; color: var(--t-F3F1EC); margin-top: 5px; }

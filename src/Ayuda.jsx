@@ -176,7 +176,7 @@ function GuiaCliente() {
    PRECINTOS
 ============================================================ */
 const IDX_PRECINTOS = [
-  ['entrar', 'Entrar'], ['cargar', 'Cargar la Hoja 2'], ['informe', 'Elegir el informe'], ['grabar', 'Grabar el tag'],
+  ['entrar', 'Entrar'], ['cargar', 'Cargar la Hoja 2'], ['informe', 'Elegir el informe'], ['grabar', 'Grabar el tag'], ['serie', 'Grabar en serie'],
   ['colocar', 'Colocar el tag'], ['deshacer', 'Deshacer un paso'], ['noapto', 'Piezas NO APTO'], ['controlar', 'Controlar el trabajo'],
   ['corregir', 'Si un dato vino mal'],
 ];
@@ -217,13 +217,32 @@ function GuiaPrecintos() {
         <p>Cada pieza tiene su propio link. Grabarlo en el tag es lo que une ese tag con esa pieza.</p>
         <ol className="ay-pasos">
           <li>En la pieza, tocá <b>Grabar tag</b>. Se abre un panel con el Nº de serie, un QR y el link de esa pieza.</li>
-          <li><b>Desde el celular</b> (Android con Chrome): tocá <b>Grabar desde este teléfono</b> y apoyá el tag en la parte de atrás del celular. Cuando termina, la pieza pasa sola a <b>Grabado</b>.</li>
+          <li><b>Desde el celular</b> (Android con Chrome): tocá <b>Grabar desde este teléfono</b>, después <b>Empezar</b>, y apoyá el tag en la parte de atrás del celular. Cuando termina, la pieza pasa sola a <b>Grabado</b>.</li>
           <li><b>Con NFC Tools</b> (si lo anterior no funciona): tocá <b>Copiar URL</b>, abrí NFC Tools → Escribir → Agregar registro → URL, pegá el link, tocá Escribir y acercá el tag. Después volvé a Olympus y tocá <b>Ya lo grabé</b>.</li>
         </ol>
         <Aviso>Antes de grabar, confirmá que el <b>Nº de serie del panel</b> sea el de la pieza que tenés en la mano. Un tag grabado con el link de otra pieza mostraría la pieza equivocada.</Aviso>
       </Sec>
 
-      <Sec id="colocar" n="5" titulo="Colocar el tag" img={{ src: 'p-lista', alt: 'Lista de piezas con estados colocado, grabado, pendiente y sin precinto', cap: 'Estados de cada pieza del informe.' }}>
+      <Sec id="serie" n="5" titulo="Grabar en serie (varios seguidos)" img={{ src: 'p-serie', alt: 'Pantalla Grabar en serie con la pieza actual, el avance y la lista', cap: 'Grabado en serie: 1 de 4 grabados; ahora va SW-40219.' }}>
+        <p>Para grabar todos los tags de un informe de una sola vez, desde un <b>Android con Chrome</b>.</p>
+        <ol className="ay-pasos">
+          <li>En el informe, tocá <b>Grabar en serie</b>. Entre paréntesis dice cuántas piezas faltan grabar.</li>
+          <li>Tocá <b>Empezar</b>. Arriba aparece la pieza que va <b>ahora</b>, con su Nº de serie en grande.</li>
+          <li>Apoyá un tag en la parte de atrás del celular. Se graba, el teléfono vibra y la pantalla pasa sola a la pieza siguiente.</li>
+          <li>Sacá el tag, ponelo con su pieza y acercá el siguiente. Así hasta terminar.</li>
+        </ol>
+        <ul className="ay-lista">
+          <li><b>Si los tags ya están puestos en las piezas</b>, marcá la casilla de abajo: quedan como <b>Colocados</b> directamente.</li>
+          <li>Para grabar otra pieza antes, tocala en la lista, o usá <b>Saltear</b>.</li>
+          <li>Si acercás un tag que <b>ya grabaste</b> en esta tanda, o uno que es <b>de otra pieza</b>, avisa y no lo graba.</li>
+          <li>Si es un <b>tag recuperado</b> de otra pieza, tocá <b>Es un tag recuperado: reusarlo</b> y acercalo de nuevo. La pieza anterior queda sin tag (vuelve a pendiente).</li>
+          <li>Si se corta la señal, el tag queda grabado y la pieza dice <b>!</b>: cuando vuelva la señal, tocá <b>Reintentar</b>.</li>
+        </ul>
+        <Aviso>Mirá siempre el Nº de serie de <b>Ahora</b> antes de acercar el tag: tiene que ser el de la pieza que vas a etiquetar.</Aviso>
+        <Nota>En iPhone no se puede grabar desde Olympus (Apple no lo permite en páginas web). Desde un iPhone, grabá de a uno con NFC Tools.</Nota>
+      </Sec>
+
+      <Sec id="colocar" n="6" titulo="Colocar el tag" img={{ src: 'p-lista', alt: 'Lista de piezas con estados colocado, grabado, pendiente y sin precinto', cap: 'Estados de cada pieza del informe.' }}>
         <ol className="ay-pasos">
           <li>Fijá el tag en la pieza.</li>
           <li>En la lista, tocá <b>Marcar colocado</b>. La pieza queda en verde con <b>✓ Listo</b>.</li>
@@ -233,24 +252,24 @@ function GuiaPrecintos() {
           <li><b style={{ color: 'var(--t-A9A7A2)' }}>Pendiente:</b> falta grabar el tag.</li>
           <li><b style={{ color: 'var(--t-E7C15A)' }}>Grabado:</b> el tag está grabado pero todavía no se marcó como colocado.</li>
           <li><b style={{ color: 'var(--t-57C98A)' }}>Colocado:</b> terminado.</li>
-          <li><b style={{ color: 'var(--t-E5645C)' }}>Sin precinto:</b> pieza NO APTO (ver punto 7).</li>
+          <li><b style={{ color: 'var(--t-E5645C)' }}>Sin precinto:</b> pieza NO APTO (ver punto 8).</li>
         </ul>
       </Sec>
 
-      <Sec id="deshacer" n="6" titulo="Deshacer un paso">
+      <Sec id="deshacer" n="7" titulo="Deshacer un paso">
         <p>La flecha <b>↶</b> al lado de cada pieza vuelve un paso atrás: de Colocado a Grabado, o de Grabado a Pendiente. Usala si marcaste algo por error.</p>
       </Sec>
 
-      <Sec id="noapto" n="7" titulo="Piezas NO APTO">
+      <Sec id="noapto" n="8" titulo="Piezas NO APTO">
         <p>Las piezas con resultado <b>NO APTO</b> aparecen como <b>Sin precinto</b> y dicen <b>No aplica</b>: no llevan tag.</p>
       </Sec>
 
-      <Sec id="controlar" n="8" titulo="Controlar el trabajo">
+      <Sec id="controlar" n="9" titulo="Controlar el trabajo">
         <p>Al terminar un informe, escaneá con el celular algunos de los tags ya colocados: se tiene que abrir la ficha con el <b>mismo Nº de serie</b> que tiene la pieza. Así te asegurás de que cada tag quedó en su pieza.</p>
         <p>El QR del panel de grabado abre la misma ficha: sirve para ver lo que va a ver el cliente.</p>
       </Sec>
 
-      <Sec id="corregir" n="9" titulo="Si un dato vino mal">
+      <Sec id="corregir" n="10" titulo="Si un dato vino mal">
         <p>Si Informes Técnicos pasó mal un dato (el Nº de informe, el IBM, la serie, la presión, la descripción), <b>Administración lo corrige en Olympus</b>. No hace falta el tag ni tener la pieza: el tag solo identifica a la pieza, y al escanearlo se ven los datos corregidos.</p>
         <ul className="ay-lista">
           <li><b>Un informe entero</b> (por ejemplo, era el 401 y no el 400): Administración abre el informe en Precintos y toca <b>Corregir informe</b>.</li>
