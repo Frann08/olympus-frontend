@@ -5,6 +5,7 @@ import { Band, Pill, CertRow, Spinner, ErrorNote, Toast } from './ui.jsx';
 import { useOnline } from './offline.js';
 import Admin from './Admin.jsx';
 import { Empresas, Usuarios, Respaldo } from './AdminGestion.jsx';
+import Grabados from './Grabados.jsx';
 import Traza from './Traza.jsx';
 import Cliente from './Cliente.jsx';
 import Precintos from './Precintos.jsx';
@@ -20,7 +21,7 @@ const ROLES = {
 };
 
 // Páginas de Administración (también puede entrar a las pantallas de operador)
-const ADMIN_VIEWS = [['admin', 'Activos'], ['empresas', 'Empresas'], ['usuarios', 'Usuarios'], ['precintos', 'Precintos'], ['traza', 'Trazabilidad'], ['respaldo', 'Respaldo']];
+const ADMIN_VIEWS = [['admin', 'Activos'], ['empresas', 'Empresas'], ['usuarios', 'Usuarios'], ['precintos', 'Precintos'], ['traza', 'Trazabilidad'], ['grabados', 'Tags grabados'], ['respaldo', 'Respaldo']];
 
 // Al recargar, Administración vuelve a la página en la que estaba
 function vistaGuardada() {
@@ -173,6 +174,7 @@ export default function App() {
           {screen === 'admin' && <Admin toast={showToast} ir={ir} inicial={vistaParams} />}
           {screen === 'empresas' && <Empresas toast={showToast} ir={ir} inicial={vistaParams} />}
           {screen === 'usuarios' && <Usuarios toast={showToast} inicial={vistaParams} />}
+          {screen === 'grabados' && <Grabados toast={showToast} />}
           {screen === 'respaldo' && <Respaldo toast={showToast} />}
           {screen === 'precintos' && <Precintos toast={showToast} />}
           {screen === 'traza' && <Traza toast={showToast} />}

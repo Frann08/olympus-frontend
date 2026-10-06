@@ -725,3 +725,37 @@ a.axt-btn { text-decoration: none; }
   .ds-pieza { padding: 11px 12px; }
 }
 .ds-cab .ds-lugar { white-space: normal; }
+
+/* ---------- Tags grabados (para facturar) ---------- */
+.gb-periodo { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.gb-nav { display: flex; align-items: center; gap: 12px; }
+.gb-nav .axt-x:disabled { opacity: .35; cursor: default; }
+.gb-titulo { font: 600 18px "Oswald", sans-serif; color: var(--t-F3F1EC); min-width: 150px; text-align: center; }
+.gb-nav-der { display: flex; gap: 8px; flex-wrap: wrap; }
+.axt-btn.on { border-color: var(--b-8A6E2C); color: var(--t-E7C15A); }
+.gb-fechas { flex-basis: 100%; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 10px; align-items: end; }
+.gb-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 16px; }
+.gb-emp { border-bottom: 1px solid var(--b-1C1820); }
+.gb-emp.open { background: var(--s-151217); }
+.gb-emp-fila { width: 100%; display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: none; border: none; cursor: pointer; text-align: left; color: inherit; font: inherit; }
+.gb-emp-fila:hover { background: var(--s-18151B); }
+.gb-emp-txt { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.gb-emp-nombre { font: 600 14px "IBM Plex Sans"; color: var(--t-F3F1EC); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gb-emp-num { display: grid; justify-items: end; flex: none; }
+.gb-emp-num b { font: 700 24px/1 "Oswald", sans-serif; color: var(--t-E7C15A); }
+.gb-emp-num span { font: 400 11px "IBM Plex Mono", monospace; color: var(--t-8A97A2); margin-top: 3px; }
+.gb-det { padding: 0 18px 16px; display: grid; gap: 12px; justify-items: start; }
+.gb-tabla { width: 100%; border-collapse: collapse; }
+.gb-tabla th { text-align: left; font: 600 10.5px "IBM Plex Mono", monospace; letter-spacing: .8px; text-transform: uppercase; color: var(--t-66727D); padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.gb-tabla td { padding: 9px 10px; border-bottom: 1px solid var(--b-1C1820); font: 400 13px "IBM Plex Sans"; color: var(--t-C6D0D9); }
+.gb-tabla td b { color: var(--t-F3F1EC); }
+@media (max-width: 1000px) { .gb-kpis { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; } .gb-kpis > :first-child { grid-column: 1 / -1; } }
+@media (max-width: 560px) {
+  .gb-periodo { justify-content: center; }
+  .gb-nav { width: 100%; justify-content: space-between; }
+  .gb-nav-der { width: 100%; justify-content: center; }
+  .gb-fechas { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .gb-fechas .axt-btn { grid-column: 1 / -1; }
+  .gb-emp-fila { padding: 13px 14px; gap: 10px; }
+  .gb-det { padding: 0 14px 14px; }
+}
