@@ -1,13 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Building2, Smartphone, ChevronRight, Radio, X, Wifi, WifiOff, RefreshCw,
-  ScanLine, ClipboardList, CheckCircle2, Plus, Trash2, Loader2, History, ExternalLink, Save, Search, FileDown,
+  ScanLine, ClipboardList, CheckCircle2, Plus, Trash2, Loader2, History, ExternalLink, Save, Search, FileDown, MapPin,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { api } from './api.js';
 import { getUser } from './api.js';
 import { Band, Pill, CertRow, Spinner, ErrorNote, daysLabel, daysFrom, esNoApto, useEscape } from './ui.jsx';
 import { saveBundle, loadBundle, bundleAt, getQueue, saveQueue, useOnline, agoLabel } from './offline.js';
+import Destinos, { MandarADestino } from './Destinos.jsx';
+
+// "Pozo LCa-123 · Loma Campana" (destino de la pieza, como viene en el paquete del cliente)
+const destinoTexto = (a) => [a.destino, a.destino_yacimiento, a.destino_pozo, a.destino_lugar].filter(Boolean)
+  .filter((x, i, xs) => xs.indexOf(x) === i).join(' · ');
 
 const DUE = 60;
 // Estado de una inspección: NO APTO manda; si no, según los días que faltan para vencer
@@ -34,7 +39,9 @@ export default function Cliente({ toast }) {
   const [q, setQ] = useState('');
   const [fEstado, setFEstado] = useState('all');
   const [fIbm, setFIbm] = useState('all');
+  const [fDest, setFDest] = useState('all'); // all | sin | nombre del destino
   const [tab, setTab] = useState('activos');
+  const [rev, setRev] = useState(0); // al cambiar destinos se vuelven a bajar los datos
 
   useEffect(() => {
     let live = true;
@@ -50,7 +57,7 @@ export default function Cliente({ toast }) {
       })
       .catch((e) => { if (live) { setError(e.message); setLoading(false); } });
     return () => { live = false; };
-  }, [online]);
+  }, [online, rev]);
 
   if (loading) return <Spinner label="Cargando tus activos…" />;
   if (!bundle) return (
@@ -74,10 +81,13 @@ export default function Cliente({ toast }) {
   };
 
   const ibms = [...new Set(assets.map((a) => a.ibm).filter(Boolean))];
+  const destinos = [...new Set(assets.map((a) => a.destino).filter(Boolean))].sort((x, y) => x.localeCompare(y, 'es'));
+  const fD = fDest === 'all' || fDest === 'sin' || destinos.includes(fDest) ? fDest : 'all'; // si el destino se borró o cambió de nombre
   const qn = q.trim().toLowerCase();
   const filtered = assets.filter((a) => {
     if (fEstado !== 'all' && a.status !== fEstado) return false;
     if (fIbm !== 'all' && String(a.ibm || '') !== fIbm) return false;
+    if (fD === 'sin' ? !!a.destino : fD !== 'all' && a.destino !== fD) return false;
     if (qn) {
       const inText = (a.code || '').toLowerCase().includes(qn)
         || (a.name || '').toLowerCase().includes(qn)
@@ -110,10 +120,13 @@ export default function Cliente({ toast }) {
       <div className="cli-tabs">
         <button className={'cli-tab' + (tab === 'activos' ? ' on' : '')} onClick={() => setTab('activos')}>Mis activos</button>
         <button className={'cli-tab' + (tab === 'relevamientos' ? ' on' : '')} onClick={() => setTab('relevamientos')}>Relevamientos</button>
+        <button className={'cli-tab' + (tab === 'destinos' ? ' on' : '')} onClick={() => setTab('destinos')}>Destinos</button>
       </div>
 
       {tab === 'relevamientos' ? (
-        <Relevamiento assets={assets} online={online} toast={toast} />
+        <Relevamiento assets={assets} online={online} toast={toast} onCambio={() => setRev((r) => r + 1)} />
+      ) : tab === 'destinos' ? (
+        <Destinos assets={assets} online={online} toast={toast} onCambio={() => setRev((r) => r + 1)} />
       ) : (
       <>
         <ExpiringCard s={summary} />
@@ -139,6 +152,15 @@ export default function Cliente({ toast }) {
             <button key={ib} onClick={() => setFIbm(ib)} className={'fchip' + (fIbm === ib ? ' on' : '')}>IBM {ib}</button>
           ))}
         </div>
+        {destinos.length > 0 && (
+          <div style={{ padding: '0 16px 12px' }}>
+            <select className="cor-select cli-dest-sel" value={fD} onChange={(e) => setFDest(e.target.value)} aria-label="Filtrar por destino">
+              <option value="all">Todos los destinos</option>
+              <option value="sin">Sin destino</option>
+              {destinos.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+        )}
 
         <div style={{ padding: '0 16px 8px', font: '500 11.5px "IBM Plex Mono", monospace', color: 'var(--t-6E6C69)' }}>
           {filtered.length} de {assets.length} · datos {agoLabel(updatedAt)}
@@ -151,6 +173,7 @@ export default function Cliente({ toast }) {
               <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                 <div style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-F3F1EC)' }}>{a.name}</div>
                 <div style={{ font: '400 11px "IBM Plex Sans"', color: 'var(--t-8A97A2)', marginTop: 2 }}>{a.code}{a.ibm ? ` · IBM ${a.ibm}` : ''} · {a.certificates.length} {a.certificates.length === 1 ? 'inspección' : 'inspecciones'}</div>
+                {a.destino && <div className="cli-dest"><MapPin size={11} /> {a.destino}</div>}
               </div>
               <div style={{ textAlign: 'right' }}>
                 <Pill status={a.status} />
@@ -169,7 +192,7 @@ export default function Cliente({ toast }) {
       </>
       )}
 
-      {modalAsset && <CertModal asset={modalAsset} onClose={() => setModalAsset(null)} toast={toast} />}
+      {modalAsset && <CertModal asset={modalAsset} online={online} onClose={() => setModalAsset(null)} toast={toast} />}
     </div>
   );
 }
@@ -204,7 +227,7 @@ function ExpiringCard({ s }) {
 }
 
 // ---- Relevamiento de campo: escanear offline, armar lista, sincronizar ----
-function Relevamiento({ assets, online, toast }) {
+function Relevamiento({ assets, online, toast, onCambio }) {
   const [queue, setQueue] = useState(() => getQueue());
   const [scanning, setScanning] = useState(false);
   const [picker, setPicker] = useState(false);
@@ -369,7 +392,7 @@ function Relevamiento({ assets, online, toast }) {
       </div>
 
       {picker && <Picker assets={assets} onPick={(t) => { addToken(t); }} onClose={() => setPicker(false)} />}
-      {detail && <RelevDetail data={detail} onClose={() => setDetail(null)} toast={toast} />}
+      {detail && <RelevDetail data={detail} onClose={() => setDetail(null)} toast={toast} onCambio={onCambio} />}
     </div>
   );
 }
@@ -389,8 +412,10 @@ function fmtDateTime(s) {
   try { const d = new Date(s); return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return s; }
 }
 
-function RelevDetail({ data, onClose, toast }) {
-  useEscape(onClose);
+function RelevDetail({ data, onClose, toast, onCambio }) {
+  const [mandar, setMandar] = useState(false);
+  useEscape(() => { if (!mandar) onClose(); });
+  const tokens = [...new Set(data.items.map((it) => it.token).filter(Boolean))];
   return (
     <>
       <div className="axt-overlay" onClick={onClose} />
@@ -399,6 +424,11 @@ function RelevDetail({ data, onClose, toast }) {
         <div className="phone-bar"><ClipboardList size={13} color="var(--t-E7C15A)" /> <span>RELEVAMIENTO</span><button onClick={onClose} className="phone-x" aria-label="Cerrar"><X size={16} /></button></div>
         <div className="phone-screen">
           <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-8A97A2)', marginBottom: 12 }}>{fmtDateTime(data.created_at)} · {data.items.length} piezas</div>
+          {tokens.length > 0 && (
+            <button className="axt-btn" style={{ width: '100%', marginBottom: 8 }} onClick={() => setMandar(true)}>
+              <MapPin size={14} /> Mandar estas piezas a un destino
+            </button>
+          )}
           {data.items.map((it, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--b-1F1F23)' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -412,6 +442,7 @@ function RelevDetail({ data, onClose, toast }) {
           ))}
         </div>
       </div>
+      {mandar && <MandarADestino tokens={tokens} toast={toast} onClose={() => setMandar(false)} onListo={onCambio} />}
     </>
   );
 }
@@ -444,8 +475,13 @@ function Picker({ assets, onPick, onClose }) {
   );
 }
 
-function CertModal({ asset, onClose, toast }) {
+function CertModal({ asset, online, onClose, toast }) {
   useEscape(onClose);
+  const [movs, setMovs] = useState(null);
+  useEffect(() => {
+    if (!online || !asset.id) return;
+    api(`/api/me/assets/${asset.id}/destinos`).then(setMovs).catch(() => setMovs(null));
+  }, [asset.id, online]);
   return (
     <>
       <div className="axt-overlay" onClick={onClose} />
@@ -461,6 +497,15 @@ function CertModal({ asset, onClose, toast }) {
               <Pill status={asset.status} />
             </div>
           </div>
+          {asset.destino && (
+            <div className="cli-dest-ficha">
+              <MapPin size={14} />
+              <div style={{ minWidth: 0 }}>
+                <div><b>Destino:</b> {destinoTexto(asset)}</div>
+                {asset.destino_desde && <div className="cli-dest-desde">desde {new Date(asset.destino_desde).toLocaleDateString('es-AR')}</div>}
+              </div>
+            </div>
+          )}
           <div style={{ font: '600 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)', letterSpacing: '.5px', margin: '16px 0 4px' }}>CERTIFICADOS</div>
           <div>
             {asset.certificates.map((c, i) => (
@@ -468,6 +513,17 @@ function CertModal({ asset, onClose, toast }) {
             ))}
             {asset.certificates.length === 0 && <div style={{ font: '500 13px "IBM Plex Sans"', color: 'var(--t-7A8792)' }}>Sin certificados.</div>}
           </div>
+          {movs && movs.length > 0 && (
+            <>
+              <div style={{ font: '600 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)', letterSpacing: '.5px', margin: '18px 0 6px' }}>HISTORIAL DE DESTINOS</div>
+              {movs.map((m) => (
+                <div key={m.id} className="cli-mov">
+                  <span>{m.hacia_nombre ? <>→ <b>{m.hacia_nombre}</b></> : <>Salió de <b>{m.desde_nombre}</b></>}</span>
+                  <span className="cli-mov-f">{fmtDateTime(m.created_at)}{m.usuario ? ' · ' + m.usuario : ''}</span>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       </div>
     </>

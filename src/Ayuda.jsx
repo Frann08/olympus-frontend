@@ -61,7 +61,7 @@ function Faq({ q, children }) {
 const IDX_CLIENTE = [
   ['entrar', 'Entrar a Olympus'], ['escanear', 'Escanear una pieza'], ['ficha', 'La ficha de la pieza'],
   ['colores', 'Qué significan los colores'], ['nodisp', 'Si dice “Pieza no disponible”'],
-  ['activos', 'Mis activos'], ['relev', 'Relevamientos en campo'], ['senal', 'Sin señal'], ['faq', 'Preguntas frecuentes'],
+  ['activos', 'Mis activos'], ['relev', 'Relevamientos en campo'], ['destinos', 'Destinos: a dónde va cada pieza'], ['senal', 'Sin señal'], ['faq', 'Preguntas frecuentes'],
 ];
 function GuiaCliente() {
   const url = PUBLIC_URL;
@@ -151,16 +151,41 @@ function GuiaCliente() {
         <Nota>Escanear desde adentro de Olympus funciona en <b>Android con Chrome</b>.</Nota>
       </Sec>
 
-      <Sec id="senal" n="8" titulo="Sin señal">
+      <Sec id="destinos" n="8" titulo="Destinos: a dónde va cada pieza" img={{ src: 'c-destino', alt: 'Destino Pozo LCa-123 con sus piezas y los botones para agregar', cap: 'Un destino con sus piezas.' }}>
+        <p>Es opcional. Sirve para agrupar tus piezas según a dónde van: un yacimiento, un pozo, una base. Cada pieza puede estar en <b>un destino a la vez</b>.</p>
+        <ol className="ay-pasos">
+          <li>Entrá a la pestaña <b>Destinos</b> y tocá <b>Nuevo destino</b>.</li>
+          <li>Ponele un nombre (por ejemplo, “Pozo LCa-123”). Si querés, completá el yacimiento, el pozo y el lugar.</li>
+          <li>Agregá las piezas de una de estas tres formas:
+            <ul className="ay-lista">
+              <li><b>Escanear piezas</b> (Android con Chrome): acercá cada tag y se agrega solo.</li>
+              <li><b>Elegir de mis activos</b>: marcá las piezas de la lista y tocá Agregar.</li>
+              <li><b>Desde un relevamiento</b>: elegí una lista guardada y pasan todas sus piezas.</li>
+            </ul>
+          </li>
+        </ol>
+        <ul className="ay-lista">
+          <li>Si agregás una pieza que estaba en otro destino, <b>se mueve</b> y te avisa de dónde venía.</li>
+          <li>Con la <b>✕</b> sacás una pieza del destino. Con el lápiz cambiás el nombre o los datos; con el tacho borrás el destino (sus piezas quedan sin destino).</li>
+          <li>El destino se ve en <b>Mis activos</b> (con un filtro por destino) y en la ficha de la pieza, junto con su historial de destinos.</li>
+          <li>También podés mandar un relevamiento entero: abrilo en <b>Listas guardadas</b> y tocá <b>Mandar estas piezas a un destino</b>.</li>
+          <li><b>Excel</b> descarga la lista de piezas del destino.</li>
+        </ul>
+        <Nota>Los destinos son de tu empresa: los ven todos tus compañeros con usuario de cliente, cada uno con las piezas de sus IBM. BM también ve el destino de cada pieza.</Nota>
+        <Nota>Armar y cambiar destinos necesita conexión.</Nota>
+      </Sec>
+
+      <Sec id="senal" n="9" titulo="Sin señal">
         <ul className="ay-lista">
           <li><b>Mis activos</b> muestra los últimos datos descargados y se actualiza solo cuando vuelve la señal.</li>
           <li><b>Relevamientos:</b> podés escanear y armar la lista sin señal; queda guardada en el celular. Mientras no hay señal, el botón dice <b>Guardá al recuperar señal</b>: cuando vuelva, tocalo.</li>
           <li><b>Escanear un tag desde afuera de la app</b> (punto 2) necesita internet.</li>
+          <li><b>Destinos:</b> el destino de cada pieza se ve sin señal en Mis activos; armarlos o cambiarlos necesita conexión.</li>
           <li>Para usarlo sin señal, entrá a Olympus al menos una vez con internet desde ese celular.</li>
         </ul>
       </Sec>
 
-      <Sec id="faq" n="9" titulo="Preguntas frecuentes">
+      <Sec id="faq" n="10" titulo="Preguntas frecuentes">
         <Faq q="Me olvidé la contraseña">Pedile a BM que te la restablezca.</Faq>
         <Faq q="El tag no lee">Revisá que el NFC esté activado y la pantalla desbloqueada. Sacá la funda si es gruesa o metálica. Mové el celular despacio sobre el tag hasta encontrar el punto donde lee.</Faq>
         <Faq q="No veo algunas de mis piezas">Tu usuario ve solo las piezas de tu empresa y de los IBM que tiene habilitados. Pedile a BM que agregue los que falten.</Faq>
@@ -345,7 +370,7 @@ function GuiaTraza() {
 }
 
 const GUIAS = {
-  cliente: { titulo: 'Cliente', bajada: 'Cómo ver el estado de tus piezas, controlar los vencimientos y armar relevamientos en campo.', idx: IDX_CLIENTE, C: GuiaCliente },
+  cliente: { titulo: 'Cliente', bajada: 'Cómo ver el estado de tus piezas, controlar los vencimientos, armar relevamientos en campo y agrupar piezas por destino.', idx: IDX_CLIENTE, C: GuiaCliente },
   precintos: { titulo: 'Precintos', bajada: 'Cómo cargar un informe, grabar cada tag y dejar registrado que quedó colocado en su pieza.', idx: IDX_PRECINTOS, C: GuiaPrecintos },
   traza: { titulo: 'Trazabilidad', bajada: 'Cómo registrar las piezas que entran al depósito leyendo sus tags con la pistola UHF.', idx: IDX_TRAZA, C: GuiaTraza },
 };
