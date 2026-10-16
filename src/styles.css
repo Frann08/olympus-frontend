@@ -759,3 +759,16 @@ a.axt-btn { text-decoration: none; }
   .gb-emp-fila { padding: 13px 14px; gap: 10px; }
   .gb-det { padding: 0 14px 14px; }
 }
+
+/* ---------- Pistola UHF (DataWedge en modo teclado) ---------- */
+.pis-captura { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; max-width: 420px; margin: 0 auto; padding: 12px 14px; border-radius: 12px; border: 1px dashed var(--b-433C48); background: var(--s-151217); cursor: pointer; text-align: left; }
+.pis-captura.lista { border-style: solid; border-color: var(--b-8A6E2C); background: var(--s-1C1707); box-shadow: 0 0 0 3px color-mix(in srgb, var(--s-E7C15A) 14%, transparent); }
+.pis-ico { width: 36px; height: 36px; flex: none; border-radius: 50%; display: grid; place-items: center; color: var(--t-8A97A2); background: var(--s-201C24); }
+.pis-captura.lista .pis-ico { color: var(--t-E7C15A); background: var(--s-2A2410); animation: serPulso 1.6s ease-in-out infinite; }
+.pis-txt { display: grid; gap: 2px; min-width: 0; }
+.pis-txt b { font: 600 13.5px "IBM Plex Sans"; color: var(--t-F3F1EC); }
+.pis-txt span { font: 400 11.5px "IBM Plex Sans"; color: var(--t-8A97A2); }
+.pis-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: none; background: transparent; color: transparent; caret-color: transparent; font-size: 16px; cursor: pointer; }
+.pis-prueba { margin-top: 12px; background: none; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font: 500 12px "IBM Plex Sans"; color: var(--t-7A8792); text-decoration: underline; text-underline-offset: 3px; }
+.pis-epc { font: 400 12px "IBM Plex Mono", monospace; color: var(--t-8A97A2); margin-bottom: 12px; overflow-wrap: anywhere; }
+.pis-epc b { color: var(--t-E7C15A); font-weight: 600; }

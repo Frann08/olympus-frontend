@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { ScanLine, Tag, X, Trash2, PackageCheck, Package, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ScanLine, Tag, X, Trash2, PackageCheck, Package, AlertTriangle, CheckCircle2, Link2, FlaskConical } from 'lucide-react';
 import { api } from './api.js';
 import { STATUS, Spinner, tinte } from './ui.jsx';
+import { CapturaPistola, AsociarPieza, epcLindo } from './Pistola.jsx';
 
-// EPCs del seed para simular lecturas de la pistola (existen en la base)
+// EPCs de las piezas de demostración, para probar sin pistola (modo prueba)
 const DEMO_EPCS = [
   { epc: 'E280 68B0 0000 0204 1AC3 7B21', label: 'V-101' },
   { epc: 'E280 68B0 0000 0204 1AC3 7B22', label: 'PSV-118 (vencido)' },
@@ -20,31 +21,50 @@ export default function Traza({ toast }) {
   const [origen, setOrigen] = useState('');
   const [scanning, setScanning] = useState(false);
   const [recent, setRecent] = useState(null);
+  const [prueba, setPrueba] = useState(false);
+  const [asociar, setAsociar] = useState(null); // EPC leído que no tiene pieza
+  const enCurso = useRef(Promise.resolve());
 
   async function loadRecent() {
     try { setRecent(await api('/api/entradas')); } catch { setRecent([]); }
   }
   useEffect(() => { loadRecent(); }, []);
 
-  // La entrada se crea con el primer tag leído, así guarda el remito y el origen que se escribieron
-  async function scan(epc) {
-    if (scanning) return;
+  // La entrada se crea con el primer tag leído, así guarda el remito y el origen que se escribieron.
+  // Las lecturas se procesan en orden (la pistola puede mandar varias tandas seguidas).
+  const idRef = useRef(null);
+  idRef.current = entradaId;
+  function leer(epcs) {
+    enCurso.current = enCurso.current.then(() => procesar(epcs)).catch(() => {});
+  }
+  async function procesar(epcs) {
     setScanning(true);
     try {
-      let id = entradaId;
+      let id = idRef.current;
       if (!id) {
         const e = await api('/api/entradas', { method: 'POST', body: JSON.stringify({ remito: remito.trim() || null, origen: origen.trim() || null }) });
         id = e.id;
+        idRef.current = id;
         setEntradaId(id);
         loadRecent();
       }
-      const r = await api(`/api/entradas/${id}/scan`, { method: 'POST', body: JSON.stringify({ epc }) });
+      const r = await api(`/api/entradas/${id}/scan`, { method: 'POST', body: JSON.stringify({ epcs }) });
       const fresh = await api(`/api/entradas/${id}`);
       setItems(fresh.items);
-      if (r.duplicate) toast('Tag ya leído en esta entrada');
-      else if (!r.matched) toast('Tag sin pieza asociada');
+      loadRecent();
+      const partes = [];
+      if (r.nuevos) partes.push(r.nuevos === 1 ? '1 tag nuevo' : `${r.nuevos} tags nuevos`);
+      if (r.repetidos) partes.push(r.repetidos === 1 ? '1 ya estaba' : `${r.repetidos} ya estaban`);
+      if (r.sin_pieza) partes.push(r.sin_pieza === 1 ? '1 sin pieza asociada' : `${r.sin_pieza} sin pieza asociada`);
+      toast(partes.join(' · ') || 'Sin cambios');
+      try { navigator.vibrate && navigator.vibrate(r.sin_pieza ? [90, 60, 90] : 80); } catch { /* sin vibración */ }
     } catch (e) { toast(e.message); }
     finally { setScanning(false); }
+  }
+  const scan = (epc) => leer([epc]);
+  async function recargar() {
+    if (!idRef.current) return;
+    try { setItems((await api(`/api/entradas/${idRef.current}`)).items); } catch { /* se ve en el próximo cambio */ }
   }
   async function removeItem(itemId) {
     try {
@@ -89,16 +109,22 @@ export default function Traza({ toast }) {
             {scanning && <><span className="wave" /><span className="wave" style={{ animationDelay: '.4s' }} /></>}
           </div>
           <div style={{ font: '700 16px "Oswald", sans-serif', color: 'var(--t-EAF0F3)', marginTop: 14 }}>
-            {scanning ? 'Leyendo tag UHF…' : 'Leer tags con la pistola'}
+            {scanning ? 'Registrando lecturas…' : 'Leer tags con la pistola'}
           </div>
           <div style={{ font: '400 12px "IBM Plex Sans"', color: 'var(--t-7A8792)', marginTop: 5, marginBottom: 14 }}>
-            Modo prueba: la pistola UHF se conecta en la próxima etapa. Tocá un tag para simular la lectura.
+            Apuntá a las piezas y mantené apretado el gatillo de abajo. Los tags leídos se suman solos a la lista.
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {DEMO_EPCS.map((d) => (
-              <button key={d.epc} className="axt-chip" onClick={() => scan(d.epc)} disabled={scanning}>{d.label}</button>
-            ))}
-          </div>
+          <CapturaPistola onLeidos={leer} />
+          <button className="pis-prueba" onClick={() => setPrueba((v) => !v)} aria-expanded={prueba}>
+            <FlaskConical size={13} /> {prueba ? 'Ocultar modo prueba' : 'Modo prueba (sin pistola)'}
+          </button>
+          {prueba && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginTop: 10 }}>
+              {DEMO_EPCS.map((d) => (
+                <button key={d.epc} className="axt-chip" onClick={() => scan(d.epc)} disabled={scanning}>{d.label}</button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="axt-card" style={{ padding: 0, overflow: 'hidden', marginTop: 16 }}>
@@ -124,8 +150,11 @@ export default function Traza({ toast }) {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-EAF0F3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name || 'Tag sin pieza asociada'}</div>
-                    <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)', marginTop: 2 }}>{it.scanned_epc}{it.client ? ` · ${it.client}` : ''}</div>
+                    <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-7A8792)', marginTop: 2, overflowWrap: 'anywhere' }}>{epcLindo(it.scanned_epc)}{it.client ? ` · ${it.client}` : ''}</div>
                   </div>
+                  {!it.asset_id && (
+                    <button className="axt-btn small" onClick={() => setAsociar(it.scanned_epc)} title="Decir a qué pieza pertenece este tag"><Link2 size={13} /> Asociar</button>
+                  )}
                   {it.status && it.status !== 'certified' && (() => {
                     const st = STATUS[it.status] || STATUS.sin_cert;
                     return (
@@ -166,6 +195,7 @@ export default function Traza({ toast }) {
           ))}
         </div>
       </div>
+      {asociar && <AsociarPieza epc={asociar} toast={toast} onClose={() => setAsociar(null)} onListo={recargar} />}
     </div>
   );
 }
