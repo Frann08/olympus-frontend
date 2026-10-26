@@ -226,7 +226,7 @@ export default function Precintos({ toast }) {
           todos={items}
           titulo={serie.titulo}
           guardar={guardarEstado}
-          onClose={() => setSerie(null)}
+          onClose={() => { setSerie(null); loadItems(infSel); }}
         />
       )}
     </div>

@@ -789,3 +789,12 @@ a.axt-btn { text-decoration: none; }
 .r6-pot select { flex: 1 1 auto; min-width: 0; width: 100%; font: 500 12.5px "IBM Plex Sans"; color: var(--t-F3F1EC); background: var(--s-201C24); border: 1px solid var(--b-433C48); border-radius: 8px; padding: 6px 8px; }
 .r6-error { display: flex; gap: 7px; align-items: flex-start; font: 400 11.5px "IBM Plex Sans"; color: var(--t-E5A3A1); }
 @media (max-width: 640px) { .r6-pot select { font-size: 16px; } }
+
+/* Grabar en serie + pistola */
+.ser-pistola { display: grid; gap: 8px; margin-top: 12px; }
+.ser-pistola-tit { font: 600 11px "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--t-8A97A2); }
+.ser-pistola-tit em { font: 400 11.5px "IBM Plex Sans"; letter-spacing: 0; text-transform: none; font-style: normal; }
+.ser-pistola .pis-wrap, .ser-pistola .r6-barra { max-width: none; }
+.ser-uhf { display: inline-block; margin-left: 7px; padding: 0 6px; border-radius: 10px; font: 600 10px "IBM Plex Sans"; vertical-align: 1px; border: 1px solid; }
+.ser-uhf.ok { color: var(--t-4FC98B); border-color: color-mix(in srgb, var(--t-4FC98B) 35%, transparent); }
+.ser-uhf.falta { color: var(--t-EDA53C); border-color: color-mix(in srgb, var(--t-EDA53C) 35%, transparent); }

@@ -72,40 +72,74 @@ export class Armador {
   }
 }
 
-// El EPC de un registro de tag. Con "PC" (lo normal): 2 bytes de PC, el EPC (su largo sale del PC),
-// y después TID/USER, RSSI y antena, que no usamos. Las placas 2.7 a 2.13 mandan el EPC solo.
-function epcDe(rec, conPc) {
+// El EPC (y la intensidad de señal) de un registro de tag. Con "PC" (lo normal): 2 bytes de PC,
+// el EPC (su largo sale del PC), después TID/USER si se pidieron, 2 bytes de RSSI y, si el largo
+// que queda es impar, 1 byte de antena. Las placas 2.7 a 2.13 mandan el EPC solo (sin RSSI).
+function leerRegistro(rec, conPc) {
   if (conPc && rec.length >= 6) {
     const largo = (rec[0] >> 3) * 2;
-    if (largo >= 4 && 2 + largo <= rec.length) return hex(rec.subarray(2, 2 + largo));
+    if (largo >= 4 && 2 + largo <= rec.length) {
+      const resto = rec.length - 2 - largo;
+      let rssi = null;
+      if (resto >= 2) {
+        const k = rec.length - (resto % 2 ? 3 : 2);
+        const f = (65535 - ((rec[k] << 8) | rec[k + 1])) / 10;
+        if (f > 0 && f < 200) rssi = -Math.round(f * 10) / 10; // dBm: más cerca de 0 = más fuerte
+      }
+      return { epc: hex(rec.subarray(2, 2 + largo)), rssi };
+    }
   }
-  return rec.length >= 4 && rec.length <= 64 ? hex(rec) : null;
+  return rec.length >= 4 && rec.length <= 64 ? { epc: hex(rec), rssi: null } : null;
 }
 
-// Tags de una trama. null si la trama no es de tags.
+// Tags de una trama. null si la trama no es de tags. lecturas: [{ epc, rssi }]
 export function tagsDe(cmd, d, conPc = true) {
+  const salida = (indice, lecturas) => ({ indice, lecturas, epcs: lecturas.map((x) => x.epc) });
   if (cmd === TAG_SUELTO) {
-    if (d.length < 6) return { indice: null, epcs: [] }; // respuesta a "empezar" (1 byte)
-    const e = epcDe(d, true);
-    return { indice: null, epcs: e ? [e] : [] };
+    if (d.length < 6) return salida(null, []); // respuesta a "empezar" (1 byte)
+    const r = leerRegistro(d, true);
+    return salida(null, r ? [r] : []);
   }
   if (cmd !== CMD.PEDIR_TAGS + 1 && cmd !== CMD.TAGS_AVISO) return null;
   const o = cmd === CMD.TAGS_AVISO ? 1 : 0;
-  if (d.length < o + 2) return { indice: null, epcs: [] };
+  if (d.length < o + 2) return salida(null, []);
   const indice = (d[o] << 8) | d[o + 1];
-  const epcs = [];
+  const lecturas = [];
   if (d.length >= 5) {
     const cant = d[o + 2];
     let p = o + 3;
     for (let k = 0; k < cant && p < d.length; k++) {
       const l = d[p];
       if (p + 1 + l > d.length) break;
-      const e = epcDe(d.subarray(p + 1, p + 1 + l), conPc);
-      if (e) epcs.push(e);
+      const r = leerRegistro(d.subarray(p + 1, p + 1 + l), conPc);
+      if (r) lecturas.push(r);
       p += 1 + l;
     }
   }
-  return { indice, epcs };
+  return salida(indice, lecturas);
+}
+
+// Junta lecturas repetidas de un mismo tag: [{ epc, rssi (la mejor), veces }], la más fuerte primero
+export function juntarLecturas(lecturas) {
+  const m = new Map();
+  for (const { epc, rssi } of lecturas) {
+    const x = m.get(epc) || { epc, rssi: null, veces: 0 };
+    x.veces++;
+    if (rssi != null && (x.rssi == null || rssi > x.rssi)) x.rssi = rssi;
+    m.set(epc, x);
+  }
+  return [...m.values()].sort((a, b) => (b.rssi ?? -999) - (a.rssi ?? -999));
+}
+
+// De lo leído, cuál es "el" tag: si hay uno solo, ese; si hay varios, el más fuerte solo si le saca
+// al segundo `margen` dB o más (el que está pegado al celular contra otros que quedaron cerca).
+export const MARGEN_DB = 10;
+export function elegirTag(juntas, margen = MARGEN_DB) {
+  if (!juntas || !juntas.length) return { epc: null, motivo: 'ninguno', n: 0 };
+  if (juntas.length === 1) return { epc: juntas[0].epc, n: 1 };
+  const [a, b] = juntas;
+  if (a.rssi != null && b.rssi != null && a.rssi - b.rssi >= margen) return { epc: a.epc, n: juntas.length };
+  return { epc: null, motivo: 'varios', n: juntas.length };
 }
 
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -293,7 +327,7 @@ class LectorR6 {
   _trama({ cmd, datos }) {
     if (cmd === CMD.GATILLO) { this._gatillo(datos.length ? datos[0] !== 4 : true); return; }
     const t = tagsDe(cmd, datos, this.conPc);
-    if (t && t.epcs.length) this._tags(t.epcs);
+    if (t && t.lecturas.length) this._tags(t.lecturas);
     for (const w of [...this.esperas]) {
       if (w.cmd !== cmd || (w.filtro && !w.filtro(datos, t))) continue;
       clearTimeout(w.t);
@@ -303,10 +337,10 @@ class LectorR6 {
     }
   }
 
-  _tags(epcs) {
+  _tags(lecturas) {
     if (!this.recibiendo) return; // tags viejos de otra lectura
     const c = this.captura;
-    if (c && c.tag) epcs.forEach((e) => c.tag(e));
+    if (c && c.tag) lecturas.forEach((x) => c.tag(x.epc, x.rssi));
   }
 
   _gatillo(abajo) {
@@ -361,7 +395,7 @@ class LectorR6 {
     }
   }
 
-  async parar() {
+  async parar({ refrescar = true } = {}) {
     if (!this.leyendo) return;
     const vuelta = this.vuelta;
     this.estadoLectura(false);
@@ -373,10 +407,25 @@ class LectorR6 {
     if (this.vuelta !== vuelta) return; // ya arrancó otra lectura
     this.recibiendo = false;
     this.captura && this.captura.fin && this.captura.fin();
-    this.actualizar();
+    if (refrescar) this.actualizar();
   }
 
   alternar() { return this.leyendo ? this.parar() : this.empezar({ manual: true }); }
+
+  // Lee un momento sin gatillo y devuelve lo leído juntado ([{ epc, rssi, veces }], el más fuerte primero).
+  // null si la pistola no está conectada.
+  async rafaga(ms = 1200) {
+    if (!this.conectada) return null;
+    if (this.leyendo) await this.parar({ refrescar: false });
+    const leidas = [];
+    const quitar = this.registrar({ tag: (epc, rssi) => leidas.push({ epc, rssi }) });
+    try {
+      await this.empezar({ manual: true });
+      await dormir(ms);
+      await this.parar({ refrescar: false });
+    } finally { quitar(); }
+    return juntarLecturas(leidas);
+  }
 }
 
 export const hayBluetooth = () => typeof navigator !== 'undefined' && !!navigator.bluetooth;
