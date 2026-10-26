@@ -328,7 +328,7 @@ function GuiaPrecintos() {
 ============================================================ */
 const IDX_TRAZA = [
   ['pistola', 'Conectar la pistola'], ['entrar', 'Entrar'], ['datos', 'Datos de la entrada'], ['leer', 'Leer los tags'], ['revisar', 'Revisar la lista'],
-  ['confirmar', 'Confirmar la entrada'], ['recientes', 'Entradas recientes'], ['salidas', 'Salidas'],
+  ['confirmar', 'Confirmar la entrada'], ['registro', 'Registro de entradas'], ['salidas', 'Salidas'],
 ];
 function GuiaTraza() {
   return (
@@ -356,10 +356,10 @@ function GuiaTraza() {
         <p>Trazabilidad registra las piezas que <b>entran al depósito</b> leyendo sus tags a distancia, sin tener que revisar una por una.</p>
       </Sec>
 
-      <Sec id="datos" n="3" titulo="Cargar los datos de la entrada" img={{ src: 't-datos', alt: 'Datos de la entrada con remito y origen', cap: 'Remito y origen de la entrada.' }}>
+      <Sec id="datos" n="3" titulo="Cargar los datos de la entrada" img={{ src: 't-datos', alt: 'Datos de la entrada con remito y base', cap: 'Remito y base de la entrada.' }}>
         <ol className="ay-pasos">
           <li>Escribí el <b>Nº de remito</b>.</li>
-          <li>Escribí el <b>origen o proveedor</b>: la base o el cliente que manda las piezas.</li>
+          <li>Escribí la <b>base</b> de donde vienen las piezas (por ejemplo, Base Añelo). Al escribir aparecen las bases que ya se usaron: elegí la misma, así después se puede filtrar bien.</li>
         </ol>
         <Nota>Completalos <b>antes de leer el primer tag</b>. Con el primer tag se abre la entrada y esos datos quedan fijos hasta confirmarla.</Nota>
       </Sec>
@@ -372,7 +372,7 @@ function GuiaTraza() {
           <li>Recorré el lote hasta que la cantidad de <b>leídos</b> coincida con las piezas del remito.</li>
         </ol>
         <p>Si un tag ya estaba en la lista, no se duplica. Si dice <b>No se leyó ningún tag</b>, acercate más o subí la potencia.</p>
-        <Nota>El botón <b>Leer</b> de la barra de la pistola lee sin usar el gatillo (tocá <b>Parar</b> para terminar). Debajo está el <b>modo prueba</b>: botones con tags de demostración para practicar sin pistola.</Nota>
+        <Nota>El botón <b>Leer</b> de la barra de la pistola lee sin usar el gatillo (tocá <b>Parar</b> para terminar).</Nota>
       </Sec>
 
       <Sec id="revisar" n="5" titulo="Revisar la lista" img={{ src: 't-lista', alt: 'Lista de entrada con cuatro tags leídos y dos alertas', cap: '4 leídos, 2 con alerta.' }}>
@@ -385,15 +385,23 @@ function GuiaTraza() {
       </Sec>
 
       <Sec id="confirmar" n="6" titulo="Confirmar la entrada">
-        <p>Cuando la lista está bien, tocá <b>Confirmar entrada</b>. Queda registrada con el remito, el origen y todas las piezas, y la pantalla queda lista para la siguiente.</p>
+        <p>Cuando la lista está bien, tocá <b>Confirmar entrada</b>. Queda guardada en el <b>Registro de entradas</b> con el remito, la base y todas las piezas, y la pantalla queda lista para la siguiente.</p>
       </Sec>
 
-      <Sec id="recientes" n="7" titulo="Entradas recientes" img={{ src: 't-recientes', alt: 'Lista de entradas recientes confirmadas', cap: 'Últimas entradas.' }}>
-        <p>Muestra las últimas entradas con su remito, origen y cantidad de ítems.</p>
+      <Sec id="registro" n="7" titulo="Registro de entradas" img={{ src: 't-registro', alt: 'Registro de entradas con filtros por cliente y base', cap: 'Registro de entradas filtrado por cliente.' }}>
+        <p>En la pestaña <b>Registro de entradas</b> están todas las entradas guardadas, la más nueva arriba. De cada una se ve el remito, la fecha, la base, quién la cargó, los clientes de las piezas y cuántas piezas tiene.</p>
+        <ol className="ay-pasos">
+          <li>Elegí un <b>Cliente</b> para ver solo las entradas con piezas de esa empresa.</li>
+          <li>Elegí una <b>Base</b> para ver solo las entradas que vinieron de ahí. Se pueden usar los dos filtros juntos.</li>
+          <li>También podés buscar por <b>Nº de remito</b> o elegir <b>Fechas</b>.</li>
+          <li>Tocá una entrada para ver sus piezas, con las alertas de certificado.</li>
+        </ol>
         <ul className="ay-lista">
-          <li><b>Abierta:</b> se empezó a leer y todavía no se confirmó.</li>
-          <li><b>Confirmada:</b> cerrada y registrada.</li>
+          <li><b>Excel:</b> baja las entradas que estás viendo (con los filtros puestos), con una hoja de entradas y otra con todas las piezas. Dentro de una entrada, <b>Excel de esta entrada</b> baja solo esa.</li>
+          <li><b>Abierta:</b> se empezó a leer y todavía no se confirmó. Tocala y después <b>Seguir cargando</b> para terminarla.</li>
+          <li><b>Confirmada:</b> cerrada y guardada.</li>
         </ul>
+        <Nota>A la derecha de la pantalla de lectura (abajo, en el celular) están las <b>Últimas entradas</b>; <b>Ver registro</b> lleva a la lista completa. La entrada que estás cargando no se pierde al mirar el registro.</Nota>
       </Sec>
 
       <Sec id="salidas" n="8" titulo="Salidas (próxima etapa)">

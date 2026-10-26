@@ -1,34 +1,48 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ScanLine, Tag, X, Trash2, PackageCheck, Package, AlertTriangle, CheckCircle2, Link2, FlaskConical } from 'lucide-react';
+import { ScanLine, Tag, X, PackageCheck, Package, AlertTriangle, CheckCircle2, Link2, ChevronRight } from 'lucide-react';
 import { api } from './api.js';
 import { STATUS, Spinner, tinte } from './ui.jsx';
 import { CapturaPistola, AsociarPieza, epcLindo } from './Pistola.jsx';
-
-// EPCs de las piezas de demostración, para probar sin pistola (modo prueba)
-const DEMO_EPCS = [
-  { epc: 'E280 68B0 0000 0204 1AC3 7B21', label: 'V-101' },
-  { epc: 'E280 68B0 0000 0204 1AC3 7B22', label: 'PSV-118 (vencido)' },
-  { epc: 'E280 68B0 0000 0204 1AC3 7C31', label: 'P-210' },
-  { epc: 'E280 68B0 0000 0204 1AC3 7C32', label: 'TK-05 (vencido)' },
-  { epc: 'E280 68B0 0000 0204 1AC3 7D41', label: 'PSV-204' },
-  { epc: 'E280 68B0 0000 0204 1AC3 7D45', label: 'SL-22' },
-];
+import { RegistroEntradas, DetalleEntrada } from './Entradas.jsx';
 
 export default function Traza({ toast }) {
+  const [tab, setTab] = useState('nueva');
+  const [retomar, setRetomar] = useState(null); // entrada abierta elegida en el registro
+  return (
+    <div>
+      <div className="cli-tabs">
+        <button className={'cli-tab' + (tab === 'nueva' ? ' on' : '')} onClick={() => setTab('nueva')}>Nueva entrada</button>
+        <button className={'cli-tab' + (tab === 'registro' ? ' on' : '')} onClick={() => setTab('registro')}>Registro de entradas</button>
+      </div>
+      {/* la entrada en curso no se pierde al mirar el registro */}
+      <div hidden={tab !== 'nueva'}>
+        <NuevaEntrada toast={toast} visible={tab === 'nueva'} retomar={retomar} onRetomada={() => setRetomar(null)} onRegistro={() => setTab('registro')} />
+      </div>
+      {tab === 'registro' && <RegistroEntradas toast={toast} onRetomar={(e) => { setRetomar(e); setTab('nueva'); }} />}
+    </div>
+  );
+}
+
+function NuevaEntrada({ toast, visible, retomar, onRetomada, onRegistro }) {
   const [entradaId, setEntradaId] = useState(null);
   const [items, setItems] = useState([]);
   const [remito, setRemito] = useState('');
   const [origen, setOrigen] = useState('');
   const [scanning, setScanning] = useState(false);
   const [recent, setRecent] = useState(null);
-  const [prueba, setPrueba] = useState(false);
+  const [bases, setBases] = useState([]);
   const [asociar, setAsociar] = useState(null); // EPC leído que no tiene pieza
+  const [verEntrada, setVerEntrada] = useState(null);
   const enCurso = useRef(Promise.resolve());
 
   async function loadRecent() {
-    try { setRecent(await api('/api/entradas')); } catch { setRecent([]); }
+    try { setRecent((await api('/api/entradas/registro?limit=6')).entradas); } catch { setRecent([]); }
   }
-  useEffect(() => { loadRecent(); }, []);
+  useEffect(() => {
+    if (!visible) return;
+    loadRecent();
+    api('/api/entradas/filtros').then((r) => setBases(r.bases.map((b) => b.base))).catch(() => {});
+  }, [visible]);
 
   // La entrada se crea con el primer tag leído, así guarda el remito y el origen que se escribieron.
   // Las lecturas se procesan en orden (la pistola puede mandar varias tandas seguidas).
@@ -61,7 +75,18 @@ export default function Traza({ toast }) {
     } catch (e) { toast(e.message); }
     finally { setScanning(false); }
   }
-  const scan = (epc) => leer([epc]);
+  // seguir cargando una entrada abierta (elegida en el registro)
+  async function abrirEntrada(e) {
+    try {
+      const fresh = await api(`/api/entradas/${e.id}`);
+      if (fresh.status !== 'open') { toast('Esa entrada ya está confirmada.'); return; }
+      idRef.current = fresh.id;
+      setEntradaId(fresh.id); setItems(fresh.items); setRemito(fresh.remito || ''); setOrigen(fresh.origen || '');
+      toast(`Seguís cargando ${fresh.remito || 'la entrada #' + fresh.id}`);
+    } catch (x) { toast('No se pudo abrir la entrada: ' + x.message); }
+  }
+  useEffect(() => { if (retomar) { abrirEntrada(retomar); onRetomada(); } }, [retomar]); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function recargar() {
     if (!idRef.current) return;
     try { setItems((await api(`/api/entradas/${idRef.current}`)).items); } catch { /* se ve en el próximo cambio */ }
@@ -96,8 +121,9 @@ export default function Traza({ toast }) {
           <div className="axt-card-title">Datos de la entrada</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
             <label className="fld"><span>N.º de remito</span><input value={remito} onChange={(e) => setRemito(e.target.value)} placeholder="Ej: REM-004823" disabled={!!entradaId} /></label>
-            <label className="fld"><span>Origen / proveedor</span><input value={origen} onChange={(e) => setOrigen(e.target.value)} placeholder="Ej: Base Añelo" disabled={!!entradaId} /></label>
+            <label className="fld"><span>Base / origen</span><input value={origen} onChange={(e) => setOrigen(e.target.value)} placeholder="Ej: Base Añelo" disabled={!!entradaId} list="ent-bases" autoComplete="off" /></label>
           </div>
+          <datalist id="ent-bases">{bases.map((b) => <option key={b} value={b} />)}</datalist>
           <div style={{ font: '400 11.5px "IBM Plex Sans"', color: 'var(--t-7A8792)', marginTop: 10 }}>
             {entradaId ? 'Entrada abierta: estos datos quedan fijos hasta confirmarla.' : 'Completalos antes de leer el primer tag.'}
           </div>
@@ -114,17 +140,7 @@ export default function Traza({ toast }) {
           <div style={{ font: '400 12px "IBM Plex Sans"', color: 'var(--t-7A8792)', marginTop: 5, marginBottom: 14 }}>
             Conectá la pistola, apuntá a las piezas y mantené apretado el gatillo. Los tags leídos se suman solos a la lista.
           </div>
-          <CapturaPistola onLeidos={leer} />
-          <button className="pis-prueba" onClick={() => setPrueba((v) => !v)} aria-expanded={prueba}>
-            <FlaskConical size={13} /> {prueba ? 'Ocultar modo prueba' : 'Modo prueba (sin pistola)'}
-          </button>
-          {prueba && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginTop: 10 }}>
-              {DEMO_EPCS.map((d) => (
-                <button key={d.epc} className="axt-chip" onClick={() => scan(d.epc)} disabled={scanning}>{d.label}</button>
-              ))}
-            </div>
-          )}
+          <CapturaPistola onLeidos={leer} activo={visible} />
         </div>
 
         <div className="axt-card" style={{ padding: 0, overflow: 'hidden', marginTop: 16 }}>
@@ -179,22 +195,28 @@ export default function Traza({ toast }) {
 
       <div>
         <div className="axt-card" style={{ padding: 20 }}>
-          <div className="axt-card-title">Entradas recientes</div>
+          <div className="ent-ult-top">
+            <div className="axt-card-title" style={{ margin: 0 }}>Últimas entradas</div>
+            <button className="axt-btn small" onClick={onRegistro}>Ver registro <ChevronRight size={13} /></button>
+          </div>
           {recent === null ? <Spinner label="Cargando…" /> : recent.length === 0 ? (
             <div style={{ font: '500 13px "IBM Plex Sans"', color: 'var(--t-7A8792)', padding: '10px 0' }}>Todavía no hay entradas.</div>
-          ) : recent.slice(0, 8).map((h) => (
-            <div key={h.id} style={{ padding: '12px 0', borderBottom: '1px solid var(--b-201C24)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ font: '600 13px "IBM Plex Mono", monospace', color: 'var(--t-EAF0F3)' }}>{h.remito || `#${h.id}`}</span>
-                <span className="ok-badge" style={h.status === 'open' ? { color: 'var(--t-EDA53C)', background: 'var(--s-211A10)', borderColor: 'var(--b-3A2C15)' } : {}}>
+          ) : recent.map((h) => (
+            <button key={h.id} className="ent-ult" onClick={() => setVerEntrada(h.id)}>
+              <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <span style={{ font: '600 13px "IBM Plex Mono", monospace', color: 'var(--t-EAF0F3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.remito || `#${h.id}`}</span>
+                <span className={'ok-badge' + (h.status === 'open' ? ' abierta' : '')}>
                   {h.status === 'confirmed' ? <CheckCircle2 size={12} /> : null} {h.status === 'confirmed' ? 'Confirmada' : 'Abierta'}
                 </span>
-              </div>
-              <div style={{ font: '400 11px "IBM Plex Sans"', color: 'var(--t-7A8792)', marginTop: 4 }}>{h.origen || 'sin origen'} · {h.items} ítems</div>
-            </div>
+              </span>
+              <span style={{ font: '400 11px "IBM Plex Sans"', color: 'var(--t-7A8792)', marginTop: 4, display: 'block' }}>
+                {h.origen || 'sin base'} · {h.items} {h.items === 1 ? 'pieza' : 'piezas'}{h.clientes && h.clientes.length ? ` · ${h.clientes.join(', ')}` : ''}
+              </span>
+            </button>
           ))}
         </div>
       </div>
+      {verEntrada && <DetalleEntrada id={verEntrada} toast={toast} onClose={() => setVerEntrada(null)} onRetomar={(e) => abrirEntrada(e)} />}
       {asociar && <AsociarPieza epc={asociar} toast={toast} onClose={() => setAsociar(null)} onListo={recargar} />}
     </div>
   );
