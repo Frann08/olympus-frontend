@@ -112,7 +112,7 @@ export default function Traza({ toast }) {
             {scanning ? 'Registrando lecturas…' : 'Leer tags con la pistola'}
           </div>
           <div style={{ font: '400 12px "IBM Plex Sans"', color: 'var(--t-7A8792)', marginTop: 5, marginBottom: 14 }}>
-            Apuntá a las piezas y mantené apretado el gatillo de abajo. Los tags leídos se suman solos a la lista.
+            Conectá la pistola, apuntá a las piezas y mantené apretado el gatillo. Los tags leídos se suman solos a la lista.
           </div>
           <CapturaPistola onLeidos={leer} />
           <button className="pis-prueba" onClick={() => setPrueba((v) => !v)} aria-expanded={prueba}>

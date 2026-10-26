@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ScanLine, Search, X, Check, Loader2, SkipForward, AlertTriangle, Link2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, useSyncExternalStore } from 'react';
+import { ScanLine, Search, X, Check, Loader2, SkipForward, AlertTriangle, Link2, Bluetooth, BluetoothConnected, BatteryMedium, BatteryLow, BatteryFull, Square } from 'lucide-react';
 import { api } from './api.js';
 import { useEscape } from './ui.jsx';
+import { lectorR6, hayBluetooth } from './r6.js';
 
-/* Pistola UHF (Zebra TC22R u otra) con DataWedge en modo teclado:
-   cada tag llega "tipeado" (EPC en hexadecimal) seguido de Enter. Este componente es el
-   campo que recibe esas lecturas: no abre el teclado del celular (inputmode none) y junta
-   todo lo que llega en un gatillazo para mandarlo de una vez. */
+/* Lectura de tags UHF con pistola. Dos formas:
+   - Chainway R6 por Bluetooth (r6.js): se conecta desde acá y se lee con su gatillo.
+   - Pistolas en modo teclado (Zebra con DataWedge u otra): cada tag llega "tipeado" (EPC en
+     hexadecimal) seguido de Enter en un campo que no abre el teclado del celular (inputmode none).
+   En los dos casos se junta lo que llega en un gatillazo y se manda de una vez. */
 
 export const normEpc = (v) => {
   const h = String(v ?? '').toUpperCase().replace(/[^0-9A-F]/g, '');
@@ -20,15 +22,25 @@ function partir(texto) {
   return String(texto || '').split(/[\s,;]+/).map(normEpc).filter(Boolean);
 }
 
-// espera: cuánto esperar después del último tag antes de mandar la tanda (la pistola tipea cada EPC en ~1 s)
-export function CapturaPistola({ onLeidos, activo = true, texto = 'Apretá el gatillo de la pistola', ayuda, espera = 350 }) {
+export const useR6 = () => useSyncExternalStore(lectorR6.suscribir, lectorR6.ver);
+const r6Conectada = (r6) => r6.estado === 'lista' || r6.estado === 'leyendo';
+const nTags = (n) => `${n} ${n === 1 ? 'tag' : 'tags'}`;
+
+// espera: cuánto esperar después del último tag antes de mandar la tanda (modo teclado: la pistola tipea cada EPC en ~1 s)
+// parcial: con la R6, mientras se mantiene el gatillo se van mandando los tags nuevos (si no, todo junto al soltar)
+export function CapturaPistola({ onLeidos, activo = true, texto = 'Apretá el gatillo de la pistola', ayuda, espera = 350, parcial = true }) {
   const ref = useRef(null);
   const tanda = useRef([]);
   const timer = useRef(null);
   const [foco, setFoco] = useState(false);
-  const [ultimo, setUltimo] = useState(null); // { n, t }
+  const [ultimo, setUltimo] = useState(null); // { n, t } o { n: 0, t } si no leyó nada
   const cb = useRef(onLeidos);
   cb.current = onLeidos;
+  const r6 = useR6();
+  const conR6 = r6Conectada(r6);
+  const vistos = useRef(new Set());
+  const [enCurso, setEnCurso] = useState(0);
+  const parcialT = useRef(null);
 
   const enviar = () => {
     clearTimeout(timer.current);
@@ -46,7 +58,7 @@ export function CapturaPistola({ onLeidos, activo = true, texto = 'Apretá el ga
     timer.current = setTimeout(enviar, espera);
   };
 
-  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => () => { clearTimeout(timer.current); clearTimeout(parcialT.current); }, []);
   // tomar el foco al aparecer, salvo que el usuario esté escribiendo en otro campo
   useEffect(() => {
     if (!activo) return;
@@ -54,31 +66,134 @@ export function CapturaPistola({ onLeidos, activo = true, texto = 'Apretá el ga
     if (!a || !/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) ref.current && ref.current.focus({ preventScroll: true });
   }, [activo]);
 
+  // lecturas de la R6 (la pantalla abierta más reciente es la que las recibe)
+  const parcialRef = useRef(parcial);
+  parcialRef.current = parcial;
+  useEffect(() => {
+    if (!activo) return undefined;
+    return lectorR6.registrar({
+      inicio: () => { vistos.current = new Set(); tanda.current = []; setEnCurso(0); },
+      tag: (epc) => {
+        const e = normEpc(epc);
+        if (!e || vistos.current.has(e)) return;
+        vistos.current.add(e);
+        tanda.current.push(e);
+        setEnCurso(vistos.current.size);
+        if (parcialRef.current && !parcialT.current) parcialT.current = setTimeout(() => { parcialT.current = null; enviar(); }, 1200);
+      },
+      fin: () => {
+        clearTimeout(parcialT.current); parcialT.current = null;
+        if (!vistos.current.size) setUltimo({ n: 0, t: Date.now() });
+        enviar();
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activo]);
+
   if (!activo) return null;
+  const leyendo = r6.estado === 'leyendo';
+  const reciente = ultimo && Date.now() - ultimo.t < 4000;
+  const conBt = hayBluetooth();
+  let titulo, sub;
+  if (leyendo) { titulo = 'Leyendo…'; sub = enCurso ? `${nTags(enCurso)} hasta ahora` : 'Soltá el gatillo para terminar'; }
+  else if (conR6) { titulo = texto; sub = reciente ? (ultimo.n ? `Leídos: ${nTags(ultimo.n)}` : 'No se leyó ningún tag. Acercate más o subí la potencia.') : (ayuda || 'Pistola conectada, lista para leer'); }
+  else if (conBt && !(reciente && ultimo.n)) { titulo = 'Conectá la pistola R6 con el botón de abajo'; sub = foco ? 'Si usás una pistola en modo teclado, ya podés apretar el gatillo' : 'Si usás una pistola en modo teclado, tocá acá antes de apretar el gatillo'; }
+  else if (foco) { titulo = texto; sub = reciente && ultimo.n ? `Leídos: ${nTags(ultimo.n)}` : (ayuda || 'Lista para leer'); }
+  else { titulo = 'Tocá acá antes de apretar el gatillo'; sub = reciente && ultimo.n ? `Leídos: ${nTags(ultimo.n)}` : 'La pistola escribe acá lo que lee'; }
+
   return (
-    <label className={'pis-captura' + (foco ? ' lista' : '')}>
-      <span className="pis-ico"><ScanLine size={18} /></span>
-      <span className="pis-txt">
-        <b>{foco ? texto : 'Tocá acá antes de apretar el gatillo'}</b>
-        <span>{ultimo && Date.now() - ultimo.t < 4000 ? `Leídos: ${ultimo.n} ${ultimo.n === 1 ? 'tag' : 'tags'}` : (ayuda || (foco ? 'Lista para leer' : 'La pistola escribe acá lo que lee'))}</span>
-      </span>
-      <input
-        ref={ref}
-        className="pis-input"
-        inputMode="none"
-        autoComplete="off" autoCorrect="off" autoCapitalize="characters" spellCheck={false}
-        aria-label="Lecturas de la pistola"
-        onFocus={() => setFoco(true)}
-        onBlur={() => { setFoco(false); juntar(); }}
-        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); juntar(); } }}
-        onInput={(e) => {
-          // algunos equipos mandan el Enter como salto de línea, o todo junto sin Enter
-          if (/[\r\n]/.test(e.target.value)) { juntar(); return; }
-          clearTimeout(timer.current);
-          timer.current = setTimeout(() => { juntar(); enviar(); }, Math.max(700, espera));
-        }}
-      />
-    </label>
+    <div className="pis-wrap">
+      <label className={'pis-captura' + (foco || conR6 ? ' lista' : '') + (leyendo ? ' leyendo' : '')}>
+        <span className="pis-ico"><ScanLine size={18} /></span>
+        <span className="pis-txt" aria-live="polite">
+          <b>{titulo}</b>
+          <span>{sub}</span>
+        </span>
+        <input
+          ref={ref}
+          className="pis-input"
+          inputMode="none"
+          autoComplete="off" autoCorrect="off" autoCapitalize="characters" spellCheck={false}
+          aria-label="Lecturas de la pistola"
+          onFocus={() => setFoco(true)}
+          onBlur={() => { setFoco(false); juntar(); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); juntar(); } }}
+          onInput={(e) => {
+            // algunos equipos mandan el Enter como salto de línea, o todo junto sin Enter
+            if (/[\r\n]/.test(e.target.value)) { juntar(); return; }
+            clearTimeout(timer.current);
+            timer.current = setTimeout(() => { juntar(); enviar(); }, Math.max(700, espera));
+          }}
+        />
+      </label>
+      {conBt && <BarraR6 />}
+    </div>
+  );
+}
+
+const POTENCIAS = [[5, 'Mínima'], [10, 'Baja'], [15, 'Media baja'], [20, 'Media'], [25, 'Alta'], [30, 'Máxima']];
+
+// Conectar la R6 por Bluetooth, ver batería, cambiar potencia, leer sin gatillo
+export function BarraR6() {
+  const r6 = useR6();
+  const [cambiando, setCambiando] = useState(false);
+  const [aviso, setAviso] = useState(null);
+  if (!hayBluetooth()) return null;
+  const buscando = r6.estado === 'buscando' || r6.estado === 'conectando';
+
+  if (!r6Conectada(r6)) {
+    return (
+      <div className="r6-barra">
+        {buscando ? (
+          <span className="r6-estado"><Loader2 size={15} className="spin" /> {r6.estado === 'buscando' ? 'Elegí la pistola en la lista…' : (r6.error || 'Conectando con la pistola…')}</span>
+        ) : (
+          <div className="r6-fila">
+            <button className="axt-btn primary r6-conectar" onClick={() => lectorR6.conectar()}>
+              <Bluetooth size={15} /> {r6.recordada ? `Conectar ${r6.recordada}` : 'Conectar pistola R6'}
+            </button>
+            {r6.recordada && <button className="axt-btn small" onClick={() => lectorR6.conectar({ otra: true })}>Otra</button>}
+          </div>
+        )}
+        {r6.error && !buscando && <div className="r6-error" role="alert"><AlertTriangle size={13} style={{ flex: 'none', marginTop: 1 }} /> {r6.error}</div>}
+      </div>
+    );
+  }
+
+  const leyendo = r6.estado === 'leyendo';
+  const Bat = r6.bateria == null ? null : r6.bateria <= 20 ? BatteryLow : r6.bateria >= 80 ? BatteryFull : BatteryMedium;
+  const opciones = r6.potencia != null && !POTENCIAS.some(([v]) => v === r6.potencia) ? [...POTENCIAS, [r6.potencia, 'Actual']].sort((a, b) => a[0] - b[0]) : POTENCIAS;
+  async function potencia(v) {
+    setCambiando(true); setAviso(null);
+    const ok = await lectorR6.ponerPotencia(v);
+    setCambiando(false);
+    if (!ok) setAviso('La pistola no aceptó el cambio de potencia. Probá de nuevo.');
+  }
+  return (
+    <div className="r6-barra on">
+      <div className="r6-fila">
+        <span className="r6-estado">
+          <BluetoothConnected size={15} color="var(--t-4FC98B)" />
+          <b>{r6.nombre}</b>
+          {Bat && <span className={'r6-bat' + (r6.bateria <= 20 ? ' baja' : '')} title="Batería de la pistola"><Bat size={15} /> {r6.bateria} %</span>}
+        </span>
+        <button className="axt-x sm" onClick={() => lectorR6.desconectar()} aria-label="Desconectar la pistola" title="Desconectar la pistola"><X size={14} /></button>
+      </div>
+      <div className="r6-fila">
+        <label className="r6-pot">
+          <span>Potencia</span>
+          <select value={r6.potencia ?? ''} onChange={(e) => potencia(Number(e.target.value))} disabled={cambiando || leyendo} aria-label="Potencia de lectura">
+            {r6.potencia == null && <option value="">—</option>}
+            {opciones.map(([v, n]) => <option key={v} value={v}>{n} ({v} dBm)</option>)}
+          </select>
+          {cambiando && <Loader2 size={13} className="spin" />}
+        </label>
+        <button className={'axt-btn small' + (leyendo ? ' on' : '')} onClick={() => lectorR6.alternar()} title="Leer sin usar el gatillo">
+          {leyendo ? <><Square size={12} /> Parar</> : <><ScanLine size={13} /> Leer</>}
+        </button>
+      </div>
+      {aviso && <div className="r6-error" role="alert"><AlertTriangle size={13} style={{ flex: 'none', marginTop: 1 }} /> {aviso}</div>}
+      {r6.bateria != null && r6.bateria <= 20 && <div className="r6-error"><BatteryLow size={13} style={{ flex: 'none', marginTop: 1 }} /> Batería baja: cargá la pistola pronto.</div>}
+    </div>
   );
 }
 
@@ -231,7 +346,7 @@ export function AsociarSerie({ cola: colaIni, titulo, onClose, onCambio }) {
             <div className="ser-serial">{it.code}</div>
             <div className="ser-desc">{it.name}</div>
             <div style={{ marginTop: 12 }}>
-              <CapturaPistola onLeidos={leidos} espera={1800} texto="Apuntá al tag de esta pieza y apretá el gatillo"
+              <CapturaPistola onLeidos={leidos} espera={1800} parcial={false} texto="Apuntá al tag de esta pieza y apretá el gatillo"
                 ayuda={busy ? 'Guardando…' : 'Solo ese tag: alejá las otras piezas'} />
             </div>
             {cola.length - hechos > 1 && (

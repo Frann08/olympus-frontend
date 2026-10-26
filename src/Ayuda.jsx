@@ -270,16 +270,17 @@ function GuiaPrecintos() {
       <Sec id="epc" n="6" titulo="Asociar el EPC con la pistola UHF">
         <p>El tag tiene dos partes: el <b>NFC</b> (el que se graba con el celular y lee el cliente) y el <b>UHF</b>, que lee la pistola a distancia. Para que la pistola reconozca la pieza, hay que unir su código UHF (el <b>EPC</b>) con la pieza. Se hace una sola vez por tag.</p>
         <ol className="ay-pasos">
-          <li>Con la pistola (TC22R) abrí el informe en Precintos y tocá <b>Asociar EPC con pistola</b>. Entre paréntesis dice cuántas piezas faltan.</li>
-          <li>Arriba aparece la pieza que va <b>ahora</b>. Apuntá <b>solo a su tag</b>, de cerca, y apretá el gatillo de abajo.</li>
+          <li>Abrí el informe en Precintos y tocá <b>Asociar EPC con pistola</b>. Entre paréntesis dice cuántas piezas faltan.</li>
+          <li>Si la pistola no está conectada, tocá <b>Conectar pistola R6</b> en el panel (cómo se hace la primera vez: guía de Trazabilidad, punto 1).</li>
+          <li>Arriba aparece la pieza que va <b>ahora</b>. Apuntá <b>solo a su tag</b>, de cerca, apretá el gatillo y soltalo.</li>
           <li>Olympus guarda el EPC, el equipo vibra y pasa a la siguiente pieza.</li>
         </ol>
         <ul className="ay-lista">
-          <li>Si la pistola lee <b>más de un tag a la vez</b>, avisa y no guarda nada: alejá las otras piezas o bajá la potencia en DataWedge (10 a 15) mientras asociás.</li>
+          <li>Si la pistola lee <b>más de un tag a la vez</b>, avisa y no guarda nada: alejá las otras piezas o bajá la <b>potencia</b> a <b>Baja</b> o <b>Media baja</b> en la barra de la pistola mientras asociás.</li>
           <li>Si el tag ya estaba asociado a otra pieza, avisa de cuál. Si es un tag recuperado, tocá <b>Es un tag recuperado</b> para pasarlo a esta pieza.</li>
           <li>También se puede asociar desde Trazabilidad, con el botón <b>Asociar</b> de un tag leído sin pieza.</li>
         </ul>
-        <Aviso>En el TC22R la pistola UHF y el NFC no funcionan al mismo tiempo: grabá los NFC con otro celular (o con el RFID apagado en DataWedge) y después asociá los EPC con la pistola.</Aviso>
+        <Nota>La R6 no apaga el NFC del celular: se puede grabar el NFC y asociar el EPC sin desconectar la pistola. Si con el celular puesto en el soporte no lee el NFC, sacalo del soporte para grabar.</Nota>
       </Sec>
 
       <Sec id="colocar" n="7" titulo="Colocar el tag" img={{ src: 'p-lista', alt: 'Lista de piezas con estados colocado, grabado, pendiente y sin precinto', cap: 'Estados de cada pieza del informe.' }}>
@@ -326,23 +327,28 @@ function GuiaPrecintos() {
    TRAZABILIDAD
 ============================================================ */
 const IDX_TRAZA = [
-  ['pistola', 'Preparar la pistola'], ['entrar', 'Entrar'], ['datos', 'Datos de la entrada'], ['leer', 'Leer los tags'], ['revisar', 'Revisar la lista'],
+  ['pistola', 'Conectar la pistola'], ['entrar', 'Entrar'], ['datos', 'Datos de la entrada'], ['leer', 'Leer los tags'], ['revisar', 'Revisar la lista'],
   ['confirmar', 'Confirmar la entrada'], ['recientes', 'Entradas recientes'], ['salidas', 'Salidas'],
 ];
 function GuiaTraza() {
   return (
     <>
-      <Sec id="pistola" n="1" titulo="Preparar la pistola (una sola vez)">
-        <p>Olympus usa la pistola <b>Zebra TC22R</b> a través de <b>DataWedge</b>, la app de Zebra que ya viene en el equipo: la pistola “escribe” en Olympus lo que lee, como si fuera un teclado. No hace falta instalar nada más.</p>
+      <Sec id="pistola" n="1" titulo="Conectar la pistola">
+        <p>Olympus usa la pistola <b>Chainway R6</b>: el celular va enganchado arriba y se conecta por <b>Bluetooth</b>. No hace falta instalar ninguna app: se conecta desde Olympus, en <b>Chrome</b>.</p>
         <ol className="ay-pasos">
-          <li>En el TC22R abrí <b>DataWedge</b> → menú ⋮ → <b>New profile</b> → nombre <b>Olympus</b>.</li>
-          <li>En el perfil, <b>Associated apps</b>: agregá <b>com.android.chrome</b> con la actividad <b>*</b>.</li>
-          <li><b>RFID Input</b>: activado. Hardware trigger activado, Trigger mode <b>Immediate</b>, <b>Filter duplicate tags</b> activado, Antenna transmit power <b>30</b>.</li>
-          <li><b>Keystroke output</b>: activado, <b>Inter character delay 50 ms</b> y, en Basic data formatting, <b>Send ENTER key</b> activado.</li>
-          <li>Abrí Olympus en <b>Chrome</b> en el TC22R y entrá con tu usuario.</li>
+          <li>Cargá la R6 y prendela. Poné el celular en el soporte de la pistola.</li>
+          <li>En el celular, prendé el <b>Bluetooth</b> (y la <b>ubicación</b>, si Android la pide para buscar equipos).</li>
+          <li>Abrí Olympus en <b>Chrome</b> y, debajo de la zona de lectura, tocá <b>Conectar pistola R6</b>.</li>
+          <li>La primera vez aparece la lista de equipos Bluetooth: elegí la pistola y tocá <b>Vincular</b>. Las próximas veces el botón dice <b>Conectar</b> con el nombre de la pistola y se conecta con un toque.</li>
+          <li>Conectada, la barra muestra el nombre de la pistola, la <b>batería</b> y la <b>potencia</b>.</li>
         </ol>
-        <Nota>La potencia (Antenna transmit power) define hasta dónde lee: con 30 lee lejos y muchas piezas a la vez (para entradas). Para <b>asociar</b> el tag de una sola pieza conviene bajarla a 10 o 15.</Nota>
-        <Aviso>En el TC22R, la pistola UHF y el NFC <b>no funcionan al mismo tiempo</b>. Para grabar los NFC (Precintos) usá otro celular, o desactivá el RFID Input en DataWedge mientras grabás.</Aviso>
+        <Nota>La <b>potencia</b> define hasta dónde lee: <b>Alta</b> o <b>Máxima</b> lee lejos y muchas piezas a la vez (para entradas). Para <b>asociar</b> el tag de una sola pieza conviene <b>Baja</b> o <b>Media baja</b>.</Nota>
+        <ul className="ay-lista">
+          <li>Si la pistola se aleja o se apaga, Olympus intenta reconectarla solo. Si no puede, tocá <b>Conectar</b> de nuevo.</li>
+          <li>Con la <b>✕</b> de la barra se desconecta. Al cerrar Chrome también se desconecta: la próxima vez, tocá <b>Conectar</b>.</li>
+          <li>Las pistolas que escriben como un teclado (por ejemplo, una Zebra con DataWedge) también funcionan: tocá la zona de lectura antes de apretar el gatillo.</li>
+        </ul>
+        <Aviso>La R6 se conecta desde <b>Chrome en Android</b> (o en una computadora con Bluetooth). Desde un iPhone no se puede: Apple no deja usar Bluetooth en páginas web.</Aviso>
       </Sec>
 
       <Sec id="entrar" n="2" titulo="Entrar">
@@ -358,15 +364,15 @@ function GuiaTraza() {
         <Nota>Completalos <b>antes de leer el primer tag</b>. Con el primer tag se abre la entrada y esos datos quedan fijos hasta confirmarla.</Nota>
       </Sec>
 
-      <Sec id="leer" n="4" titulo="Leer los tags con la pistola" img={{ src: 't-leer', alt: 'Zona de lectura de la pistola, lista para leer', cap: 'Zona de lectura, lista para leer.' }}>
+      <Sec id="leer" n="4" titulo="Leer los tags con la pistola" img={{ src: 't-leer', alt: 'Zona de lectura con la pistola R6 conectada, lista para leer', cap: 'Pistola conectada, lista para leer.' }}>
         <ol className="ay-pasos">
-          <li>Mirá que la zona de lectura diga <b>Apretá el gatillo de la pistola</b>. Si dice “Tocá acá antes de apretar el gatillo”, tocala.</li>
-          <li>Apuntá a las piezas y <b>mantené apretado el gatillo de abajo</b>. La pistola lee varios tags a la vez y a distancia.</li>
-          <li>Cada tag leído se suma solo a la <b>Lista de entrada</b>; el equipo vibra y abajo aparece cuántos tags nuevos entraron.</li>
+          <li>Con la pistola conectada, la zona de lectura dice <b>Apretá el gatillo de la pistola</b>.</li>
+          <li>Apuntá a las piezas y <b>mantené apretado el gatillo</b>. Mientras lee, la zona dice <b>Leyendo…</b> y cuántos tags lleva. La pistola lee varios tags a la vez y a distancia.</li>
+          <li>Los tags leídos se suman solos a la <b>Lista de entrada</b>; el equipo vibra y abajo aparece cuántos tags nuevos entraron. Soltá el gatillo para terminar.</li>
           <li>Recorré el lote hasta que la cantidad de <b>leídos</b> coincida con las piezas del remito.</li>
         </ol>
-        <p>Si un tag ya estaba en la lista, no se duplica. La pistola tarda alrededor de un segundo por tag en pasarlo a Olympus: con muchas piezas, dale unos segundos.</p>
-        <Nota>Debajo de la zona de lectura está el <b>modo prueba</b>: botones con tags de demostración para practicar sin pistola.</Nota>
+        <p>Si un tag ya estaba en la lista, no se duplica. Si dice <b>No se leyó ningún tag</b>, acercate más o subí la potencia.</p>
+        <Nota>El botón <b>Leer</b> de la barra de la pistola lee sin usar el gatillo (tocá <b>Parar</b> para terminar). Debajo está el <b>modo prueba</b>: botones con tags de demostración para practicar sin pistola.</Nota>
       </Sec>
 
       <Sec id="revisar" n="5" titulo="Revisar la lista" img={{ src: 't-lista', alt: 'Lista de entrada con cuatro tags leídos y dos alertas', cap: '4 leídos, 2 con alerta.' }}>
