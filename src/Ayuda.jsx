@@ -201,7 +201,7 @@ function GuiaCliente() {
    PRECINTOS
 ============================================================ */
 const IDX_PRECINTOS = [
-  ['entrar', 'Entrar'], ['cargar', 'Cargar la Hoja 2'], ['informe', 'Elegir el informe'], ['grabar', 'Grabar el tag'], ['serie', 'Grabar en serie'],
+  ['entrar', 'Entrar'], ['cargar', 'Cargar la Hoja 2'], ['informe', 'Elegir el informe'], ['grabar', 'Grabar el tag'], ['serie', 'Grabar en serie'], ['epc', 'Asociar EPC con la pistola'],
   ['colocar', 'Colocar el tag'], ['deshacer', 'Deshacer un paso'], ['noapto', 'Piezas NO APTO'], ['controlar', 'Controlar el trabajo'],
   ['corregir', 'Si un dato vino mal'],
 ];
@@ -267,7 +267,23 @@ function GuiaPrecintos() {
         <Nota>En iPhone no se puede grabar desde Olympus (Apple no lo permite en páginas web). Desde un iPhone, grabá de a uno con NFC Tools.</Nota>
       </Sec>
 
-      <Sec id="colocar" n="6" titulo="Colocar el tag" img={{ src: 'p-lista', alt: 'Lista de piezas con estados colocado, grabado, pendiente y sin precinto', cap: 'Estados de cada pieza del informe.' }}>
+      <Sec id="epc" n="6" titulo="Asociar el EPC con la pistola UHF">
+        <p>El tag tiene dos partes: el <b>NFC</b> (el que se graba con el celular y lee el cliente) y el <b>UHF</b>, que lee la pistola a distancia. Para que la pistola reconozca la pieza, hay que unir su código UHF (el <b>EPC</b>) con la pieza. Se hace una sola vez por tag.</p>
+        <ol className="ay-pasos">
+          <li>Abrí el informe en Precintos y tocá <b>Asociar EPC con pistola</b>. Entre paréntesis dice cuántas piezas faltan.</li>
+          <li>Si la pistola no está conectada, tocá <b>Conectar pistola R6</b> en el panel (cómo se hace la primera vez: guía de Trazabilidad, punto 1).</li>
+          <li>Arriba aparece la pieza que va <b>ahora</b>. Apuntá <b>solo a su tag</b>, de cerca, apretá el gatillo y soltalo.</li>
+          <li>Olympus guarda el EPC, el equipo vibra y pasa a la siguiente pieza.</li>
+        </ol>
+        <ul className="ay-lista">
+          <li>Si la pistola lee <b>más de un tag a la vez</b>, avisa y no guarda nada: alejá las otras piezas o bajá la <b>potencia</b> a <b>Baja</b> o <b>Media baja</b> en la barra de la pistola mientras asociás.</li>
+          <li>Si el tag ya estaba asociado a otra pieza, avisa de cuál. Si es un tag recuperado, tocá <b>Es un tag recuperado</b> para pasarlo a esta pieza.</li>
+          <li>También se puede asociar desde Trazabilidad, con el botón <b>Asociar</b> de un tag leído sin pieza.</li>
+        </ul>
+        <Nota>La R6 no apaga el NFC del celular: se puede grabar el NFC y asociar el EPC sin desconectar la pistola. Si con el celular puesto en el soporte no lee el NFC, sacalo del soporte para grabar.</Nota>
+      </Sec>
+
+      <Sec id="colocar" n="7" titulo="Colocar el tag" img={{ src: 'p-lista', alt: 'Lista de piezas con estados colocado, grabado, pendiente y sin precinto', cap: 'Estados de cada pieza del informe.' }}>
         <ol className="ay-pasos">
           <li>Fijá el tag en la pieza.</li>
           <li>En la lista, tocá <b>Marcar colocado</b>. La pieza queda en verde con <b>✓ Listo</b>.</li>
@@ -277,24 +293,24 @@ function GuiaPrecintos() {
           <li><b style={{ color: 'var(--t-A9A7A2)' }}>Pendiente:</b> falta grabar el tag.</li>
           <li><b style={{ color: 'var(--t-E7C15A)' }}>Grabado:</b> el tag está grabado pero todavía no se marcó como colocado.</li>
           <li><b style={{ color: 'var(--t-57C98A)' }}>Colocado:</b> terminado.</li>
-          <li><b style={{ color: 'var(--t-E5645C)' }}>Sin precinto:</b> pieza NO APTO (ver punto 8).</li>
+          <li><b style={{ color: 'var(--t-E5645C)' }}>Sin precinto:</b> pieza NO APTO (ver punto 9).</li>
         </ul>
       </Sec>
 
-      <Sec id="deshacer" n="7" titulo="Deshacer un paso">
+      <Sec id="deshacer" n="8" titulo="Deshacer un paso">
         <p>La flecha <b>↶</b> al lado de cada pieza vuelve un paso atrás: de Colocado a Grabado, o de Grabado a Pendiente. Usala si marcaste algo por error.</p>
       </Sec>
 
-      <Sec id="noapto" n="8" titulo="Piezas NO APTO">
+      <Sec id="noapto" n="9" titulo="Piezas NO APTO">
         <p>Las piezas con resultado <b>NO APTO</b> aparecen como <b>Sin precinto</b> y dicen <b>No aplica</b>: no llevan tag.</p>
       </Sec>
 
-      <Sec id="controlar" n="9" titulo="Controlar el trabajo">
+      <Sec id="controlar" n="10" titulo="Controlar el trabajo">
         <p>Al terminar un informe, escaneá con el celular algunos de los tags ya colocados: se tiene que abrir la ficha con el <b>mismo Nº de serie</b> que tiene la pieza. Así te asegurás de que cada tag quedó en su pieza.</p>
         <p>El QR del panel de grabado abre la misma ficha: sirve para ver lo que va a ver el cliente.</p>
       </Sec>
 
-      <Sec id="corregir" n="10" titulo="Si un dato vino mal">
+      <Sec id="corregir" n="11" titulo="Si un dato vino mal">
         <p>Si Informes Técnicos pasó mal un dato (el Nº de informe, el IBM, la serie, la presión, la descripción), <b>Administración lo corrige en Olympus</b>. No hace falta el tag ni tener la pieza: el tag solo identifica a la pieza, y al escanearlo se ven los datos corregidos.</p>
         <ul className="ay-lista">
           <li><b>Un informe entero</b> (por ejemplo, era el 401 y no el 400): Administración abre el informe en Precintos y toca <b>Corregir informe</b>.</li>
@@ -311,20 +327,36 @@ function GuiaPrecintos() {
    TRAZABILIDAD
 ============================================================ */
 const IDX_TRAZA = [
-  ['entrar', 'Entrar'], ['datos', 'Datos de la entrada'], ['leer', 'Leer los tags'], ['revisar', 'Revisar la lista'],
+  ['pistola', 'Conectar la pistola'], ['entrar', 'Entrar'], ['datos', 'Datos de la entrada'], ['leer', 'Leer los tags'], ['revisar', 'Revisar la lista'],
   ['confirmar', 'Confirmar la entrada'], ['recientes', 'Entradas recientes'], ['salidas', 'Salidas'],
 ];
 function GuiaTraza() {
   return (
     <>
-      <Aviso><b>Etapa en preparación.</b> La pistola UHF todavía no está conectada: hoy la pantalla funciona en <b>modo prueba</b> y los botones de tags de prueba simulan lo que va a leer la pistola. Este instructivo describe el trabajo con la pistola.</Aviso>
+      <Sec id="pistola" n="1" titulo="Conectar la pistola">
+        <p>Olympus usa la pistola <b>Chainway R6</b>: el celular va enganchado arriba y se conecta por <b>Bluetooth</b>. No hace falta instalar ninguna app: se conecta desde Olympus, en <b>Chrome</b>.</p>
+        <ol className="ay-pasos">
+          <li>Cargá la R6 y prendela. Poné el celular en el soporte de la pistola.</li>
+          <li>En el celular, prendé el <b>Bluetooth</b> (y la <b>ubicación</b>, si Android la pide para buscar equipos).</li>
+          <li>Abrí Olympus en <b>Chrome</b> y, debajo de la zona de lectura, tocá <b>Conectar pistola R6</b>.</li>
+          <li>La primera vez aparece la lista de equipos Bluetooth: elegí la pistola y tocá <b>Vincular</b>. Las próximas veces el botón dice <b>Conectar</b> con el nombre de la pistola y se conecta con un toque.</li>
+          <li>Conectada, la barra muestra el nombre de la pistola, la <b>batería</b> y la <b>potencia</b>.</li>
+        </ol>
+        <Nota>La <b>potencia</b> define hasta dónde lee: <b>Alta</b> o <b>Máxima</b> lee lejos y muchas piezas a la vez (para entradas). Para <b>asociar</b> el tag de una sola pieza conviene <b>Baja</b> o <b>Media baja</b>.</Nota>
+        <ul className="ay-lista">
+          <li>Si la pistola se aleja o se apaga, Olympus intenta reconectarla solo. Si no puede, tocá <b>Conectar</b> de nuevo.</li>
+          <li>Con la <b>✕</b> de la barra se desconecta. Al cerrar Chrome también se desconecta: la próxima vez, tocá <b>Conectar</b>.</li>
+          <li>Las pistolas que escriben como un teclado (por ejemplo, una Zebra con DataWedge) también funcionan: tocá la zona de lectura antes de apretar el gatillo.</li>
+        </ul>
+        <Aviso>La R6 se conecta desde <b>Chrome en Android</b> (o en una computadora con Bluetooth). Desde un iPhone no se puede: Apple no deja usar Bluetooth en páginas web.</Aviso>
+      </Sec>
 
-      <Sec id="entrar" n="1" titulo="Entrar">
+      <Sec id="entrar" n="2" titulo="Entrar">
         <p>En el portal tocá <b>Operador</b> e ingresá con tu usuario de Trazabilidad. La sesión dura 12 horas.</p>
         <p>Trazabilidad registra las piezas que <b>entran al depósito</b> leyendo sus tags a distancia, sin tener que revisar una por una.</p>
       </Sec>
 
-      <Sec id="datos" n="2" titulo="Cargar los datos de la entrada" img={{ src: 't-datos', alt: 'Datos de la entrada con remito y origen', cap: 'Remito y origen de la entrada.' }}>
+      <Sec id="datos" n="3" titulo="Cargar los datos de la entrada" img={{ src: 't-datos', alt: 'Datos de la entrada con remito y origen', cap: 'Remito y origen de la entrada.' }}>
         <ol className="ay-pasos">
           <li>Escribí el <b>Nº de remito</b>.</li>
           <li>Escribí el <b>origen o proveedor</b>: la base o el cliente que manda las piezas.</li>
@@ -332,29 +364,31 @@ function GuiaTraza() {
         <Nota>Completalos <b>antes de leer el primer tag</b>. Con el primer tag se abre la entrada y esos datos quedan fijos hasta confirmarla.</Nota>
       </Sec>
 
-      <Sec id="leer" n="3" titulo="Leer los tags con la pistola" img={{ src: 't-leer', alt: 'Zona de lectura de la pistola en modo prueba', cap: 'Zona de lectura (hoy, en modo prueba).' }}>
+      <Sec id="leer" n="4" titulo="Leer los tags con la pistola" img={{ src: 't-leer', alt: 'Zona de lectura con la pistola R6 conectada, lista para leer', cap: 'Pistola conectada, lista para leer.' }}>
         <ol className="ay-pasos">
-          <li>Encendé la pistola UHF y verificá que esté conectada.</li>
-          <li>Apuntá a las piezas y <b>apretá el gatillo</b>. La pistola lee varios tags a la vez y a distancia.</li>
+          <li>Con la pistola conectada, la zona de lectura dice <b>Apretá el gatillo de la pistola</b>.</li>
+          <li>Apuntá a las piezas y <b>mantené apretado el gatillo</b>. Mientras lee, la zona dice <b>Leyendo…</b> y cuántos tags lleva. La pistola lee varios tags a la vez y a distancia.</li>
+          <li>Los tags leídos se suman solos a la <b>Lista de entrada</b>; el equipo vibra y abajo aparece cuántos tags nuevos entraron. Soltá el gatillo para terminar.</li>
           <li>Recorré el lote hasta que la cantidad de <b>leídos</b> coincida con las piezas del remito.</li>
         </ol>
-        <p>Cada tag leído aparece en la <b>Lista de entrada</b>. Si un tag ya estaba en la lista, no se duplica.</p>
+        <p>Si un tag ya estaba en la lista, no se duplica. Si dice <b>No se leyó ningún tag</b>, acercate más o subí la potencia.</p>
+        <Nota>El botón <b>Leer</b> de la barra de la pistola lee sin usar el gatillo (tocá <b>Parar</b> para terminar). Debajo está el <b>modo prueba</b>: botones con tags de demostración para practicar sin pistola.</Nota>
       </Sec>
 
-      <Sec id="revisar" n="4" titulo="Revisar la lista" img={{ src: 't-lista', alt: 'Lista de entrada con cuatro tags leídos y dos alertas', cap: '4 leídos, 2 con alerta.' }}>
+      <Sec id="revisar" n="5" titulo="Revisar la lista" img={{ src: 't-lista', alt: 'Lista de entrada con cuatro tags leídos y dos alertas', cap: '4 leídos, 2 con alerta.' }}>
         <ul className="ay-lista">
           <li>Arriba ves cuántos tags se leyeron y cuántos tienen <b>alerta</b>.</li>
           <li><b style={{ color: 'var(--t-E5605C)' }}>Cert vencido</b> o <b style={{ color: 'var(--t-EDA53C)' }}>Por vencer</b>: la pieza entra con el certificado vencido o próximo a vencer. Separala o avisá, según el procedimiento del depósito.</li>
-          <li><b>Tag sin pieza asociada:</b> el tag no corresponde a ninguna pieza registrada. Apartala y avisá a Precintos.</li>
+          <li><b>Tag sin pieza asociada:</b> el tag todavía no está unido a ninguna pieza. Tocá <b>Asociar</b>, buscá la pieza por su Nº de serie y elegila: desde ese momento ese tag es de esa pieza. Si no sabés cuál es, apartala y avisá a Precintos.</li>
           <li>Si se leyó una pieza que no es de esta entrada (por ejemplo, una que ya estaba en el depósito), quitala con la <b>✕</b>.</li>
         </ul>
       </Sec>
 
-      <Sec id="confirmar" n="5" titulo="Confirmar la entrada">
+      <Sec id="confirmar" n="6" titulo="Confirmar la entrada">
         <p>Cuando la lista está bien, tocá <b>Confirmar entrada</b>. Queda registrada con el remito, el origen y todas las piezas, y la pantalla queda lista para la siguiente.</p>
       </Sec>
 
-      <Sec id="recientes" n="6" titulo="Entradas recientes" img={{ src: 't-recientes', alt: 'Lista de entradas recientes confirmadas', cap: 'Últimas entradas.' }}>
+      <Sec id="recientes" n="7" titulo="Entradas recientes" img={{ src: 't-recientes', alt: 'Lista de entradas recientes confirmadas', cap: 'Últimas entradas.' }}>
         <p>Muestra las últimas entradas con su remito, origen y cantidad de ítems.</p>
         <ul className="ay-lista">
           <li><b>Abierta:</b> se empezó a leer y todavía no se confirmó.</li>
@@ -362,8 +396,8 @@ function GuiaTraza() {
         </ul>
       </Sec>
 
-      <Sec id="salidas" n="7" titulo="Salidas (próxima etapa)">
-        <p>El despacho de piezas va a funcionar igual: datos del remito de salida, lectura con la pistola, revisión y confirmación. Se habilita junto con la pistola.</p>
+      <Sec id="salidas" n="8" titulo="Salidas (próxima etapa)">
+        <p>El despacho de piezas va a funcionar igual: datos del remito de salida, lectura con la pistola, revisión y confirmación.</p>
       </Sec>
     </>
   );

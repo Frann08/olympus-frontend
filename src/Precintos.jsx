@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import QRCode from 'qrcode';
-import { Tag, Copy, Check, X, Undo2, Smartphone, Search, Pencil } from 'lucide-react';
+import { Tag, Copy, Check, X, Undo2, Smartphone, Search, Pencil, Radar } from 'lucide-react';
 import { api, PUBLIC_URL, getUser } from './api.js';
 import { Spinner, ErrorNote } from './ui.jsx';
 import { ImportPanel } from './Admin.jsx';
 import GrabarSerie, { puedeGrabar } from './GrabarSerie.jsx';
+import { AsociarSerie } from './Pistola.jsx';
 
 // Estado físico del tag de cada pieza
 const EST = {
@@ -28,6 +29,7 @@ export default function Precintos({ toast }) {
   const [fEst, setFEst] = useState('all');
   const [grabar, setGrabar] = useState(null);
   const [serie, setSerie] = useState(null); // { cola, titulo } · grabado seguido desde el teléfono
+  const [asocEpc, setAsocEpc] = useState(null); // { cola, titulo } · asociar EPC con la pistola UHF
 
   const loadInformes = useCallback(async (pickKey) => {
     try {
@@ -102,6 +104,7 @@ export default function Precintos({ toast }) {
   const esAdmin = getUser()?.role === 'admin';
   const tituloInf = infSel ? `INF ${infSel.informe} · ${infSel.cliente}${infSel.ibm ? ` · IBM ${infSel.ibm}` : ''}` : '';
   const pendientes = aptos.filter((x) => x.estado === 'pendiente');
+  const sinEpc = aptos.filter((x) => !x.epc && x.tag_id);
   const [corregir, setCorregir] = useState(false);
 
   return (
@@ -153,6 +156,11 @@ export default function Precintos({ toast }) {
                   ) : (
                     <span className="pr-muted pr-nota-serie">Para grabar varios seguidos, abrí Olympus en Chrome desde un Android.</span>
                   ))}
+                  {sinEpc.length > 0 && (
+                    <button className="axt-btn" onClick={() => setAsocEpc({ cola: sinEpc, titulo: tituloInf })} title="Leer con la pistola UHF el tag de cada pieza">
+                      <Radar size={14} /> Asociar EPC con pistola ({sinEpc.length})
+                    </button>
+                  )}
                   {esAdmin && (
                     <button className="axt-btn small" onClick={() => setCorregir((v) => !v)}>
                       <Pencil size={12} /> Corregir informe
@@ -206,6 +214,10 @@ export default function Precintos({ toast }) {
           onDone={() => { const it = grabar; setGrabar(null); setEstado(it, 'grabado', 'Tag grabado · falta colocarlo'); }}
           onTelefono={() => { const it = grabar; setGrabar(null); setSerie({ cola: [it], titulo: tituloInf }); }}
         />
+      )}
+
+      {asocEpc && (
+        <AsociarSerie cola={asocEpc.cola} titulo={asocEpc.titulo} onClose={() => setAsocEpc(null)} onCambio={() => loadItems(infSel)} />
       )}
 
       {serie && (
