@@ -221,16 +221,25 @@ export function RegistroEntradas({ toast, onRetomar }) {
         </div>
       )}
 
-      {abierta && <DetalleEntrada id={abierta} toast={toast} onClose={() => setAbierta(null)} onRetomar={onRetomar} />}
+      {abierta && <DetalleEntrada id={abierta} toast={toast} onClose={() => setAbierta(null)} onRetomar={onRetomar} onDescartada={() => setF((x) => ({ ...x }))} />}
     </div>
   );
 }
 
 const ALERTA = { overdue: 'Cert vencido', due: 'Por vencer', no_apto: 'No apto', sin_cert: 'Sin certificados' };
 
-export function DetalleEntrada({ id, toast, onClose, onRetomar }) {
+export function DetalleEntrada({ id, toast, onClose, onRetomar, onDescartada }) {
   useEscape(onClose);
   const [e, setE] = useState(null);
+  const [descartar, setDescartar] = useState(false);
+  async function descartarla() {
+    try {
+      await api(`/api/entradas/${id}`, { method: 'DELETE' });
+      toast && toast('Entrada descartada');
+      onDescartada && onDescartada();
+      onClose();
+    } catch (x) { toast && toast('No se pudo descartar: ' + x.message); }
+  }
   const [error, setError] = useState(null);
   useEffect(() => { api(`/api/entradas/${id}`).then(setE).catch((x) => setError(x.message)); }, [id]);
 
@@ -271,7 +280,15 @@ export function DetalleEntrada({ id, toast, onClose, onRetomar }) {
                 <button className="axt-btn primary small" onClick={() => { onRetomar(e); onClose(); }}><PlayCircle size={14} /> Seguir cargando</button>
               )}
               {e.items.length > 0 && <button className="axt-btn small" onClick={excel}><FileDown size={13} /> Excel de esta entrada</button>}
+              {e.status === 'open' && !descartar && <button className="axt-btn small" onClick={() => setDescartar(true)}>Descartar</button>}
             </div>
+            {descartar && (
+              <div className="ent-descartar">
+                <span>¿Descartar esta entrada abierta y todo lo leído?</span>
+                <button className="axt-btn small" onClick={descartarla}>Sí, descartar</button>
+                <button className="axt-btn small" onClick={() => setDescartar(false)}>No</button>
+              </div>
+            )}
             {e.items.length === 0 ? (
               <div className="gs-vacio"><Package size={22} /><div>Esta entrada no tiene tags leídos.</div></div>
             ) : (

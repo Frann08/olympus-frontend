@@ -289,16 +289,23 @@ function Relevamiento({ assets, online, toast, onCambio }) {
     }
   }
 
+  // identificador de la lista: si se corta la señal y se reintenta, el servidor no la duplica
+  const refLista = useRef({ ref: null, n: -1 });
   async function guardar() {
     if (!online) { toast('Necesitás conexión para guardar'); return; }
     if (!queue.length) return;
     setSaving(true);
+    if (refLista.current.n !== queue.length || !refLista.current.ref) {
+      const r = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+      refLista.current = { ref: r, n: queue.length };
+    }
     try {
       const r = await api('/api/me/relevamientos', {
         method: 'POST',
-        body: JSON.stringify({ nombre: nombre.trim(), device: (navigator.userAgent || '').slice(0, 40), items: queue.map((i) => ({ token: i.token, scanned_at: i.scanned_at })) }),
+        body: JSON.stringify({ ref: refLista.current.ref, nombre: nombre.trim(), device: (navigator.userAgent || '').slice(0, 40), items: queue.map((i) => ({ token: i.token, scanned_at: i.scanned_at })) }),
       });
       toast('Relevamiento guardado: ' + r.count + ' piezas');
+      refLista.current = { ref: null, n: -1 };
       setQ([]); setNombre(''); loadHist();
     } catch (e) { toast('Error al guardar: ' + e.message); }
     finally { setSaving(false); }
