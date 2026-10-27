@@ -263,12 +263,19 @@ function GuiaPrecintos() {
           <li>Si es un <b>tag recuperado</b> de otra pieza, tocá <b>Es un tag recuperado: reusarlo</b> y acercalo de nuevo. La pieza anterior queda sin tag (vuelve a pendiente).</li>
           <li>Si se corta la señal, el tag queda grabado y la pieza dice <b>!</b>: cuando vuelva la señal, tocá <b>Reintentar</b>.</li>
         </ul>
+        <p><b>Con el escáner R6 conectado, el UHF se asocia en el mismo paso.</b> Conectalo desde el mismo panel, en <b>Escáner RFID</b>. Después de grabar el NFC, el escáner lee el UHF de ese tag y lo une a la pieza; en la lista aparece <b>UHF ✓</b>. Mientras dice <b>Leyendo el UHF…</b>, dejá el tag apoyado.</p>
+        <ul className="ay-lista">
+          <li>Para grabar, Olympus baja la potencia a <b>Media baja</b>, así lee solo el tag apoyado. Al cerrar el panel vuelve la que tenías.</li>
+          <li>Si el escáner lee varios tags parecidos, o ninguno, el NFC queda grabado y la pieza dice <b>sin UHF</b>: apuntá el escáner al tag de esa pieza y apretá el gatillo. O tocá <b>Después</b> y asocialo más tarde (punto 6).</li>
+          <li>Si el UHF era de otra pieza (un tag recuperado), avisa de cuál y ofrece pasarlo a esta.</li>
+        </ul>
         <Aviso>Mirá siempre el Nº de serie de <b>Ahora</b> antes de acercar el tag: tiene que ser el de la pieza que vas a etiquetar.</Aviso>
         <Nota>En iPhone no se puede grabar desde Olympus (Apple no lo permite en páginas web). Desde un iPhone, grabá de a uno con NFC Tools.</Nota>
       </Sec>
 
       <Sec id="epc" n="6" titulo="Asociar el EPC con el escáner RFID">
         <p>El tag tiene dos partes: el <b>NFC</b> (el que se graba con el celular y lee el cliente) y el <b>UHF</b>, que lee el escáner a distancia. Para que el escáner reconozca la pieza, hay que unir su código UHF (el <b>EPC</b>) con la pieza. Se hace una sola vez por tag.</p>
+        <p>Si grabaste en serie con el escáner conectado (punto 5), esto ya quedó hecho. Usalo para las piezas que dicen <b>sin UHF</b> o que se grabaron sin el escáner.</p>
         <ol className="ay-pasos">
           <li>Abrí el informe en Precintos y tocá <b>Asociar EPC con escáner</b>. Entre paréntesis dice cuántas piezas faltan.</li>
           <li>Si el escáner no está conectado, tocá <b>Conectar escáner R6</b> en el panel (cómo se hace la primera vez: guía de Trazabilidad, punto 1).</li>

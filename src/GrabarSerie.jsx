@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Check, Radio, Loader2, SkipForward, RotateCcw, AlertTriangle, Pause, Play } from 'lucide-react';
 import { api, PUBLIC_URL } from './api.js';
+import { lectorR6, hayBluetooth, elegirTag, juntarLecturas } from './r6.js';
+import { BarraR6, useR6, epcLindo } from './Pistola.jsx';
 
 /* Grabado en serie (Precintos)
    Se arma la cola con las piezas pendientes del informe. La pantalla muestra la que sigue;
@@ -8,6 +10,8 @@ import { api, PUBLIC_URL } from './api.js';
      1) se lee su número de chip (UID) y el link que ya tenga;
      2) si ese tag ya se grabó en esta serie, o es de otra pieza grabada/colocada, se frena y avisa;
      3) si está libre, se graba el link de la pieza, vibra, queda tildada y pasa a la siguiente.
+   Si el escáner R6 está conectado, en el mismo paso lee el UHF del tag (que sigue apoyado en el
+   teléfono) y asocia su EPC a la pieza. Si no lo puede leer solo, se resuelve con el gatillo.
    Necesita Chrome en Android (Web NFC). */
 
 export const puedeGrabar = () => typeof window !== 'undefined' && 'NDEFReader' in window;
@@ -29,6 +33,8 @@ function tokenDe(message) {
 }
 const vibrar = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catch { /* sin vibración */ } };
 const NOMBRE_EST = { grabado: 'grabado', colocado: 'colocado' };
+const POTENCIA_GRABAR = 15; // dBm: alcanza para el tag apoyado en el teléfono y no para los de alrededor
+const RAFAGA_MS = 1200;
 
 function mensajeError(e, al) {
   const n = e && e.name;
@@ -43,7 +49,7 @@ function mensajeError(e, al) {
 
 export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onClose }) {
   // estado local de cada pieza: pendiente | grabado | sin_guardar (grabado en el tag, falta guardarlo en Olympus)
-  const [cola, setCola] = useState(() => colaIni.map((it) => ({ ...it, local: 'pendiente', uid: null })));
+  const [cola, setCola] = useState(() => colaIni.map((it) => ({ ...it, local: 'pendiente', uid: null, uhf: null })));
   const [actual, setActual] = useState(0);
   const [fase, setFase] = useState('listo'); // listo | esperando | revisando | grabando | fin
   const [aviso, setAviso] = useState(() => (puedeGrabar() ? null : {
@@ -60,14 +66,28 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   const wake = useRef(null);
   const est = useRef();
   est.current = { cola, actual, colocar };
+  const r6 = useR6();
+  const conR6 = r6.estado === 'lista' || r6.estado === 'leyendo';
+  const faltaUhf = useRef(null); // { k, code, reusado }: pieza grabada a la que le falta asociar el UHF
+  const potenciaAntes = useRef(null);
+  const gatillo = useRef([]);
 
   const hechos = cola.filter((x) => x.local !== 'pendiente').length;
   const nColocados = cola.filter((x) => x.local !== 'pendiente' && x.colocado).length;
   const it = cola[actual];
   const quedan = cola.length - hechos;
 
-  // Apagar todo al cerrar
-  useEffect(() => () => parar(), []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Apagar todo al cerrar (y devolverle al escáner la potencia que tenía)
+  useEffect(() => () => {
+    parar();
+    if (potenciaAntes.current != null && lectorR6.conectada && lectorR6.ver().potencia === POTENCIA_GRABAR) lectorR6.ponerPotencia(potenciaAntes.current);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Lo que se lee con el gatillo va para la pieza que quedó sin UHF
+  useEffect(() => lectorR6.registrar({
+    inicio: () => { gatillo.current = []; },
+    tag: (epc, rssi) => { gatillo.current.push({ epc, rssi }); },
+    fin: () => { trasGatillo(juntarLecturas(gatillo.current)); },
+  }), []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const k = (e) => { if (e.key === 'Escape') cerrar(); };
     window.addEventListener('keydown', k);
@@ -125,6 +145,67 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
     return otro ? { code: otro.code, estado: otro.estado, cliente: otro.cliente } : null;
   }
 
+  // Lee el UHF del tag apoyado con el escáner. Devuelve { epc } o { epc: null, motivo, n }; null sin escáner.
+  async function leerUhf() {
+    if (!lectorR6.conectada) return null;
+    const pot = lectorR6.ver().potencia;
+    if (pot != null && pot > POTENCIA_GRABAR && potenciaAntes.current == null) {
+      if (await lectorR6.ponerPotencia(POTENCIA_GRABAR)) potenciaAntes.current = pot;
+    }
+    const juntas = await lectorR6.rafaga(RAFAGA_MS).catch(() => null);
+    return juntas ? elegirTag(juntas) : null;
+  }
+
+  async function asociarUhf(k, epc, reasignar = false) {
+    const x = est.current.cola[k];
+    try {
+      const r = await api(`/api/precintos/tags/${x.tag_id}/epc`, { method: 'POST', body: JSON.stringify({ epc, reasignar }) });
+      // si el UHF era de otra pieza de esta misma serie, esa queda sin UHF
+      setCola((xs) => xs.map((y, j) => (j === k ? { ...y, uhf: 'ok', epc: r.epc } : r.antes && y.code === r.antes ? { ...y, uhf: 'falta', epc: null } : y)));
+      return { ok: true, antes: r.antes };
+    } catch (e) {
+      setCola((xs) => xs.map((y, j) => (j === k ? { ...y, uhf: 'falta' } : y)));
+      if (e.status === 409 && !reasignar) return { ok: false, conflicto: e.message.charAt(0).toUpperCase() + e.message.slice(1) };
+      return { ok: false, error: e.message };
+    }
+  }
+
+  const problemaUhf = (u, code) => (u.motivo === 'varios'
+    ? `El escáner leyó ${u.n} tags a la vez y no se sabe cuál es el de ${code}.`
+    : 'El escáner no leyó el UHF de este tag.');
+
+  // Después de un gatillazo: asociar lo leído a la pieza que quedó sin UHF
+  async function trasGatillo(juntas) {
+    const f = faltaUhf.current;
+    if (!f) {
+      if (juntas.length) setAviso({ tipo: 'alerta', texto: 'Ninguna pieza está esperando el UHF. Para grabar, acercá el tag al teléfono: el UHF se lee solo.' });
+      return;
+    }
+    const u = elegirTag(juntas);
+    if (!u.epc) {
+      vibrar([90, 60, 90]);
+      setAviso({ tipo: 'alerta', despues: true, texto: u.motivo === 'varios'
+        ? `Se leyeron ${u.n} tags a la vez. Apuntá solo al tag de ${f.code}, más de cerca, y apretá el gatillo de nuevo.`
+        : `No se leyó ningún tag. Acercá el escáner al tag de ${f.code} y apretá el gatillo de nuevo.` });
+      return;
+    }
+    const a = await asociarUhf(f.k, u.epc, f.reusado);
+    if (a.ok) {
+      faltaUhf.current = null;
+      vibrar(140);
+      setAviso({ tipo: 'ok', texto: `✓ ${f.code}: UHF asociado${a.antes ? ` (era de ${a.antes})` : ''}.` });
+    } else if (a.conflicto) {
+      vibrar([90, 60, 90]);
+      setAviso({ tipo: 'alerta', despues: true, texto: `${a.conflicto}. Si es un tag recuperado, pasalo a ${f.code}.`, pasarUhf: { k: f.k, epc: u.epc, code: f.code } });
+    } else setAviso({ tipo: 'error', despues: true, texto: 'No se pudo asociar el UHF: ' + a.error });
+  }
+
+  async function pasarUhf({ k, epc, code }) {
+    const a = await asociarUhf(k, epc, true);
+    if (a.ok) { faltaUhf.current = null; setAviso({ tipo: 'ok', texto: `✓ ${code}: UHF asociado${a.antes ? ` (era de ${a.antes})` : ''}.` }); }
+    else setAviso({ tipo: 'error', despues: true, texto: 'No se pudo asociar el UHF: ' + (a.error || a.conflicto) });
+  }
+
   async function manejar(ev) {
     if (ocupado.current) return;
     const { cola: xs, actual: i, colocar: col } = est.current;
@@ -171,24 +252,54 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
       }
       ultimoOk.current = { uid, t: Date.now() };
       if (uid) usados.current.set(uid, pieza.code);
+      const reusado = permitir.current != null;
       permitir.current = null;
+      faltaUhf.current = null; // si quedaba otra sin UHF, sigue en la lista para después
+
+      // con el escáner: el UHF del mismo tag, mientras sigue apoyado
+      let u = null;
+      if (lectorR6.conectada) {
+        setFase('uhf');
+        u = await leerUhf();
+      }
       vibrar(140);
 
       let guardado = true;
       let liberadas = [];
       try { const r = await guardar(pieza, col ? 'colocado' : 'grabado', uid, token); liberadas = (r && r.liberadas) || []; } catch { guardado = false; }
-      const nueva = xs.map((x, k) => (k === i ? { ...x, local: guardado ? 'grabado' : 'sin_guardar', uid, antes: token, colocado: col } : x));
+      const nueva = xs.map((x, k) => (k === i ? { ...x, local: guardado ? 'grabado' : 'sin_guardar', uid, antes: token, colocado: col, uhf: u ? 'leyendo' : null } : x));
       setCola(nueva);
       const sig = siguientePendiente(nueva, i);
       const libre = liberadas.length ? ` ${liberadas.join(', ')} quedó sin tag (volvió a pendiente).` : '';
-      setAviso(guardado
-        ? { tipo: 'ok', texto: `✓ ${pieza.code} grabado${col ? ' y colocado' : ''}.${libre}${sig >= 0 ? ' Sacá el tag y acercá el siguiente.' : ''}` }
-        : { tipo: 'error', texto: `${pieza.code}: el tag quedó grabado pero no se pudo guardar en Olympus (sin conexión). Tocá "Reintentar" en la lista.` });
+      const seguir = sig >= 0 ? ' Sacá el tag y acercá el siguiente.' : '';
+      const hecho = `✓ ${pieza.code} grabado${col ? ' y colocado' : ''}`;
+
+      let avisoUhf = null; // si el UHF no se pudo asociar solo
+      let conUhf = '';
+      if (u && u.epc) {
+        const a = await asociarUhf(i, u.epc, reusado);
+        if (a.ok) conUhf = ` con UHF${a.antes ? ` (era de ${a.antes})` : ''}`;
+        else if (a.conflicto) {
+          faltaUhf.current = { k: i, code: pieza.code, reusado };
+          avisoUhf = { texto: `${a.conflicto}. Si es un tag recuperado, pasalo a ${pieza.code}.`, pasarUhf: { k: i, epc: u.epc, code: pieza.code } };
+        } else {
+          faltaUhf.current = { k: i, code: pieza.code, reusado };
+          avisoUhf = { texto: `No se pudo asociar el UHF (${a.error}). Apuntá el escáner al tag de ${pieza.code} y apretá el gatillo.` };
+        }
+      } else if (u) {
+        setCola((xs2) => xs2.map((x, k) => (k === i ? { ...x, uhf: 'falta' } : x)));
+        faltaUhf.current = { k: i, code: pieza.code, reusado };
+        avisoUhf = { texto: `${problemaUhf(u, pieza.code)} Apuntá el escáner al tag de ${pieza.code} y apretá el gatillo.` };
+      }
+
+      if (!guardado) setAviso({ tipo: 'error', texto: `${pieza.code}: el tag quedó grabado pero no se pudo guardar en Olympus (sin conexión). Tocá "Reintentar" en la lista.` });
+      else if (avisoUhf) { vibrar([90, 60, 90]); setAviso({ tipo: 'alerta', despues: true, texto: `${hecho} (NFC). ${avisoUhf.texto}${libre}`, pasarUhf: avisoUhf.pasarUhf }); }
+      else setAviso({ tipo: 'ok', texto: `${hecho}${conUhf}.${libre}${seguir}` });
       if (sig >= 0) setActual(sig);
       else { parar(); setFase('fin'); }
     } finally {
       ocupado.current = false;
-      setFase((f) => (f === 'revisando' || f === 'grabando' ? 'esperando' : f));
+      setFase((f) => (f === 'revisando' || f === 'grabando' || f === 'uhf' ? 'esperando' : f));
     }
   }
 
@@ -206,7 +317,9 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
     if (sig >= 0 && sig !== actual) { setActual(sig); setAviso(null); permitir.current = null; }
   }
 
-  const escuchando = fase === 'esperando' || fase === 'revisando' || fase === 'grabando';
+  const escuchando = fase === 'esperando' || fase === 'revisando' || fase === 'grabando' || fase === 'uhf';
+  const conUhf = cola.filter((x) => x.uhf === 'ok').length;
+  const sinUhf = cola.filter((x) => x.local !== 'pendiente' && x.uhf === 'falta').length;
 
   return (
     <>
@@ -231,7 +344,13 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
             <div className="ser-serial">Listo</div>
             <div className="pr-muted" style={{ textAlign: 'center' }}>
               {hechos} de {cola.length} tags grabados{nColocados ? ` (${nColocados === hechos ? 'todos' : nColocados} marcados como colocados)` : ''}.
+              {conUhf > 0 && <> {conUhf === hechos ? 'Todos' : conUhf} con el UHF asociado.</>}
             </div>
+            {sinUhf > 0 && (
+              <div className="pr-muted" style={{ textAlign: 'center', marginTop: 6 }}>
+                {sinUhf === 1 ? 'A 1 pieza le falta' : `A ${sinUhf} piezas les falta`} el UHF: {sinUhf === 1 ? 'asocialo' : 'asocialos'} con <b>Asociar EPC con escáner</b>.
+              </div>
+            )}
             <button className="axt-btn primary" style={{ width: '100%', marginTop: 14 }} onClick={cerrar}>Cerrar</button>
           </div>
         ) : it ? (
@@ -241,9 +360,10 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
             <div className="ser-desc">{it.name}</div>
             <div className="ser-estado" aria-live="polite">
               {fase === 'listo' && <span>Tocá <b>Empezar</b> y acercá un tag al teléfono.</span>}
-              {fase === 'esperando' && <><span className="ser-onda"><Radio size={18} /></span><span>Acercá un tag nuevo a la espalda del teléfono</span></>}
+              {fase === 'esperando' && <><span className="ser-onda"><Radio size={18} /></span><span>Acercá un tag nuevo a la espalda del teléfono{conR6 ? '. El escáner lee el UHF en el mismo paso.' : ''}</span></>}
               {fase === 'revisando' && <><Loader2 size={16} className="spin" /><span>Revisando el tag…</span></>}
               {fase === 'grabando' && <><Loader2 size={16} className="spin" /><span>Grabando… no muevas el teléfono</span></>}
+              {fase === 'uhf' && <><Loader2 size={16} className="spin" /><span>Leyendo el UHF con el escáner… dejá el tag apoyado</span></>}
             </div>
             <div className="ser-botones">
               {escuchando
@@ -259,6 +379,14 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
             {aviso.tipo !== 'ok' && <AlertTriangle size={15} style={{ flex: 'none', marginTop: 1 }} />}
             <div style={{ minWidth: 0 }}>
               <div>{aviso.texto}</div>
+              {(aviso.pasarUhf || aviso.despues) && (
+                <div className="cor-botones" style={{ marginTop: 8 }}>
+                  {aviso.pasarUhf && <button className="axt-btn small" onClick={() => pasarUhf(aviso.pasarUhf)}>Es un tag recuperado: pasarlo a {aviso.pasarUhf.code}</button>}
+                  {aviso.despues && faltaUhf.current && (
+                    <button className="axt-btn small" onClick={() => { faltaUhf.current = null; setAviso({ tipo: 'ok', texto: 'Listo: ese UHF queda para después (Asociar EPC con escáner). Seguí con el siguiente tag.' }); }}>Después</button>
+                  )}
+                </div>
+              )}
               {aviso.reusar && (
                 <button className="axt-btn small" style={{ marginTop: 8 }}
                   onClick={() => { permitir.current = aviso.reusar.clave; setAviso({ tipo: 'ok', texto: `Listo: acercalo de nuevo y se graba para ${it ? it.code : 'esta pieza'}. ${aviso.reusar.code} va a quedar sin tag (vuelve a pendiente).` }); }}>
@@ -266,6 +394,13 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
                 </button>
               )}
             </div>
+          </div>
+        )}
+
+        {hayBluetooth() && (fase !== 'fin' || faltaUhf.current) && (
+          <div className="ser-pistola">
+            <div className="ser-pistola-tit">Escáner RFID <em>(opcional: asocia el UHF al grabar)</em></div>
+            <BarraR6 />
           </div>
         )}
 
@@ -286,8 +421,8 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
                   {x.local === 'grabado' ? <Check size={14} /> : x.local === 'sin_guardar' ? '!' : k + 1}
                 </span>
                 <span style={{ minWidth: 0, flex: 1 }}>
-                  <span className="ser-item-serial">{x.code}</span>
-                  <span className="ser-item-desc">{x.name}</span>
+                  <span className="ser-item-serial">{x.code}{x.uhf === 'ok' && <span className="ser-uhf ok">UHF ✓</span>}{x.uhf === 'falta' && x.local !== 'pendiente' && <span className="ser-uhf falta">sin UHF</span>}</span>
+                  <span className="ser-item-desc">{x.uhf === 'ok' && x.epc ? epcLindo(x.epc) : x.name}</span>
                 </span>
               </button>
               {x.local === 'sin_guardar' && (
