@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Plus, ChevronRight, ArrowLeft, Pencil, Trash2, ScanLine, ListChecks, ClipboardList, X, Loader2, Search, Check, FileDown } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { cargarXlsx } from './xlsx.js';
 import { api } from './api.js';
 import { Band, Pill, Spinner, ErrorNote, daysLabel, useEscape, sinTildes } from './ui.jsx';
 
@@ -184,7 +184,8 @@ function DestinoDetalle({ id, assets, toast, onVolver, onCambio }) {
     try { await api('/api/me/destinos/' + id, { method: 'DELETE' }); toast('Destino borrado'); onCambio(); onVolver(); }
     catch (e) { toast(e.message); }
   }
-  function exportar() {
+  async function exportar() {
+    const XLSX = await cargarXlsx();
     const rows = d.piezas.map((p) => ({
       'Nº de serie': p.code, 'Descripción': p.name || '', 'IBM': p.ibm || '',
       'Estado': p.status === 'no_apto' ? 'No apto' : p.status === 'overdue' ? 'Vencido' : p.status === 'due' ? 'Por vencer' : p.status === 'certified' ? 'Vigente' : 'Sin dato',

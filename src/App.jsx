@@ -1,14 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { SlidersHorizontal, ScanLine, Smartphone, LogOut, Radio, WifiOff, Tag, ArrowLeft, Lock, SearchX, HelpCircle, MapPin } from 'lucide-react';
 import { login, logout, getUser, isAuthed, tagInfo } from './api.js';
 import { Band, Pill, CertRow, Spinner, ErrorNote, Toast } from './ui.jsx';
 import { useOnline } from './offline.js';
-import Admin from './Admin.jsx';
-import { Empresas, Usuarios, Respaldo } from './AdminGestion.jsx';
-import Grabados from './Grabados.jsx';
-import Traza from './Traza.jsx';
-import Cliente from './Cliente.jsx';
-import Precintos from './Precintos.jsx';
+// Cada pantalla se baja recién cuando se usa: el cliente no carga Administración, etc.
+const Admin = lazy(() => import('./Admin.jsx'));
+const Empresas = lazy(() => import('./AdminGestion.jsx').then((m) => ({ default: m.Empresas })));
+const Usuarios = lazy(() => import('./AdminGestion.jsx').then((m) => ({ default: m.Usuarios })));
+const Respaldo = lazy(() => import('./AdminGestion.jsx').then((m) => ({ default: m.Respaldo })));
+const Grabados = lazy(() => import('./Grabados.jsx'));
+const Traza = lazy(() => import('./Traza.jsx'));
+const Cliente = lazy(() => import('./Cliente.jsx'));
+const Precintos = lazy(() => import('./Precintos.jsx'));
 import Portal, { SIDE_NAME } from './Portal.jsx';
 import Ayuda, { HojaCliente, guiasPara } from './Ayuda.jsx';
 import { BotonTema } from './tema.jsx';
@@ -171,6 +174,7 @@ export default function App() {
 
       <div className="axt-content" key={screen + (vistaParams ? ':' + JSON.stringify(vistaParams) : '')}>
         <Resguardo>
+          <Suspense fallback={<Spinner />}>
           {screen === 'admin' && <Admin toast={showToast} ir={ir} inicial={vistaParams} />}
           {screen === 'empresas' && <Empresas toast={showToast} ir={ir} inicial={vistaParams} />}
           {screen === 'usuarios' && <Usuarios toast={showToast} inicial={vistaParams} />}
@@ -179,6 +183,7 @@ export default function App() {
           {screen === 'precintos' && <Precintos toast={showToast} />}
           {screen === 'traza' && <Traza toast={showToast} />}
           {screen === 'cliente' && <Cliente toast={showToast} />}
+          </Suspense>
         </Resguardo>
         {user.role !== 'admin' && !ROLES[screen] && <ErrorNote error="Tu usuario no tiene un lado asignado. Pedíselo a Administración." />}
       </div>

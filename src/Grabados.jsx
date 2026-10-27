@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Tag, ChevronLeft, ChevronRight, ChevronDown, FileDown, CalendarRange, Recycle, Building2, Loader2 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { cargarXlsx } from './xlsx.js';
 import { api } from './api.js';
 import { useData, Spinner, ErrorNote, StatTile } from './ui.jsx';
 import { Encabezado } from './AdminGestion.jsx';
@@ -63,6 +63,7 @@ export default function Grabados({ toast }) {
         'Empresa': d.cliente, 'IBM': d.ibm || '', 'Informe': d.informe || '', 'Nº de serie': d.code || '', 'Descripción': d.descripcion || '',
         'Grabó': d.usuario || '', 'Tag recuperado': d.reusado ? 'Sí' : 'No',
       }));
+      const XLSX = await cargarXlsx();
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumen), 'Resumen');
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detalle), 'Detalle');
