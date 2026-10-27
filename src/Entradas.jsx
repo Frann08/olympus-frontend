@@ -26,7 +26,7 @@ function Estado({ status }) {
 function hojaExcel(entradas, piezas, nombre) {
   const resumen = entradas.map((e) => ({
     'Fecha': fmtFechaHora(e.created_at),
-    'Remito': e.remito || `#${e.id}`,
+    'N.º de entrada': e.remito || `#${e.id}`,
     'Base': e.origen || '',
     'Empresas': (e.clientes || []).join(', '),
     'Piezas': e.items,
@@ -38,7 +38,7 @@ function hojaExcel(entradas, piezas, nombre) {
   }));
   const detalle = piezas.map((p) => ({
     'Fecha': fmtFechaHora(p.created_at),
-    'Remito': p.remito || `#${p.entrada_id}`,
+    'N.º de entrada': p.remito || `#${p.entrada_id}`,
     'Base': p.origen || '',
     'Empresa': p.cliente || '',
     'IBM': p.ibm || '',
@@ -142,7 +142,7 @@ export function RegistroEntradas({ toast, onRetomar }) {
         <div className="ent-filtros-fila">
           <div className="ent-buscar">
             <Search size={14} color="var(--t-6E6C69)" />
-            <input value={qEscrito} onChange={(e) => setQEscrito(e.target.value)} placeholder="Buscar Nº de remito" aria-label="Buscar Nº de remito" />
+            <input value={qEscrito} onChange={(e) => setQEscrito(e.target.value)} placeholder="Buscar N.º de entrada" aria-label="Buscar N.º de entrada" />
             {qEscrito && <button className="ent-buscar-x" onClick={() => setQEscrito('')} aria-label="Borrar búsqueda"><X size={13} /></button>}
           </div>
           <button className={'axt-btn small' + (fechas || f.desde || f.hasta ? ' on' : '')} onClick={() => setFechas((v) => !v)} aria-expanded={fechas}>
