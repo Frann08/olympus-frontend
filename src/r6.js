@@ -1,4 +1,4 @@
-/* Pistola Chainway R6 por Bluetooth (Web Bluetooth: Chrome en Android o en la computadora).
+/* Escáner Chainway R6 por Bluetooth (Web Bluetooth: Chrome en Android o en la computadora).
 
    La R6 no tiene modo teclado. Habla por el "UART de Nordic" (servicio 6e400001…): se escribe en
    6e400002 y las respuestas llegan como avisos en 6e400003. Cada mensaje es una trama:
@@ -153,7 +153,7 @@ class LectorR6 {
       const id = localStorage.getItem('ot_r6');
       if (!id || typeof navigator === 'undefined' || !navigator.bluetooth || !navigator.bluetooth.getDevices) return;
       const d = (await navigator.bluetooth.getDevices()).find((x) => x.id === id);
-      if (d) { this.recordada = d; this.poner({ recordada: d.name || 'la pistola' }); }
+      if (d) { this.recordada = d; this.poner({ recordada: d.name || 'el escáner' }); }
     } catch { /* sin permisos guardados */ }
   }
 
@@ -174,7 +174,7 @@ class LectorR6 {
   }
 
   async _abrir(device) {
-    this.poner({ estado: 'conectando', nombre: device.name || 'Pistola', error: null });
+    this.poner({ estado: 'conectando', nombre: device.name || 'Escáner', error: null });
     if (this.device !== device) {
       if (this.device) this.device.removeEventListener('gattserverdisconnected', this._seCorto);
       this.device = device;
@@ -182,7 +182,7 @@ class LectorR6 {
     }
     try {
       const server = await device.gatt.connect();
-      const svc = await server.getPrimaryService(NUS).catch(() => { throw new Error('Ese equipo no es una pistola Chainway (no tiene el servicio de datos). Elegí la R6 de la lista.'); });
+      const svc = await server.getPrimaryService(NUS).catch(() => { throw new Error('Ese equipo no es un escáner Chainway (no tiene el servicio de datos). Elegí el escáner R6 de la lista.'); });
       this.rx = await svc.getCharacteristic(RX);
       const tx = await svc.getCharacteristic(TX);
       tx.removeEventListener('characteristicvaluechanged', this._aviso);
@@ -200,11 +200,11 @@ class LectorR6 {
       this.conPc = !(placa && placa.length >= 2 && placa[0] === 2 && placa[1] >= 7 && placa[1] <= 13);
       try { localStorage.setItem('ot_r6', device.id); } catch { /* sin almacenamiento */ }
       this.recordada = device;
-      this.poner({ estado: 'lista', recordada: device.name || 'la pistola' });
+      this.poner({ estado: 'lista', recordada: device.name || 'el escáner' });
       await this.actualizar();
     } catch (e) {
       try { device.gatt.disconnect(); } catch { /* ya estaba cortada */ }
-      this.poner({ estado: 'sin', error: e.message && e.message.startsWith('Ese equipo') ? e.message : 'No se pudo conectar con la pistola. Fijate que esté prendida y cerca, y probá de nuevo.' });
+      this.poner({ estado: 'sin', error: e.message && e.message.startsWith('Ese equipo') ? e.message : 'No se pudo conectar con el escáner. Fijate que esté prendido y cerca, y probá de nuevo.' });
     }
   }
 
@@ -249,14 +249,14 @@ class LectorR6 {
       if (this.manual) return;
       try { await this._abrir(this.device); if (this.conectada) { this.poner({ error: null }); return; } } catch { /* sigue probando */ }
     }
-    if (!this.manual) this.poner({ estado: 'sin', error: 'Se cortó la conexión con la pistola. Tocá "Conectar" de nuevo.' });
+    if (!this.manual) this.poner({ estado: 'sin', error: 'Se cortó la conexión con el escáner. Tocá "Conectar" de nuevo.' });
   };
 
   // ---- envío y respuesta ----
   enviar(bytes) {
     const rx = this.rx;
     const tarea = this.cola.then(async () => {
-      if (!rx) throw new Error('Pistola desconectada');
+      if (!rx) throw new Error('Escáner desconectado');
       const sinResp = rx.properties && rx.properties.writeWithoutResponse && rx.writeValueWithoutResponse;
       for (let i = 0; i < bytes.length; i += 20) {
         const parte = bytes.slice(i, i + 20);

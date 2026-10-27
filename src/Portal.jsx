@@ -9,7 +9,7 @@ const DOORS = [
   },
   {
     id: 'operador', n: '02', t: 'Operador', s: 'Precintos · Trazabilidad',
-    d: 'Carga de la Hoja 2, grabado y colocación de tags, entradas con pistola UHF.',
+    d: 'Carga de la Hoja 2, grabado y colocación de tags, entradas con escáner RFID.',
     items: ['Precintos: cargar, grabar y colocar', 'Trazabilidad: entradas y salidas'],
   },
   {
