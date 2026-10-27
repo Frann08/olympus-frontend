@@ -4,9 +4,9 @@ import { api } from './api.js';
 import { useEscape } from './ui.jsx';
 import { lectorR6, hayBluetooth } from './r6.js';
 
-/* Lectura de tags UHF con pistola. Dos formas:
+/* Lectura de tags UHF con escáner. Dos formas:
    - Chainway R6 por Bluetooth (r6.js): se conecta desde acá y se lee con su gatillo.
-   - Pistolas en modo teclado (Zebra con DataWedge u otra): cada tag llega "tipeado" (EPC en
+   - Escáneres en modo teclado (Zebra con DataWedge u otra): cada tag llega "tipeado" (EPC en
      hexadecimal) seguido de Enter en un campo que no abre el teclado del celular (inputmode none).
    En los dos casos se junta lo que llega en un gatillazo y se manda de una vez. */
 
@@ -26,9 +26,9 @@ export const useR6 = () => useSyncExternalStore(lectorR6.suscribir, lectorR6.ver
 const r6Conectada = (r6) => r6.estado === 'lista' || r6.estado === 'leyendo';
 const nTags = (n) => `${n} ${n === 1 ? 'tag' : 'tags'}`;
 
-// espera: cuánto esperar después del último tag antes de mandar la tanda (modo teclado: la pistola tipea cada EPC en ~1 s)
+// espera: cuánto esperar después del último tag antes de mandar la tanda (modo teclado: el escáner tipea cada EPC en ~1 s)
 // parcial: con la R6, mientras se mantiene el gatillo se van mandando los tags nuevos (si no, todo junto al soltar)
-export function CapturaPistola({ onLeidos, activo = true, texto = 'Apretá el gatillo de la pistola', ayuda, espera = 350, parcial = true }) {
+export function CapturaPistola({ onLeidos, activo = true, texto = 'Apretá el gatillo del escáner', ayuda, espera = 350, parcial = true }) {
   const ref = useRef(null);
   const tanda = useRef([]);
   const timer = useRef(null);
@@ -96,10 +96,10 @@ export function CapturaPistola({ onLeidos, activo = true, texto = 'Apretá el ga
   const conBt = hayBluetooth();
   let titulo, sub;
   if (leyendo) { titulo = 'Leyendo…'; sub = enCurso ? `${nTags(enCurso)} hasta ahora` : 'Soltá el gatillo para terminar'; }
-  else if (conR6) { titulo = texto; sub = reciente ? (ultimo.n ? `Leídos: ${nTags(ultimo.n)}` : 'No se leyó ningún tag. Acercate más o subí la potencia.') : (ayuda || 'Pistola conectada, lista para leer'); }
-  else if (conBt && !(reciente && ultimo.n)) { titulo = 'Conectá la pistola R6 con el botón de abajo'; sub = foco ? 'Si usás una pistola en modo teclado, ya podés apretar el gatillo' : 'Si usás una pistola en modo teclado, tocá acá antes de apretar el gatillo'; }
+  else if (conR6) { titulo = texto; sub = reciente ? (ultimo.n ? `Leídos: ${nTags(ultimo.n)}` : 'No se leyó ningún tag. Acercate más o subí la potencia.') : (ayuda || 'Escáner conectado, listo para leer'); }
+  else if (conBt && !(reciente && ultimo.n)) { titulo = 'Conectá el escáner R6 con el botón de abajo'; sub = foco ? 'Si usás un escáner en modo teclado, ya podés apretar el gatillo' : 'Si usás un escáner en modo teclado, tocá acá antes de apretar el gatillo'; }
   else if (foco) { titulo = texto; sub = reciente && ultimo.n ? `Leídos: ${nTags(ultimo.n)}` : (ayuda || 'Lista para leer'); }
-  else { titulo = 'Tocá acá antes de apretar el gatillo'; sub = reciente && ultimo.n ? `Leídos: ${nTags(ultimo.n)}` : 'La pistola escribe acá lo que lee'; }
+  else { titulo = 'Tocá acá antes de apretar el gatillo'; sub = reciente && ultimo.n ? `Leídos: ${nTags(ultimo.n)}` : 'El escáner escribe acá lo que lee'; }
 
   return (
     <div className="pis-wrap">
@@ -114,7 +114,7 @@ export function CapturaPistola({ onLeidos, activo = true, texto = 'Apretá el ga
           className="pis-input"
           inputMode="none"
           autoComplete="off" autoCorrect="off" autoCapitalize="characters" spellCheck={false}
-          aria-label="Lecturas de la pistola"
+          aria-label="Lecturas del escáner"
           onFocus={() => setFoco(true)}
           onBlur={() => { setFoco(false); juntar(); }}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); juntar(); } }}
@@ -145,11 +145,11 @@ export function BarraR6() {
     return (
       <div className="r6-barra">
         {buscando ? (
-          <span className="r6-estado"><Loader2 size={15} className="spin" /> {r6.estado === 'buscando' ? 'Elegí la pistola en la lista…' : (r6.error || 'Conectando con la pistola…')}</span>
+          <span className="r6-estado"><Loader2 size={15} className="spin" /> {r6.estado === 'buscando' ? 'Elegí el escáner en la lista…' : (r6.error || 'Conectando con el escáner…')}</span>
         ) : (
           <div className="r6-fila">
             <button className="axt-btn primary r6-conectar" onClick={() => lectorR6.conectar()}>
-              <Bluetooth size={15} /> {r6.recordada ? `Conectar ${r6.recordada}` : 'Conectar pistola R6'}
+              <Bluetooth size={15} /> {r6.recordada ? `Conectar ${r6.recordada}` : 'Conectar escáner R6'}
             </button>
             {r6.recordada && <button className="axt-btn small" onClick={() => lectorR6.conectar({ otra: true })}>Otra</button>}
           </div>
@@ -166,7 +166,7 @@ export function BarraR6() {
     setCambiando(true); setAviso(null);
     const ok = await lectorR6.ponerPotencia(v);
     setCambiando(false);
-    if (!ok) setAviso('La pistola no aceptó el cambio de potencia. Probá de nuevo.');
+    if (!ok) setAviso('El escáner no aceptó el cambio de potencia. Probá de nuevo.');
   }
   return (
     <div className="r6-barra on">
@@ -174,9 +174,9 @@ export function BarraR6() {
         <span className="r6-estado">
           <BluetoothConnected size={15} color="var(--t-4FC98B)" />
           <b>{r6.nombre}</b>
-          {Bat && <span className={'r6-bat' + (r6.bateria <= 20 ? ' baja' : '')} title="Batería de la pistola"><Bat size={15} /> {r6.bateria} %</span>}
+          {Bat && <span className={'r6-bat' + (r6.bateria <= 20 ? ' baja' : '')} title="Batería del escáner"><Bat size={15} /> {r6.bateria} %</span>}
         </span>
-        <button className="axt-x sm" onClick={() => lectorR6.desconectar()} aria-label="Desconectar la pistola" title="Desconectar la pistola"><X size={14} /></button>
+        <button className="axt-x sm" onClick={() => lectorR6.desconectar()} aria-label="Desconectar el escáner" title="Desconectar el escáner"><X size={14} /></button>
       </div>
       <div className="r6-fila">
         <label className="r6-pot">
@@ -192,7 +192,7 @@ export function BarraR6() {
         </button>
       </div>
       {aviso && <div className="r6-error" role="alert"><AlertTriangle size={13} style={{ flex: 'none', marginTop: 1 }} /> {aviso}</div>}
-      {r6.bateria != null && r6.bateria <= 20 && <div className="r6-error"><BatteryLow size={13} style={{ flex: 'none', marginTop: 1 }} /> Batería baja: cargá la pistola pronto.</div>}
+      {r6.bateria != null && r6.bateria <= 20 && <div className="r6-error"><BatteryLow size={13} style={{ flex: 'none', marginTop: 1 }} /> Batería baja: cargá el escáner pronto.</div>}
     </div>
   );
 }
@@ -270,7 +270,7 @@ export function AsociarPieza({ epc, toast, onClose, onListo }) {
 
 const vibrar = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catch { /* sin vibración */ } };
 
-// Asociar el EPC de cada pieza de un informe, una tras otra, con la pistola
+// Asociar el EPC de cada pieza de un informe, una tras otra, con el escáner
 export function AsociarSerie({ cola: colaIni, titulo, onClose, onCambio }) {
   const [cola, setCola] = useState(() => colaIni.map((x) => ({ ...x, hecho: false })));
   const [actual, setActual] = useState(0);
@@ -320,10 +320,10 @@ export function AsociarSerie({ cola: colaIni, titulo, onClose, onCambio }) {
   return (
     <>
       <div className="axt-overlay" onClick={onClose} />
-      <aside className="pr-panel ser" role="dialog" aria-label="Asociar EPC con la pistola">
+      <aside className="pr-panel ser" role="dialog" aria-label="Asociar EPC con el escáner">
         <div className="ser-top">
           <div style={{ minWidth: 0 }}>
-            <div className="pr-eyebrow">Asociar EPC con la pistola</div>
+            <div className="pr-eyebrow">Asociar EPC con el escáner</div>
             <div className="ser-titulo">{titulo}</div>
           </div>
           <button className="axt-x sm" onClick={onClose} aria-label="Cerrar"><X size={15} /></button>

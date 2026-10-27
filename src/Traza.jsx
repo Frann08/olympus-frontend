@@ -45,7 +45,7 @@ function NuevaEntrada({ toast, visible, retomar, onRetomada, onRegistro }) {
   }, [visible]);
 
   // La entrada se crea con el primer tag leído, así guarda el remito y el origen que se escribieron.
-  // Las lecturas se procesan en orden (la pistola puede mandar varias tandas seguidas).
+  // Las lecturas se procesan en orden (el escáner puede mandar varias tandas seguidas).
   const idRef = useRef(null);
   idRef.current = entradaId;
   const [falta, setFalta] = useState(false);
@@ -145,10 +145,10 @@ function NuevaEntrada({ toast, visible, retomar, onRetomada, onRegistro }) {
             {scanning && <><span className="wave" /><span className="wave" style={{ animationDelay: '.4s' }} /></>}
           </div>
           <div style={{ font: '700 16px "Oswald", sans-serif', color: 'var(--t-EAF0F3)', marginTop: 14 }}>
-            {scanning ? 'Registrando lecturas…' : 'Leer tags con la pistola'}
+            {scanning ? 'Registrando lecturas…' : 'Leer tags con el escáner'}
           </div>
           <div style={{ font: '400 12px "IBM Plex Sans"', color: 'var(--t-7A8792)', marginTop: 5, marginBottom: 14 }}>
-            Conectá la pistola, apuntá a las piezas y mantené apretado el gatillo. Los tags leídos se suman solos a la lista.
+            Conectá el escáner, apuntá a las piezas y mantené apretado el gatillo. Los tags leídos se suman solos a la lista.
           </div>
           <CapturaPistola onLeidos={leer} activo={visible} />
         </div>

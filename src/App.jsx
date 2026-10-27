@@ -16,7 +16,7 @@ import { BotonTema } from './tema.jsx';
 const ROLES = {
   admin:     { label: 'Administración', icon: SlidersHorizontal, who: 'Administración · empresas, usuarios, carga y codificación de activos' },
   precintos: { label: 'Operador · Precintos', icon: Tag, who: 'Operador · carga de Hoja 2, grabado y colocación de tags' },
-  traza:     { label: 'Operador · Trazabilidad', icon: ScanLine, who: 'Operador · entradas y salidas con pistola UHF' },
+  traza:     { label: 'Operador · Trazabilidad', icon: ScanLine, who: 'Operador · entradas y salidas con escáner RFID' },
   cliente:   { label: 'Cliente', icon: Smartphone, who: 'Cliente · tus activos, vencimientos y relevamientos' },
 };
 
