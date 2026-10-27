@@ -201,7 +201,7 @@ function GuiaCliente() {
    PRECINTOS
 ============================================================ */
 const IDX_PRECINTOS = [
-  ['entrar', 'Entrar'], ['cargar', 'Cargar la Hoja 2'], ['informe', 'Elegir el informe'], ['grabar', 'Grabar el tag'], ['serie', 'Grabar en serie'], ['epc', 'Asociar EPC con la pistola'],
+  ['entrar', 'Entrar'], ['cargar', 'Cargar la Hoja 2'], ['informe', 'Elegir el informe'], ['grabar', 'Grabar el tag'], ['serie', 'Grabar en serie'], ['epc', 'Asociar EPC con el escáner'],
   ['colocar', 'Colocar el tag'], ['deshacer', 'Deshacer un paso'], ['noapto', 'Piezas NO APTO'], ['controlar', 'Controlar el trabajo'],
   ['corregir', 'Si un dato vino mal'],
 ];
@@ -263,31 +263,31 @@ function GuiaPrecintos() {
           <li>Si es un <b>tag recuperado</b> de otra pieza, tocá <b>Es un tag recuperado: reusarlo</b> y acercalo de nuevo. La pieza anterior queda sin tag (vuelve a pendiente).</li>
           <li>Si se corta la señal, el tag queda grabado y la pieza dice <b>!</b>: cuando vuelva la señal, tocá <b>Reintentar</b>.</li>
         </ul>
-        <p><b>Con la pistola R6 conectada, el UHF se asocia en el mismo paso.</b> Conectala desde el mismo panel, en <b>Pistola UHF</b>. Después de grabar el NFC, la pistola lee el UHF de ese tag y lo une a la pieza; en la lista aparece <b>UHF ✓</b>. Mientras dice <b>Leyendo el UHF…</b>, dejá el tag apoyado.</p>
+        <p><b>Con el escáner R6 conectado, el UHF se asocia en el mismo paso.</b> Conectalo desde el mismo panel, en <b>Escáner RFID</b>. Después de grabar el NFC, el escáner lee el UHF de ese tag y lo une a la pieza; en la lista aparece <b>UHF ✓</b>. Mientras dice <b>Leyendo el UHF…</b>, dejá el tag apoyado.</p>
         <ul className="ay-lista">
           <li>Para grabar, Olympus baja la potencia a <b>Media baja</b>, así lee solo el tag apoyado. Al cerrar el panel vuelve la que tenías.</li>
-          <li>Si la pistola lee varios tags parecidos, o ninguno, el NFC queda grabado y la pieza dice <b>sin UHF</b>: apuntá la pistola al tag de esa pieza y apretá el gatillo. O tocá <b>Después</b> y asocialo más tarde (punto 6).</li>
+          <li>Si el escáner lee varios tags parecidos, o ninguno, el NFC queda grabado y la pieza dice <b>sin UHF</b>: apuntá el escáner al tag de esa pieza y apretá el gatillo. O tocá <b>Después</b> y asocialo más tarde (punto 6).</li>
           <li>Si el UHF era de otra pieza (un tag recuperado), avisa de cuál y ofrece pasarlo a esta.</li>
         </ul>
         <Aviso>Mirá siempre el Nº de serie de <b>Ahora</b> antes de acercar el tag: tiene que ser el de la pieza que vas a etiquetar.</Aviso>
         <Nota>En iPhone no se puede grabar desde Olympus (Apple no lo permite en páginas web). Desde un iPhone, grabá de a uno con NFC Tools.</Nota>
       </Sec>
 
-      <Sec id="epc" n="6" titulo="Asociar el EPC con la pistola UHF">
-        <p>El tag tiene dos partes: el <b>NFC</b> (el que se graba con el celular y lee el cliente) y el <b>UHF</b>, que lee la pistola a distancia. Para que la pistola reconozca la pieza, hay que unir su código UHF (el <b>EPC</b>) con la pieza. Se hace una sola vez por tag.</p>
-        <p>Si grabaste en serie con la pistola conectada (punto 5), esto ya quedó hecho. Usalo para las piezas que dicen <b>sin UHF</b> o que se grabaron sin la pistola.</p>
+      <Sec id="epc" n="6" titulo="Asociar el EPC con el escáner RFID">
+        <p>El tag tiene dos partes: el <b>NFC</b> (el que se graba con el celular y lee el cliente) y el <b>UHF</b>, que lee el escáner a distancia. Para que el escáner reconozca la pieza, hay que unir su código UHF (el <b>EPC</b>) con la pieza. Se hace una sola vez por tag.</p>
+        <p>Si grabaste en serie con el escáner conectado (punto 5), esto ya quedó hecho. Usalo para las piezas que dicen <b>sin UHF</b> o que se grabaron sin el escáner.</p>
         <ol className="ay-pasos">
-          <li>Abrí el informe en Precintos y tocá <b>Asociar EPC con pistola</b>. Entre paréntesis dice cuántas piezas faltan.</li>
-          <li>Si la pistola no está conectada, tocá <b>Conectar pistola R6</b> en el panel (cómo se hace la primera vez: guía de Trazabilidad, punto 1).</li>
+          <li>Abrí el informe en Precintos y tocá <b>Asociar EPC con escáner</b>. Entre paréntesis dice cuántas piezas faltan.</li>
+          <li>Si el escáner no está conectado, tocá <b>Conectar escáner R6</b> en el panel (cómo se hace la primera vez: guía de Trazabilidad, punto 1).</li>
           <li>Arriba aparece la pieza que va <b>ahora</b>. Apuntá <b>solo a su tag</b>, de cerca, apretá el gatillo y soltalo.</li>
           <li>Olympus guarda el EPC, el equipo vibra y pasa a la siguiente pieza.</li>
         </ol>
         <ul className="ay-lista">
-          <li>Si la pistola lee <b>más de un tag a la vez</b>, avisa y no guarda nada: alejá las otras piezas o bajá la <b>potencia</b> a <b>Baja</b> o <b>Media baja</b> en la barra de la pistola mientras asociás.</li>
+          <li>Si el escáner lee <b>más de un tag a la vez</b>, avisa y no guarda nada: alejá las otras piezas o bajá la <b>potencia</b> a <b>Baja</b> o <b>Media baja</b> en la barra del escáner mientras asociás.</li>
           <li>Si el tag ya estaba asociado a otra pieza, avisa de cuál. Si es un tag recuperado, tocá <b>Es un tag recuperado</b> para pasarlo a esta pieza.</li>
           <li>También se puede asociar desde Trazabilidad, con el botón <b>Asociar</b> de un tag leído sin pieza.</li>
         </ul>
-        <Nota>La R6 no apaga el NFC del celular: se puede grabar el NFC y asociar el EPC sin desconectar la pistola. Si con el celular puesto en el soporte no lee el NFC, sacalo del soporte para grabar.</Nota>
+        <Nota>El escáner R6 no apaga el NFC del celular: se puede grabar el NFC y asociar el EPC sin desconectar el escáner. Si con el celular puesto en el soporte no lee el NFC, sacalo del soporte para grabar.</Nota>
       </Sec>
 
       <Sec id="colocar" n="7" titulo="Colocar el tag" img={{ src: 'p-lista', alt: 'Lista de piezas con estados colocado, grabado, pendiente y sin precinto', cap: 'Estados de cada pieza del informe.' }}>
@@ -334,28 +334,28 @@ function GuiaPrecintos() {
    TRAZABILIDAD
 ============================================================ */
 const IDX_TRAZA = [
-  ['pistola', 'Conectar la pistola'], ['entrar', 'Entrar'], ['datos', 'Datos de la entrada'], ['leer', 'Leer los tags'], ['revisar', 'Revisar la lista'],
-  ['confirmar', 'Confirmar la entrada'], ['recientes', 'Entradas recientes'], ['salidas', 'Salidas'],
+  ['pistola', 'Conectar el escáner'], ['entrar', 'Entrar'], ['datos', 'Datos de la entrada'], ['leer', 'Leer los tags'], ['revisar', 'Revisar la lista'],
+  ['confirmar', 'Confirmar la entrada'], ['registro', 'Registro de entradas'], ['salidas', 'Salidas'],
 ];
 function GuiaTraza() {
   return (
     <>
-      <Sec id="pistola" n="1" titulo="Conectar la pistola">
-        <p>Olympus usa la pistola <b>Chainway R6</b>: el celular va enganchado arriba y se conecta por <b>Bluetooth</b>. No hace falta instalar ninguna app: se conecta desde Olympus, en <b>Chrome</b>.</p>
+      <Sec id="pistola" n="1" titulo="Conectar el escáner">
+        <p>Olympus usa el escáner <b>Chainway R6</b>: el celular va enganchado arriba y se conecta por <b>Bluetooth</b>. No hace falta instalar ninguna app: se conecta desde Olympus, en <b>Chrome</b>.</p>
         <ol className="ay-pasos">
-          <li>Cargá la R6 y prendela. Poné el celular en el soporte de la pistola.</li>
+          <li>Cargá el escáner R6 y prendelo. Poné el celular en su soporte.</li>
           <li>En el celular, prendé el <b>Bluetooth</b> (y la <b>ubicación</b>, si Android la pide para buscar equipos).</li>
-          <li>Abrí Olympus en <b>Chrome</b> y, debajo de la zona de lectura, tocá <b>Conectar pistola R6</b>.</li>
-          <li>La primera vez aparece la lista de equipos Bluetooth: elegí la pistola y tocá <b>Vincular</b>. Las próximas veces el botón dice <b>Conectar</b> con el nombre de la pistola y se conecta con un toque.</li>
-          <li>Conectada, la barra muestra el nombre de la pistola, la <b>batería</b> y la <b>potencia</b>.</li>
+          <li>Abrí Olympus en <b>Chrome</b> y, debajo de la zona de lectura, tocá <b>Conectar escáner R6</b>.</li>
+          <li>La primera vez aparece la lista de equipos Bluetooth: elegí el escáner y tocá <b>Vincular</b>. Las próximas veces el botón dice <b>Conectar</b> con el nombre del escáner y se conecta con un toque.</li>
+          <li>Conectado, la barra muestra el nombre del escáner, la <b>batería</b> y la <b>potencia</b>.</li>
         </ol>
         <Nota>La <b>potencia</b> define hasta dónde lee: <b>Alta</b> o <b>Máxima</b> lee lejos y muchas piezas a la vez (para entradas). Para <b>asociar</b> el tag de una sola pieza conviene <b>Baja</b> o <b>Media baja</b>.</Nota>
         <ul className="ay-lista">
-          <li>Si la pistola se aleja o se apaga, Olympus intenta reconectarla solo. Si no puede, tocá <b>Conectar</b> de nuevo.</li>
+          <li>Si el escáner se aleja o se apaga, Olympus intenta reconectarlo solo. Si no puede, tocá <b>Conectar</b> de nuevo.</li>
           <li>Con la <b>✕</b> de la barra se desconecta. Al cerrar Chrome también se desconecta: la próxima vez, tocá <b>Conectar</b>.</li>
-          <li>Las pistolas que escriben como un teclado (por ejemplo, una Zebra con DataWedge) también funcionan: tocá la zona de lectura antes de apretar el gatillo.</li>
+          <li>Los escáneres que escriben como un teclado (por ejemplo, una Zebra con DataWedge) también funcionan: tocá la zona de lectura antes de apretar el gatillo.</li>
         </ul>
-        <Aviso>La R6 se conecta desde <b>Chrome en Android</b> (o en una computadora con Bluetooth). Desde un iPhone no se puede: Apple no deja usar Bluetooth en páginas web.</Aviso>
+        <Aviso>El escáner R6 se conecta desde <b>Chrome en Android</b> (o en una computadora con Bluetooth). Desde un iPhone no se puede: Apple no deja usar Bluetooth en páginas web.</Aviso>
       </Sec>
 
       <Sec id="entrar" n="2" titulo="Entrar">
@@ -363,23 +363,23 @@ function GuiaTraza() {
         <p>Trazabilidad registra las piezas que <b>entran al depósito</b> leyendo sus tags a distancia, sin tener que revisar una por una.</p>
       </Sec>
 
-      <Sec id="datos" n="3" titulo="Cargar los datos de la entrada" img={{ src: 't-datos', alt: 'Datos de la entrada con remito y origen', cap: 'Remito y origen de la entrada.' }}>
+      <Sec id="datos" n="3" titulo="Cargar los datos de la entrada" img={{ src: 't-datos', alt: 'Datos de la entrada con número y base', cap: 'N.º de entrada y base.' }}>
         <ol className="ay-pasos">
-          <li>Escribí el <b>Nº de remito</b>.</li>
-          <li>Escribí el <b>origen o proveedor</b>: la base o el cliente que manda las piezas.</li>
+          <li>Escribí el <b>N.º de entrada</b>, solo números (por ejemplo, 121018).</li>
+          <li>Elegí la <b>base</b>: <b>Añelo</b> o <b>Centenario</b>.</li>
         </ol>
-        <Nota>Completalos <b>antes de leer el primer tag</b>. Con el primer tag se abre la entrada y esos datos quedan fijos hasta confirmarla.</Nota>
+        <Nota>Los dos son <b>obligatorios</b>: si falta alguno, el escáner no registra nada. Completalos <b>antes de leer el primer tag</b>. Con el primer tag se abre la entrada y esos datos quedan fijos hasta confirmarla.</Nota>
       </Sec>
 
-      <Sec id="leer" n="4" titulo="Leer los tags con la pistola" img={{ src: 't-leer', alt: 'Zona de lectura con la pistola R6 conectada, lista para leer', cap: 'Pistola conectada, lista para leer.' }}>
+      <Sec id="leer" n="4" titulo="Leer los tags con el escáner" img={{ src: 't-leer', alt: 'Zona de lectura con el escáner R6 conectado, lista para leer', cap: 'Escáner conectado, listo para leer.' }}>
         <ol className="ay-pasos">
-          <li>Con la pistola conectada, la zona de lectura dice <b>Apretá el gatillo de la pistola</b>.</li>
-          <li>Apuntá a las piezas y <b>mantené apretado el gatillo</b>. Mientras lee, la zona dice <b>Leyendo…</b> y cuántos tags lleva. La pistola lee varios tags a la vez y a distancia.</li>
+          <li>Con el escáner conectado, la zona de lectura dice <b>Apretá el gatillo del escáner</b>.</li>
+          <li>Apuntá a las piezas y <b>mantené apretado el gatillo</b>. Mientras lee, la zona dice <b>Leyendo…</b> y cuántos tags lleva. El escáner lee varios tags a la vez y a distancia.</li>
           <li>Los tags leídos se suman solos a la <b>Lista de entrada</b>; el equipo vibra y abajo aparece cuántos tags nuevos entraron. Soltá el gatillo para terminar.</li>
-          <li>Recorré el lote hasta que la cantidad de <b>leídos</b> coincida con las piezas del remito.</li>
+          <li>Recorré el lote hasta que la cantidad de <b>leídos</b> coincida con las piezas de la entrada.</li>
         </ol>
         <p>Si un tag ya estaba en la lista, no se duplica. Si dice <b>No se leyó ningún tag</b>, acercate más o subí la potencia.</p>
-        <Nota>El botón <b>Leer</b> de la barra de la pistola lee sin usar el gatillo (tocá <b>Parar</b> para terminar). Debajo está el <b>modo prueba</b>: botones con tags de demostración para practicar sin pistola.</Nota>
+        <Nota>El botón <b>Leer</b> de la barra del escáner lee sin usar el gatillo (tocá <b>Parar</b> para terminar).</Nota>
       </Sec>
 
       <Sec id="revisar" n="5" titulo="Revisar la lista" img={{ src: 't-lista', alt: 'Lista de entrada con cuatro tags leídos y dos alertas', cap: '4 leídos, 2 con alerta.' }}>
@@ -392,19 +392,27 @@ function GuiaTraza() {
       </Sec>
 
       <Sec id="confirmar" n="6" titulo="Confirmar la entrada">
-        <p>Cuando la lista está bien, tocá <b>Confirmar entrada</b>. Queda registrada con el remito, el origen y todas las piezas, y la pantalla queda lista para la siguiente.</p>
+        <p>Cuando la lista está bien, tocá <b>Confirmar entrada</b>. Queda guardada en el <b>Registro de entradas</b> con el N.º de entrada, la base y todas las piezas, y la pantalla queda lista para la siguiente.</p>
       </Sec>
 
-      <Sec id="recientes" n="7" titulo="Entradas recientes" img={{ src: 't-recientes', alt: 'Lista de entradas recientes confirmadas', cap: 'Últimas entradas.' }}>
-        <p>Muestra las últimas entradas con su remito, origen y cantidad de ítems.</p>
+      <Sec id="registro" n="7" titulo="Registro de entradas" img={{ src: 't-registro', alt: 'Registro de entradas con filtros por cliente y base', cap: 'Registro de entradas filtrado por cliente.' }}>
+        <p>En la pestaña <b>Registro de entradas</b> están todas las entradas guardadas, la más nueva arriba. De cada una se ve el N.º de entrada, la fecha, la base, quién la cargó, los clientes de las piezas y cuántas piezas tiene.</p>
+        <ol className="ay-pasos">
+          <li>Elegí un <b>Cliente</b> para ver solo las entradas con piezas de esa empresa.</li>
+          <li>Elegí una <b>Base</b> para ver solo las entradas que vinieron de ahí. Se pueden usar los dos filtros juntos.</li>
+          <li>También podés buscar por <b>N.º de entrada</b> o elegir <b>Fechas</b>.</li>
+          <li>Tocá una entrada para ver sus piezas, con las alertas de certificado.</li>
+        </ol>
         <ul className="ay-lista">
-          <li><b>Abierta:</b> se empezó a leer y todavía no se confirmó.</li>
-          <li><b>Confirmada:</b> cerrada y registrada.</li>
+          <li><b>Excel:</b> baja las entradas que estás viendo (con los filtros puestos), con una hoja de entradas y otra con todas las piezas. Dentro de una entrada, <b>Excel de esta entrada</b> baja solo esa.</li>
+          <li><b>Abierta:</b> se empezó a leer y todavía no se confirmó. Tocala y después <b>Seguir cargando</b> para terminarla.</li>
+          <li><b>Confirmada:</b> cerrada y guardada.</li>
         </ul>
+        <Nota>A la derecha de la pantalla de lectura (abajo, en el celular) están las <b>Últimas entradas</b>; <b>Ver registro</b> lleva a la lista completa. La entrada que estás cargando no se pierde al mirar el registro.</Nota>
       </Sec>
 
       <Sec id="salidas" n="8" titulo="Salidas (próxima etapa)">
-        <p>El despacho de piezas va a funcionar igual: datos del remito de salida, lectura con la pistola, revisión y confirmación.</p>
+        <p>El despacho de piezas va a funcionar igual: datos del remito de salida, lectura con el escáner, revisión y confirmación.</p>
       </Sec>
     </>
   );
@@ -413,7 +421,7 @@ function GuiaTraza() {
 const GUIAS = {
   cliente: { titulo: 'Cliente', bajada: 'Cómo ver el estado de tus piezas, controlar los vencimientos, armar relevamientos en campo y agrupar piezas por destino.', idx: IDX_CLIENTE, C: GuiaCliente },
   precintos: { titulo: 'Precintos', bajada: 'Cómo cargar un informe, grabar cada tag y dejar registrado que quedó colocado en su pieza.', idx: IDX_PRECINTOS, C: GuiaPrecintos },
-  traza: { titulo: 'Trazabilidad', bajada: 'Cómo registrar las piezas que entran al depósito leyendo sus tags con la pistola UHF.', idx: IDX_TRAZA, C: GuiaTraza },
+  traza: { titulo: 'Trazabilidad', bajada: 'Cómo registrar las piezas que entran al depósito leyendo sus tags con el escáner RFID.', idx: IDX_TRAZA, C: GuiaTraza },
 };
 
 /* ============================================================

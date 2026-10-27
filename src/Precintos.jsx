@@ -29,7 +29,7 @@ export default function Precintos({ toast }) {
   const [fEst, setFEst] = useState('all');
   const [grabar, setGrabar] = useState(null);
   const [serie, setSerie] = useState(null); // { cola, titulo } · grabado seguido desde el teléfono
-  const [asocEpc, setAsocEpc] = useState(null); // { cola, titulo } · asociar EPC con la pistola UHF
+  const [asocEpc, setAsocEpc] = useState(null); // { cola, titulo } · asociar EPC con el escáner RFID
 
   const loadInformes = useCallback(async (pickKey) => {
     try {
@@ -157,8 +157,8 @@ export default function Precintos({ toast }) {
                     <span className="pr-muted pr-nota-serie">Para grabar varios seguidos, abrí Olympus en Chrome desde un Android.</span>
                   ))}
                   {sinEpc.length > 0 && (
-                    <button className="axt-btn" onClick={() => setAsocEpc({ cola: sinEpc, titulo: tituloInf })} title="Leer con la pistola UHF el tag de cada pieza">
-                      <Radar size={14} /> Asociar EPC con pistola ({sinEpc.length})
+                    <button className="axt-btn" onClick={() => setAsocEpc({ cola: sinEpc, titulo: tituloInf })} title="Leer con el escáner RFID el tag de cada pieza">
+                      <Radar size={14} /> Asociar EPC con escáner ({sinEpc.length})
                     </button>
                   )}
                   {esAdmin && (
