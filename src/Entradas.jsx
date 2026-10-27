@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, FileDown, Loader2, Search, CalendarRange, CheckCircle2, AlertTriangle, Tag, Package, PlayCircle, Building2, MapPin } from 'lucide-react';
+import { X, FileDown, Loader2, Search, CalendarRange, CheckCircle2, AlertTriangle, Tag, Package, PlayCircle, Building2, MapPin, Hash } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { api } from './api.js';
 import { STATUS, Spinner, ErrorNote, tinte, useEscape } from './ui.jsx';
@@ -29,6 +29,7 @@ function hojaExcel(entradas, piezas, nombre) {
     'N.º de entrada': e.remito || `#${e.id}`,
     'Base': e.origen || '',
     'Empresas': (e.clientes || []).join(', '),
+    'IBM': (e.ibms || []).join(', '),
     'Piezas': e.items,
     'Con alerta': e.alertas,
     'Sin pieza asociada': e.sin_pieza,
@@ -55,7 +56,7 @@ function hojaExcel(entradas, piezas, nombre) {
 }
 
 export function RegistroEntradas({ toast, onRetomar }) {
-  const [f, setF] = useState({ cliente: '', base: '', q: '', desde: '', hasta: '' });
+  const [f, setF] = useState({ cliente: '', ibm: '', base: '', q: '', desde: '', hasta: '' });
   const [qEscrito, setQEscrito] = useState('');
   const [fechas, setFechas] = useState(false);
   const [opc, setOpc] = useState(null); // { clientes, bases, sin_base }
@@ -106,6 +107,7 @@ export function RegistroEntradas({ toast, onRetomar }) {
       const partes = [];
       const cli = opc && opc.clientes.find((c) => String(c.id) === String(f.cliente));
       if (cli) partes.push(cli.name);
+      if (f.ibm) partes.push('IBM-' + f.ibm);
       if (f.base) partes.push(f.base === SIN_BASE ? 'sin-base' : f.base);
       if (f.desde || f.hasta) partes.push(`${f.desde || 'inicio'}_a_${f.hasta || 'hoy'}`);
       const nombre = 'entradas' + (partes.length ? '-' + partes.join('-') : '') + '.xlsx';
@@ -115,8 +117,15 @@ export function RegistroEntradas({ toast, onRetomar }) {
     finally { setBajando(false); }
   }
 
-  const hayFiltro = f.cliente || f.base || f.q || f.desde || f.hasta;
-  const limpiar = () => { setF({ cliente: '', base: '', q: '', desde: '', hasta: '' }); setQEscrito(''); };
+  // IBMs para elegir: los del cliente elegido, o todos (juntando las empresas que lo usan)
+  const ibmsDe = (cli) => {
+    const xs = (opc?.ibms || []).filter((i) => !cli || String(i.client_id) === String(cli));
+    const m = new Map();
+    for (const i of xs) { const y = m.get(i.ibm) || { ibm: i.ibm, nombres: [] }; y.nombres.push(i.cliente); m.set(i.ibm, y); }
+    return [...m.values()].map((y) => ({ ibm: y.ibm, clientes: y.nombres.join(', ') })).sort((a, b) => String(a.ibm).localeCompare(String(b.ibm), 'es', { numeric: true }));
+  };
+  const hayFiltro = f.cliente || f.ibm || f.base || f.q || f.desde || f.hasta;
+  const limpiar = () => { setF({ cliente: '', ibm: '', base: '', q: '', desde: '', hasta: '' }); setQEscrito(''); };
   const poner = (k, v) => setF((x) => ({ ...x, [k]: v }));
 
   return (
@@ -125,9 +134,16 @@ export function RegistroEntradas({ toast, onRetomar }) {
         <div className="ent-filtros-fila">
           <label className="fld">
             <span><Building2 size={11} /> Cliente</span>
-            <select value={f.cliente} onChange={(e) => poner('cliente', e.target.value)} aria-label="Filtrar por cliente">
+            <select value={f.cliente} onChange={(e) => setF((x) => ({ ...x, cliente: e.target.value, ibm: x.ibm && ibmsDe(e.target.value).some((i) => i.ibm === x.ibm) ? x.ibm : '' }))} aria-label="Filtrar por cliente">
               <option value="">Todos</option>
               {(opc?.clientes || []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </label>
+          <label className="fld">
+            <span><Hash size={11} /> IBM</span>
+            <select value={f.ibm} onChange={(e) => poner('ibm', e.target.value)} aria-label="Filtrar por IBM" disabled={!ibmsDe(f.cliente).length}>
+              <option value="">{ibmsDe(f.cliente).length ? 'Todos' : 'Sin IBM'}</option>
+              {ibmsDe(f.cliente).map((i) => <option key={i.ibm} value={i.ibm}>IBM {i.ibm}{!f.cliente && i.clientes ? ` · ${i.clientes}` : ''}</option>)}
             </select>
           </label>
           <label className="fld">
@@ -181,8 +197,11 @@ export function RegistroEntradas({ toast, onRetomar }) {
                   <Estado status={e.status} />
                 </span>
                 <span className="ent-fila-meta">{fmtFechaHora(e.created_at)}{e.origen ? ` · ${e.origen}` : ''}{e.usuario ? ` · ${e.usuario}` : ''}</span>
-                {e.clientes.length > 0 && (
-                  <span className="gs-ibms">{e.clientes.map((c) => <span key={c} className="gs-ibm">{c}</span>)}</span>
+                {(e.clientes.length > 0 || (e.ibms || []).length > 0) && (
+                  <span className="gs-ibms">
+                    {e.clientes.map((c) => <span key={c} className="gs-ibm">{c}</span>)}
+                    {(e.ibms || []).map((i) => <span key={'i' + i} className="gs-ibm ibm">IBM {i}</span>)}
+                  </span>
                 )}
               </span>
               <span className="ent-fila-num">
