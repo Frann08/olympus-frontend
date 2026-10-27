@@ -143,7 +143,9 @@ export function elegirTag(juntas, margen = MARGEN_DB) {
 }
 
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
-const MAX_LECTURA_MS = 60000; // si se pierde el aviso de "soltó el gatillo", se corta solo
+const MAX_LECTURA_MS = 10 * 60000; // por las dudas: una lectura olvidada se corta sola a los 10 minutos
+const REBOTE_MS = 250;    // dos avisos de "apretó" más juntos que esto son el mismo gatillazo
+const MANTENER_MS = 1200; // si se mantuvo apretado más que esto, al soltar se para (como antes)
 
 class LectorR6 {
   constructor() {
@@ -343,10 +345,29 @@ class LectorR6 {
     if (c && c.tag) lecturas.forEach((x) => c.tag(x.epc, x.rssi));
   }
 
+  // Gatillo: un gatillazo empieza a leer y el siguiente para (igual que el botón Leer / Parar).
+  // Volver a apretar sigue leyendo sobre la misma pantalla (en Trazabilidad, la misma entrada).
+  // Si se mantiene apretado un rato, al soltar también para.
   _gatillo(abajo) {
-    if (abajo) {
-      if (!this.leyendo && this.conectada && this.captura) { this.porGatillo = true; this.empezar(); }
-    } else if (this.leyendo && this.porGatillo) this.parar();
+    const ahora = Date.now();
+    if (!abajo) {
+      if (this.leyendo && this.porGatillo && ahora - this.apretadoEn >= MANTENER_MS) this.parar();
+      return;
+    }
+    if (ahora - (this.ultimoGatillo || 0) < REBOTE_MS) return;
+    this.ultimoGatillo = ahora;
+    if (this.leyendo) { this.parar(); return; }
+    const c = this.captura;
+    if (!this.conectada || !c) return;
+    this.porGatillo = true;
+    this.apretadoEn = ahora;
+    this.empezar();
+    // pantallas que buscan un solo tag (asociar): leen un momento y paran solas
+    if (c.corteMs) {
+      const v = this.vuelta;
+      clearTimeout(this.corteUna);
+      this.corteUna = setTimeout(() => { if (this.vuelta === v) this.parar(); }, c.corteMs);
+    }
   }
 
   // ---- lectura ----
@@ -397,6 +418,7 @@ class LectorR6 {
 
   async parar({ refrescar = true } = {}) {
     if (!this.leyendo) return;
+    clearTimeout(this.corteUna);
     const vuelta = this.vuelta;
     this.estadoLectura(false);
     for (let k = 0; k < 3; k++) {

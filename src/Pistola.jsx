@@ -27,7 +27,8 @@ const r6Conectada = (r6) => r6.estado === 'lista' || r6.estado === 'leyendo';
 const nTags = (n) => `${n} ${n === 1 ? 'tag' : 'tags'}`;
 
 // espera: cuánto esperar después del último tag antes de mandar la tanda (modo teclado: el escáner tipea cada EPC en ~1 s)
-// parcial: con la R6, mientras se mantiene el gatillo se van mandando los tags nuevos (si no, todo junto al soltar)
+// parcial: con la R6, mientras lee se van mandando los tags nuevos (si no, todo junto al parar).
+// Sin parcial (buscar un solo tag), un gatillazo lee un momento y para solo.
 export function CapturaPistola({ onLeidos, activo = true, texto = 'Apretá el gatillo del escáner', ayuda, espera = 350, parcial = true }) {
   const ref = useRef(null);
   const tanda = useRef([]);
@@ -72,6 +73,7 @@ export function CapturaPistola({ onLeidos, activo = true, texto = 'Apretá el ga
   useEffect(() => {
     if (!activo) return undefined;
     return lectorR6.registrar({
+      corteMs: parcialRef.current ? 0 : 1500,
       inicio: () => { vistos.current = new Set(); tanda.current = []; setEnCurso(0); },
       tag: (epc) => {
         const e = normEpc(epc);
@@ -95,7 +97,11 @@ export function CapturaPistola({ onLeidos, activo = true, texto = 'Apretá el ga
   const reciente = ultimo && Date.now() - ultimo.t < 4000;
   const conBt = hayBluetooth();
   let titulo, sub;
-  if (leyendo) { titulo = 'Leyendo…'; sub = enCurso ? `${nTags(enCurso)} hasta ahora` : 'Soltá el gatillo para terminar'; }
+  if (leyendo) {
+    titulo = 'Leyendo…';
+    sub = !parcial ? (enCurso ? `${nTags(enCurso)} hasta ahora` : 'Apuntá al tag')
+      : enCurso ? `${nTags(enCurso)} hasta ahora · gatillo otra vez para parar` : 'Apretá el gatillo otra vez para parar';
+  }
   else if (conR6) { titulo = texto; sub = reciente ? (ultimo.n ? `Leídos: ${nTags(ultimo.n)}` : 'No se leyó ningún tag. Acercate más o subí la potencia.') : (ayuda || 'Escáner conectado, listo para leer'); }
   else if (conBt && !(reciente && ultimo.n)) { titulo = 'Conectá el escáner R6 con el botón de abajo'; sub = foco ? 'Si usás un escáner en modo teclado, ya podés apretar el gatillo' : 'Si usás un escáner en modo teclado, tocá acá antes de apretar el gatillo'; }
   else if (foco) { titulo = texto; sub = reciente && ultimo.n ? `Leídos: ${nTags(ultimo.n)}` : (ayuda || 'Lista para leer'); }

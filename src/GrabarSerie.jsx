@@ -84,6 +84,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Lo que se lee con el gatillo va para la pieza que quedó sin UHF
   useEffect(() => lectorR6.registrar({
+    corteMs: 1500, // un gatillazo lee un momento y para solo
     inicio: () => { gatillo.current = []; },
     tag: (epc, rssi) => { gatillo.current.push({ epc, rssi }); },
     fin: () => { trasGatillo(juntarLecturas(gatillo.current)); },

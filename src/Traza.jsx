@@ -166,7 +166,7 @@ function NuevaEntrada({ toast, visible, retomar, onRetomada, onRegistro }) {
             {scanning ? 'Registrando lecturas…' : 'Leer tags con el escáner'}
           </div>
           <div style={{ font: '400 12px "IBM Plex Sans"', color: 'var(--t-7A8792)', marginTop: 5, marginBottom: 14 }}>
-            Conectá el escáner, apuntá a las piezas y mantené apretado el gatillo. Los tags leídos se suman solos a la lista.
+            Conectá el escáner, apuntá a las piezas y apretá el gatillo una vez para empezar a leer y otra para parar. Los tags leídos se suman solos a la lista.
           </div>
           <CapturaPistola onLeidos={leer} activo={visible} />
         </div>
