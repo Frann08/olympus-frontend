@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, FileDown, Loader2, Search, CalendarRange, CheckCircle2, AlertTriangle, Tag, Package, PlayCircle, Building2, MapPin, Hash } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { cargarXlsx } from './xlsx.js';
 import { api } from './api.js';
 import { STATUS, Spinner, ErrorNote, tinte, useEscape } from './ui.jsx';
 import { epcLindo } from './Pistola.jsx';
@@ -23,7 +23,8 @@ function Estado({ status }) {
     : <span className="ok-badge abierta">Abierta</span>;
 }
 
-function hojaExcel(entradas, piezas, nombre) {
+async function hojaExcel(entradas, piezas, nombre) {
+  const XLSX = await cargarXlsx();
   const resumen = entradas.map((e) => ({
     'Fecha': fmtFechaHora(e.created_at),
     'N.º de entrada': e.remito || `#${e.id}`,
@@ -111,7 +112,7 @@ export function RegistroEntradas({ toast, onRetomar }) {
       if (f.base) partes.push(f.base === SIN_BASE ? 'sin-base' : f.base);
       if (f.desde || f.hasta) partes.push(`${f.desde || 'inicio'}_a_${f.hasta || 'hoy'}`);
       const nombre = 'entradas' + (partes.length ? '-' + partes.join('-') : '') + '.xlsx';
-      hojaExcel(todas.entradas, piezas, paraArchivo(nombre));
+      await hojaExcel(todas.entradas, piezas, paraArchivo(nombre));
       if (todas.total > todas.entradas.length) toast(`El Excel trae las ${todas.entradas.length} entradas más nuevas de ${todas.total}. Filtrá por fecha para el resto.`);
     } catch (e) { toast('No se pudo armar el Excel: ' + e.message); }
     finally { setBajando(false); }
@@ -243,10 +244,10 @@ export function DetalleEntrada({ id, toast, onClose, onRetomar, onDescartada }) 
   const [error, setError] = useState(null);
   useEffect(() => { api(`/api/entradas/${id}`).then(setE).catch((x) => setError(x.message)); }, [id]);
 
-  function excel() {
+  async function excel() {
     const fila = { ...e, items: e.items.length, alertas: e.items.filter((i) => i.status && i.status !== 'certified').length, sin_pieza: e.items.filter((i) => !i.asset_id).length, clientes: [...new Set(e.items.map((i) => i.client).filter(Boolean))] };
     const piezas = e.items.map((i) => ({ ...i, created_at: e.created_at, remito: e.remito, origen: e.origen, entrada_id: e.id, cliente: i.client }));
-    hojaExcel([fila], piezas, paraArchivo(`entrada-${e.remito || e.id}.xlsx`));
+    await hojaExcel([fila], piezas, paraArchivo(`entrada-${e.remito || e.id}.xlsx`));
   }
 
   const alertas = e ? e.items.filter((i) => i.status && i.status !== 'certified').length : 0;

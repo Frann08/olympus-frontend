@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Boxes, Clock, Radio, Tag, ChevronRight, Search, X, CheckCircle2, Plus, Building2, Copy, Check, QrCode, Upload, FileDown, AlertTriangle, Trash2, Pencil, MapPin } from 'lucide-react';
 import QRCode from 'qrcode';
-import * as XLSX from 'xlsx';
+import { cargarXlsx } from './xlsx.js';
 import { api, PUBLIC_URL } from './api.js';
 import { useData, Band, Pill, EncChip, StatTile, CertRow, Spinner, ErrorNote, daysLabel, useEscape, sinTildes, useTanda, MostrarMas } from './ui.jsx';
 
@@ -450,7 +450,8 @@ const TPL_ROWS = [
   ['Halliburton', '195', '2182', 'TSS/MPD', 11, 'CONEXIÓN 2" FIG 1502 x 4" Fig 602 HH', 'BMBS10760', 'APTO', '5 KPSI', '06/2027', 'BMBS10760 - 5 KPSI - EXP 0627 - IBM 195 - 2182', ''],
 ];
 
-function downloadTemplate() {
+async function downloadTemplate() {
+  const XLSX = await cargarXlsx();
   const ws = XLSX.utils.aoa_to_sheet([TPL_HEADERS, ...TPL_ROWS]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'informe');
@@ -508,7 +509,7 @@ function normRow(raw, texto) {
 }
 const filaVacia = (r) => !Object.values(r).some((v) => v);
 // Hoja a leer: la que se llame "Hoja 2" (o "Hoja2"), si no la primera que tenga columna de serie, si no la primera
-function elegirHoja(wb) {
+function elegirHoja(wb, XLSX) {
   const porNombre = wb.SheetNames.find((n) => /^hoja\s*2$/i.test(n.trim()));
   if (porNombre) return porNombre;
   const conSerie = wb.SheetNames.find((n) => {
@@ -537,10 +538,11 @@ export function ImportPanel({ toast, onImported, title = 'Importar informe (Exce
     if (!file) return;
     setFileName(file.name); setResult(null); setRows(null);
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
+        const XLSX = await cargarXlsx();
         const wb = XLSX.read(ev.target.result, { type: 'array', cellDates: true });
-        const hoja = elegirHoja(wb);
+        const hoja = elegirHoja(wb, XLSX);
         const ws = wb.Sheets[hoja];
         const crudo = XLSX.utils.sheet_to_json(ws, { defval: '' });
         const texto = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });

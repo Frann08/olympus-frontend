@@ -3,7 +3,7 @@ import {
   Building2, Smartphone, ChevronRight, Radio, X, Wifi, WifiOff, RefreshCw,
   ScanLine, ClipboardList, CheckCircle2, Plus, Trash2, Loader2, History, ExternalLink, Save, Search, FileDown, MapPin,
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { cargarXlsx } from './xlsx.js';
 import { api } from './api.js';
 import { getUser } from './api.js';
 import { Band, Pill, CertRow, Spinner, ErrorNote, daysLabel, daysFrom, esNoApto, useEscape } from './ui.jsx';
@@ -322,6 +322,7 @@ function Relevamiento({ assets, online, toast, onCambio }) {
         'Vencimiento': vencMMAAAA(it.next_expiry),
         'Nº de informe': it.informe || '',
       }));
+      const XLSX = await cargarXlsx();
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'relevamiento');
