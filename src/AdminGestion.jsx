@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Building2, Users, UserPlus, Plus, Trash2, Pencil, KeyRound, Search, X, Boxes, DatabaseBackup, Loader2, FileDown, Upload } from 'lucide-react';
-import { api, downloadBackup, getUser } from './api.js';
+import { Building2, Users, UserPlus, Plus, Trash2, Eye, PenLine, KeyRound, Search, X, Boxes, DatabaseBackup, Loader2, FileDown, Upload } from 'lucide-react';
+import { api, downloadBackup, getUser, actualizarYo } from './api.js';
 import { useData, Spinner, ErrorNote, sinTildes, useTanda, MostrarMas } from './ui.jsx';
 
 /* Páginas de Administración: Empresas, Usuarios y Respaldo.
@@ -63,6 +63,8 @@ export function Empresas({ toast, ir, inicial }) {
   const [q, setQ] = useState('');
   const [filtro, setFiltro] = useState((inicial && inicial.filtro) || 'todas');
   const [nombre, setNombre] = useState('');
+  const [renId, setRenId] = useState(null);   // empresa a la que se le corrige el nombre
+  const [renNom, setRenNom] = useState('');
   const [ocupado, unaVez] = useUnaVez();
   const [n, mas] = useTanda(q, filtro);
 
@@ -87,6 +89,20 @@ export function Empresas({ toast, ir, inicial }) {
         await api('/api/clients', { method: 'POST', body: JSON.stringify({ name: nom }) });
         toast('Empresa creada');
         setNombre(''); setFiltro('todas'); setQ(nom); // queda a la vista para crearle el acceso
+        setRev((r) => r + 1);
+      } catch (e) { toast(e.message); }
+    });
+  }
+  async function renombrar(c) {
+    const nom = renNom.trim().replace(/\s+/g, ' ');
+    if (!nom) { toast('Escribí el nombre de la empresa'); return; }
+    if (nom === c.name) { setRenId(null); return; }
+    await unaVez(async () => {
+      try {
+        await api('/api/clients/' + c.id, { method: 'PATCH', body: JSON.stringify({ name: nom }) });
+        toast(`Nombre corregido: ${nom}`);
+        setRenId(null);
+        if (q && sinTildes(c.name).includes(sinTildes(q))) setQ(nom); // que no desaparezca de la búsqueda
         setRev((r) => r + 1);
       } catch (e) { toast(e.message); }
     });
@@ -149,8 +165,23 @@ export function Empresas({ toast, ir, inicial }) {
                   {c.users > 0
                     ? <button className="axt-btn small" onClick={() => ir('usuarios', { empresa: c.id })} title={'Ver los usuarios de ' + c.name}><Users size={13} /> Usuarios</button>
                     : <button className="axt-btn small" onClick={() => ir('usuarios', { empresa: c.id, nuevo: true })} title={'Crear un acceso para ' + c.name}><UserPlus size={13} /> Crear acceso</button>}
+                  <button className={'axt-x sm' + (renId === c.id ? ' on' : '')} title="Corregir el nombre" aria-label={'Corregir el nombre de ' + c.name} aria-expanded={renId === c.id}
+                    onClick={() => { if (renId === c.id) setRenId(null); else { setRenId(c.id); setRenNom(c.name); } }}>
+                    <PenLine size={13} />
+                  </button>
                   {c.assets === 0 && <button className="axt-x sm" title="Eliminar empresa" aria-label={'Eliminar ' + c.name} onClick={() => borrar(c)} disabled={ocupado}><Trash2 size={13} /></button>}
                 </div>
+                {renId === c.id && (
+                  <div className="gs-edit">
+                    <div className="gs-edit-row">
+                      <input className="gs-in" autoFocus value={renNom} maxLength={120} onChange={(e) => setRenNom(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') renombrar(c); if (e.key === 'Escape') setRenId(null); }} aria-label={'Nuevo nombre de ' + c.name} />
+                      <button className="axt-btn small primary" onClick={() => renombrar(c)} disabled={ocupado}>Guardar</button>
+                      <button className="axt-btn small" onClick={() => setRenId(null)}>Cancelar</button>
+                    </div>
+                    <div className="cor-nota">Se corrige en todos lados: activos, certificados, usuarios y lo que ve el cliente.</div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -183,6 +214,8 @@ export function Usuarios({ toast, inicial }) {
   const [editIbms, setEditIbms] = useState(null);
   const [pwId, setPwId] = useState(null);
   const [pw, setPw] = useState('');
+  const [nomId, setNomId] = useState(null);   // usuario al que se le corrige el nombre
+  const [nomF, setNomF] = useState({ name: '', username: '' });
   const [ocupado, unaVez] = useUnaVez();
   const yo = getUser();
 
@@ -226,6 +259,29 @@ export function Usuarios({ toast, inicial }) {
       try {
         await api('/api/users/' + u.id, { method: 'PATCH', body: JSON.stringify({ ibms: editIbms || [] }) });
         toast('IBM actualizados para ' + quien(u)); setEditId(null); reload();
+      } catch (e) { toast(e.message); }
+    });
+  }
+  const abrir = (cual, u) => {   // un solo editor abierto por fila
+    setEditId(null); setPwId(null); setNomId(null);
+    if (cual === 'nom' && nomId !== u.id) { setNomId(u.id); setNomF({ name: u.name || '', username: u.username || '' }); }
+  };
+  async function guardarNombre(u) {
+    const name = nomF.name.trim().replace(/\s+/g, ' ');
+    const username = nomF.username.trim();
+    if (!name) { toast('Escribí el nombre'); return; }
+    if (!username) { toast('El usuario para entrar no puede quedar vacío'); return; }
+    if (/\s/.test(username)) { toast('El usuario no puede tener espacios'); return; }
+    const body = {};
+    if (name !== (u.name || '')) body.name = name;
+    if (username !== (u.username || '')) body.username = username;
+    if (!Object.keys(body).length) { setNomId(null); return; }
+    await unaVez(async () => {
+      try {
+        const r = await api('/api/users/' + u.id, { method: 'PATCH', body: JSON.stringify(body) });
+        if (yo && String(yo.id) === String(u.id) && r) actualizarYo({ name: r.name, username: r.username });
+        toast(body.username ? `Listo. Desde ahora entra con el usuario "${username}"` : 'Nombre corregido');
+        setNomId(null); reload();
       } catch (e) { toast(e.message); }
     });
   }
@@ -338,6 +394,7 @@ export function Usuarios({ toast, inicial }) {
                 <div key={u.id} className="gs-row gs-usu" role="row">
                   <div className="gs-main" role="cell">
                     <div className="gs-name">{quien(u)}{soyYo && <span className="gs-yo">vos</span>}</div>
+                    {u.name && u.name !== u.username && <div className="gs-mail">{u.name}</div>}
                     {u.email && u.email !== u.username && <div className="gs-mail">{u.email}</div>}
                   </div>
                   <div data-l="Lado" role="cell" className="gs-c-lado"><span className="gs-rol" style={{ color: ROL_COLOR[u.role] }}>{ROL_NOMBRE[u.role] || u.role}</span></div>
@@ -348,19 +405,38 @@ export function Usuarios({ toast, inicial }) {
                       : <span className="gs-mute">{u.role === 'admin' ? 'Todo' : 'Todas las empresas'}</span>}
                   </div>
                   <div className="gs-acc" role="cell">
+                    <button className={'axt-x sm' + (nomId === u.id ? ' on' : '')} title="Corregir nombre o usuario" aria-label={'Corregir nombre de ' + quien(u)} aria-expanded={nomId === u.id}
+                      onClick={() => abrir('nom', u)}>
+                      <PenLine size={13} />
+                    </button>
                     {u.role === 'cliente' && (
                       <button className={'axt-x sm' + (editId === u.id ? ' on' : '')} title="Cambiar los IBM que puede ver" aria-label={'Cambiar IBM de ' + quien(u)} aria-expanded={editId === u.id}
-                        onClick={() => { setPwId(null); if (editId === u.id) setEditId(null); else { setEditId(u.id); setEditIbms(u.ibms && u.ibms.length ? u.ibms : null); } }}>
-                        <Pencil size={13} />
+                        onClick={() => { setPwId(null); setNomId(null); if (editId === u.id) setEditId(null); else { setEditId(u.id); setEditIbms(u.ibms && u.ibms.length ? u.ibms : null); } }}>
+                        <Eye size={13} />
                       </button>
                     )}
                     <button className={'axt-x sm' + (pwId === u.id ? ' on' : '')} title="Cambiar contraseña" aria-label={'Cambiar contraseña de ' + quien(u)} aria-expanded={pwId === u.id}
-                      onClick={() => { setEditId(null); setPw(''); setPwId(pwId === u.id ? null : u.id); }}>
+                      onClick={() => { setEditId(null); setNomId(null); setPw(''); setPwId(pwId === u.id ? null : u.id); }}>
                       <KeyRound size={13} />
                     </button>
                     {u.role !== 'admin' && <button className="axt-x sm" title="Eliminar acceso" aria-label={'Eliminar ' + quien(u)} onClick={() => borrar(u)} disabled={ocupado}><Trash2 size={13} /></button>}
                   </div>
 
+                  {nomId === u.id && (
+                    <div className="gs-edit">
+                      <div className="gs-nombre">
+                        <label className="fld"><span>Nombre</span>
+                          <input autoFocus value={nomF.name} maxLength={120} placeholder="ej.: Juan Pérez" onChange={(e) => setNomF({ ...nomF, name: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && guardarNombre(u)} /></label>
+                        <label className="fld"><span>Usuario para entrar</span>
+                          <input value={nomF.username} autoCapitalize="none" autoCorrect="off" spellCheck={false} onChange={(e) => setNomF({ ...nomF, username: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && guardarNombre(u)} /></label>
+                      </div>
+                      {nomF.username.trim() !== (u.username || '') && <div className="cor-nota">Ojo: si cambiás el usuario, {soyYo ? 'vos vas' : 'esta persona va'} a tener que entrar con el nuevo. La contraseña no cambia.</div>}
+                      <div className="cor-botones">
+                        <button className="axt-btn small primary" onClick={() => guardarNombre(u)} disabled={ocupado}>Guardar</button>
+                        <button className="axt-btn small" onClick={() => setNomId(null)}>Cancelar</button>
+                      </div>
+                    </div>
+                  )}
                   {pwId === u.id && (
                     <div className="gs-edit">
                       <div className="gs-edit-row">

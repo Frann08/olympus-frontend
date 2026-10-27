@@ -37,6 +37,18 @@ export async function login(usuario, password, lado) {
   return user;
 }
 
+// Cambiar la contraseña propia: el servidor cierra las otras sesiones y devuelve una nueva para este equipo
+export async function cambiarMiClave(actual, nueva) {
+  const r = await api('/api/me/password', { method: 'POST', body: JSON.stringify({ actual, nueva }) });
+  if (r && r.token) { token = r.token; guardar('axtag_token', token); }
+}
+// Si Administración corrige el nombre propio, se actualiza lo que se muestra arriba
+export function actualizarYo(campos) {
+  if (!user) return;
+  user = { ...user, ...campos };
+  guardar('axtag_user', JSON.stringify(user));
+}
+
 // borrarDatos: al salir a propósito se borran los datos guardados para usar sin señal
 // (si la sesión solo venció, quedan: son del mismo usuario y nadie más los ve)
 export function logout({ borrarDatos = false } = {}) {

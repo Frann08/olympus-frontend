@@ -498,7 +498,7 @@ a.axt-btn { text-decoration: none; }
 .gs-hd { padding-top: 11px; padding-bottom: 11px; border-bottom-color: var(--border); }
 .gs-hd span { font: 600 10.5px "IBM Plex Mono", monospace; letter-spacing: .8px; text-transform: uppercase; color: var(--t-66727D); }
 .gs-emp { grid-template-columns: minmax(0, 1fr) 70px 90px 70px 280px; }
-.gs-usu { grid-template-columns: minmax(0, 1.3fr) 120px minmax(0, 1fr) minmax(0, 1fr) 104px; }
+.gs-usu { grid-template-columns: minmax(0, 1.3fr) 120px minmax(0, 1fr) minmax(0, 1fr) 140px; }
 .gs-main { min-width: 0; }
 .gs-name { font: 600 13.5px "IBM Plex Sans"; color: var(--t-EAF0F3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gs-mail { font: 400 11px "IBM Plex Mono", monospace; color: var(--t-6A7681); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -545,7 +545,7 @@ a.axt-btn { text-decoration: none; }
   .gs-emp { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .gs-emp .gs-main, .gs-emp .gs-acc { grid-column: 1 / -1; }
   /* usuario: nombre y botones arriba; lado y empresa abajo; "puede ver" solo si es cliente */
-  .gs-usu { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 96px; }
+  .gs-usu { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 136px; }
   .gs-usu .gs-main { grid-column: 1 / 3; grid-row: 1; }
   .gs-usu .gs-acc { grid-column: 3; grid-row: 1; align-self: start; flex-wrap: nowrap; justify-content: flex-end; }
   .gs-usu .gs-c-lado { grid-column: 1; }
@@ -843,3 +843,10 @@ a.axt-btn { text-decoration: none; }
 .ser-uhf { display: inline-block; margin-left: 7px; padding: 0 6px; border-radius: 10px; font: 600 10px "IBM Plex Sans"; vertical-align: 1px; border: 1px solid; }
 .ser-uhf.ok { color: var(--t-4FC98B); border-color: color-mix(in srgb, var(--t-4FC98B) 35%, transparent); }
 .ser-uhf.falta { color: var(--t-EDA53C); border-color: color-mix(in srgb, var(--t-EDA53C) 35%, transparent); }
+
+/* Cambiar mi contraseña */
+.mi-clave-form { display: flex; flex-direction: column; gap: 14px; }
+.mi-clave-ver { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; background: transparent; border: none; color: var(--t-9AA6B1); font: 500 12px "IBM Plex Sans"; cursor: pointer; padding: 2px 0; }
+/* Corregir nombre (empresa / usuario) en línea */
+.gs-nombre { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.gs-nombre .fld { flex: 1 1 180px; }

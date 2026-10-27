@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
-import { SlidersHorizontal, ScanLine, Smartphone, LogOut, Radio, WifiOff, Tag, ArrowLeft, Lock, SearchX, HelpCircle, MapPin } from 'lucide-react';
+import { SlidersHorizontal, ScanLine, Smartphone, LogOut, KeyRound, Radio, WifiOff, Tag, ArrowLeft, Lock, SearchX, HelpCircle, MapPin } from 'lucide-react';
 import { login, logout, getUser, isAuthed, tagInfo } from './api.js';
 import { Band, Pill, CertRow, Spinner, ErrorNote, Toast } from './ui.jsx';
 import { useOnline } from './offline.js';
@@ -15,6 +15,7 @@ const Precintos = lazy(() => import('./Precintos.jsx'));
 import Portal, { SIDE_NAME } from './Portal.jsx';
 import Ayuda, { HojaCliente, guiasPara } from './Ayuda.jsx';
 import { BotonTema } from './tema.jsx';
+import { MiClave } from './Cuenta.jsx';
 
 const ROLES = {
   admin:     { label: 'Administración', icon: SlidersHorizontal, who: 'Administración · empresas, usuarios, carga y codificación de activos' },
@@ -78,6 +79,7 @@ export default function App() {
   const [user, setUser] = useState(isAuthed() ? getUser() : null);
   const [door, setDoor] = useState(null);
   const [view, setView] = useState(vistaGuardada);
+  const [miClave, setMiClave] = useState(false);
   const [vistaParams, setVistaParams] = useState(null); // p. ej. { empresa: 3 } al saltar de Empresas a Usuarios
   const [toast, setToast] = useState(null);
   const [ayuda, setAyuda] = useState(null); // { guias, inicial } · se abre encima de la pantalla actual
@@ -156,6 +158,7 @@ export default function App() {
             <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-6A7681)' }}>{user.username || user.email}</div>
           </div>
           <BotonTema />
+          <button className="axt-x" onClick={() => setMiClave(true)} title="Cambiar mi contraseña" aria-label="Cambiar mi contraseña"><KeyRound size={17} /></button>
           <button className="axt-x" onClick={() => abrirAyuda(guiasPara(user.role), user.role === 'admin' ? view : user.role)} title="Ayuda" aria-label="Ayuda"><HelpCircle size={17} /></button>
           <button className="axt-x" onClick={() => { logout({ borrarDatos: true }); setUser(null); setDoor(null); }} title="Cerrar sesión" aria-label="Cerrar sesión"><LogOut size={17} /></button>
         </div>
@@ -189,6 +192,7 @@ export default function App() {
       </div>
 
       {toast && <Toast msg={toast} />}
+      {miClave && <MiClave toast={showToast} onClose={() => setMiClave(false)} />}
       {overlay}
     </div>
   );
