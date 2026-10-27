@@ -186,6 +186,7 @@ function GuiaCliente() {
       </Sec>
 
       <Sec id="faq" n="10" titulo="Preguntas frecuentes">
+        <Faq q="¿Cómo cambio mi contraseña?">Tocá la <b>llave</b> de arriba a la derecha, escribí tu contraseña actual y dos veces la nueva (mínimo 6 caracteres). En ese celular seguís conectado; en los otros equipos donde habías entrado te va a pedir la nueva.</Faq>
         <Faq q="Me olvidé la contraseña">Pedile a BM que te la restablezca.</Faq>
         <Faq q="El tag no lee">Revisá que el NFC esté activado y la pantalla desbloqueada. Sacá la funda si es gruesa o metálica. Mové el celular despacio sobre el tag hasta encontrar el punto donde lee.</Faq>
         <Faq q="No veo algunas de mis piezas">Tu usuario ve solo las piezas de tu empresa y de los IBM que tiene habilitados. Pedile a BM que agregue los que falten.</Faq>
@@ -322,6 +323,8 @@ function GuiaPrecintos() {
         <ul className="ay-lista">
           <li><b>Un informe entero</b> (por ejemplo, era el 401 y no el 400): Administración abre el informe en Precintos y toca <b>Corregir informe</b>.</li>
           <li><b>Una sola pieza</b>: Administración la busca en la pestaña <b>Activos</b>, la abre, toca el lápiz y corrige la serie, la descripción, el IBM o los datos de la inspección.</li>
+          <li><b>El nombre de una empresa</b>: en la pestaña <b>Empresas</b>, el lápiz de la fila. Se corrige en todos lados (activos, usuarios, tags grabados y lo que ve el cliente).</li>
+          <li><b>El nombre o el usuario de una persona</b>: en la pestaña <b>Usuarios</b>, el lápiz de la fila. Si cambiás el usuario, esa persona entra con el nuevo; la contraseña sigue igual.</li>
         </ul>
         <Nota>Cada corrección queda registrada: quién la hizo, cuándo, qué había antes y el motivo.</Nota>
         <Aviso>Si el <b>tag quedó puesto en otra pieza</b> (se grabó el de la serie equivocada), avisale a Administración: eso se resuelve aparte.</Aviso>
