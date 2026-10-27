@@ -377,8 +377,9 @@ function GuiaTraza() {
       <Sec id="leer" n="4" titulo="Leer los tags con el escáner" img={{ src: 't-leer', alt: 'Zona de lectura con el escáner R6 conectado, lista para leer', cap: 'Escáner conectado, listo para leer.' }}>
         <ol className="ay-pasos">
           <li>Con el escáner conectado, la zona de lectura dice <b>Apretá el gatillo del escáner</b>.</li>
-          <li>Apuntá a las piezas y <b>mantené apretado el gatillo</b>. Mientras lee, la zona dice <b>Leyendo…</b> y cuántos tags lleva. El escáner lee varios tags a la vez y a distancia.</li>
-          <li>Los tags leídos se suman solos a la <b>Lista de entrada</b>; el equipo vibra y abajo aparece cuántos tags nuevos entraron. Soltá el gatillo para terminar.</li>
+          <li>Apuntá a las piezas y <b>apretá el gatillo una vez</b>: empieza a leer. Mientras lee, la zona dice <b>Leyendo…</b> y cuántos tags lleva. El escáner lee varios tags a la vez y a distancia.</li>
+          <li>Los tags leídos se suman solos a la <b>Lista de entrada</b>; el equipo vibra y abajo aparece cuántos tags nuevos entraron. <b>Apretá el gatillo otra vez para parar</b> (es lo mismo que el botón <b>Parar</b>).</li>
+          <li>Para seguir con otro grupo de piezas, volvé a apretar el gatillo: sigue sumando a <b>la misma entrada</b>, hasta que la confirmes. Si un tag ya estaba, no se duplica.</li>
           <li>Recorré el lote hasta que la cantidad de <b>leídos</b> coincida con las piezas de la entrada.</li>
         </ol>
         <p>Si un tag ya estaba en la lista, no se duplica. Si dice <b>No se leyó ningún tag</b>, acercate más o subí la potencia.</p>
