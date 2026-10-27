@@ -99,6 +99,7 @@ body { margin: 0; background: var(--s-0A0A0B); }
 /* registro de entradas */
 .fld select { width: 100%; min-width: 0; background: var(--s-151217); border: 1px solid var(--border); border-radius: 9px; padding: 9px 10px; color: var(--t-EAF0F3); font: 500 13px "IBM Plex Sans"; outline: none; }
 .fld select:focus { border-color: var(--b-8A6E2C); }
+.fld [aria-invalid="true"] { border-color: var(--t-E5605C); }
 .fld span svg { vertical-align: -1px; margin-right: 3px; }
 .ok-badge.abierta { color: var(--t-EDA53C); background: var(--s-211A10); border-color: var(--b-3A2C15); }
 .ent-filtros { padding: 14px 16px; display: grid; gap: 10px; }

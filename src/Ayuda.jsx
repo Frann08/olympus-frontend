@@ -356,12 +356,12 @@ function GuiaTraza() {
         <p>Trazabilidad registra las piezas que <b>entran al depósito</b> leyendo sus tags a distancia, sin tener que revisar una por una.</p>
       </Sec>
 
-      <Sec id="datos" n="3" titulo="Cargar los datos de la entrada" img={{ src: 't-datos', alt: 'Datos de la entrada con remito y base', cap: 'Remito y base de la entrada.' }}>
+      <Sec id="datos" n="3" titulo="Cargar los datos de la entrada" img={{ src: 't-datos', alt: 'Datos de la entrada con número y base', cap: 'N.º de entrada y base.' }}>
         <ol className="ay-pasos">
-          <li>Escribí el <b>Nº de remito</b>.</li>
-          <li>Escribí la <b>base</b> de donde vienen las piezas (por ejemplo, Base Añelo). Al escribir aparecen las bases que ya se usaron: elegí la misma, así después se puede filtrar bien.</li>
+          <li>Escribí el <b>N.º de entrada</b>, solo números (por ejemplo, 121018).</li>
+          <li>Elegí la <b>base</b>: <b>Añelo</b> o <b>Centenario</b>.</li>
         </ol>
-        <Nota>Completalos <b>antes de leer el primer tag</b>. Con el primer tag se abre la entrada y esos datos quedan fijos hasta confirmarla.</Nota>
+        <Nota>Los dos son <b>obligatorios</b>: si falta alguno, la pistola no registra nada. Completalos <b>antes de leer el primer tag</b>. Con el primer tag se abre la entrada y esos datos quedan fijos hasta confirmarla.</Nota>
       </Sec>
 
       <Sec id="leer" n="4" titulo="Leer los tags con la pistola" img={{ src: 't-leer', alt: 'Zona de lectura con la pistola R6 conectada, lista para leer', cap: 'Pistola conectada, lista para leer.' }}>
@@ -369,7 +369,7 @@ function GuiaTraza() {
           <li>Con la pistola conectada, la zona de lectura dice <b>Apretá el gatillo de la pistola</b>.</li>
           <li>Apuntá a las piezas y <b>mantené apretado el gatillo</b>. Mientras lee, la zona dice <b>Leyendo…</b> y cuántos tags lleva. La pistola lee varios tags a la vez y a distancia.</li>
           <li>Los tags leídos se suman solos a la <b>Lista de entrada</b>; el equipo vibra y abajo aparece cuántos tags nuevos entraron. Soltá el gatillo para terminar.</li>
-          <li>Recorré el lote hasta que la cantidad de <b>leídos</b> coincida con las piezas del remito.</li>
+          <li>Recorré el lote hasta que la cantidad de <b>leídos</b> coincida con las piezas de la entrada.</li>
         </ol>
         <p>Si un tag ya estaba en la lista, no se duplica. Si dice <b>No se leyó ningún tag</b>, acercate más o subí la potencia.</p>
         <Nota>El botón <b>Leer</b> de la barra de la pistola lee sin usar el gatillo (tocá <b>Parar</b> para terminar).</Nota>
@@ -385,15 +385,15 @@ function GuiaTraza() {
       </Sec>
 
       <Sec id="confirmar" n="6" titulo="Confirmar la entrada">
-        <p>Cuando la lista está bien, tocá <b>Confirmar entrada</b>. Queda guardada en el <b>Registro de entradas</b> con el remito, la base y todas las piezas, y la pantalla queda lista para la siguiente.</p>
+        <p>Cuando la lista está bien, tocá <b>Confirmar entrada</b>. Queda guardada en el <b>Registro de entradas</b> con el N.º de entrada, la base y todas las piezas, y la pantalla queda lista para la siguiente.</p>
       </Sec>
 
       <Sec id="registro" n="7" titulo="Registro de entradas" img={{ src: 't-registro', alt: 'Registro de entradas con filtros por cliente y base', cap: 'Registro de entradas filtrado por cliente.' }}>
-        <p>En la pestaña <b>Registro de entradas</b> están todas las entradas guardadas, la más nueva arriba. De cada una se ve el remito, la fecha, la base, quién la cargó, los clientes de las piezas y cuántas piezas tiene.</p>
+        <p>En la pestaña <b>Registro de entradas</b> están todas las entradas guardadas, la más nueva arriba. De cada una se ve el N.º de entrada, la fecha, la base, quién la cargó, los clientes de las piezas y cuántas piezas tiene.</p>
         <ol className="ay-pasos">
           <li>Elegí un <b>Cliente</b> para ver solo las entradas con piezas de esa empresa.</li>
           <li>Elegí una <b>Base</b> para ver solo las entradas que vinieron de ahí. Se pueden usar los dos filtros juntos.</li>
-          <li>También podés buscar por <b>Nº de remito</b> o elegir <b>Fechas</b>.</li>
+          <li>También podés buscar por <b>N.º de entrada</b> o elegir <b>Fechas</b>.</li>
           <li>Tocá una entrada para ver sus piezas, con las alertas de certificado.</li>
         </ol>
         <ul className="ay-lista">

@@ -5,6 +5,8 @@ import { STATUS, Spinner, tinte } from './ui.jsx';
 import { CapturaPistola, AsociarPieza, epcLindo } from './Pistola.jsx';
 import { RegistroEntradas, DetalleEntrada } from './Entradas.jsx';
 
+const BASES = ['Añelo', 'Centenario'];
+
 export default function Traza({ toast }) {
   const [tab, setTab] = useState('nueva');
   const [retomar, setRetomar] = useState(null); // entrada abierta elegida en el registro
@@ -30,7 +32,6 @@ function NuevaEntrada({ toast, visible, retomar, onRetomada, onRegistro }) {
   const [origen, setOrigen] = useState('');
   const [scanning, setScanning] = useState(false);
   const [recent, setRecent] = useState(null);
-  const [bases, setBases] = useState([]);
   const [asociar, setAsociar] = useState(null); // EPC leído que no tiene pieza
   const [verEntrada, setVerEntrada] = useState(null);
   const enCurso = useRef(Promise.resolve());
@@ -41,14 +42,19 @@ function NuevaEntrada({ toast, visible, retomar, onRetomada, onRegistro }) {
   useEffect(() => {
     if (!visible) return;
     loadRecent();
-    api('/api/entradas/filtros').then((r) => setBases(r.bases.map((b) => b.base))).catch(() => {});
   }, [visible]);
 
   // La entrada se crea con el primer tag leído, así guarda el remito y el origen que se escribieron.
   // Las lecturas se procesan en orden (la pistola puede mandar varias tandas seguidas).
   const idRef = useRef(null);
   idRef.current = entradaId;
+  const [falta, setFalta] = useState(false);
   function leer(epcs) {
+    if (!idRef.current && (!remito.trim() || !origen)) {
+      setFalta(true);
+      toast(!remito.trim() ? 'Primero escribí el N.º de entrada' : 'Primero elegí la base');
+      return;
+    }
     enCurso.current = enCurso.current.then(() => procesar(epcs)).catch(() => {});
   }
   async function procesar(epcs) {
@@ -56,7 +62,7 @@ function NuevaEntrada({ toast, visible, retomar, onRetomada, onRegistro }) {
     try {
       let id = idRef.current;
       if (!id) {
-        const e = await api('/api/entradas', { method: 'POST', body: JSON.stringify({ remito: remito.trim() || null, origen: origen.trim() || null }) });
+        const e = await api('/api/entradas', { method: 'POST', body: JSON.stringify({ remito: remito.trim(), origen }) });
         id = e.id;
         idRef.current = id;
         setEntradaId(id);
@@ -120,12 +126,16 @@ function NuevaEntrada({ toast, visible, retomar, onRetomada, onRegistro }) {
         <div className="axt-card" style={{ padding: 20, marginBottom: 16 }}>
           <div className="axt-card-title">Datos de la entrada</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
-            <label className="fld"><span>N.º de remito</span><input value={remito} onChange={(e) => setRemito(e.target.value)} placeholder="Ej: REM-004823" disabled={!!entradaId} /></label>
-            <label className="fld"><span>Base / origen</span><input value={origen} onChange={(e) => setOrigen(e.target.value)} placeholder="Ej: Base Añelo" disabled={!!entradaId} list="ent-bases" autoComplete="off" /></label>
+            <label className="fld"><span>N.º de entrada *</span><input value={remito} onChange={(e) => setRemito(e.target.value.replace(/\D/g, ''))} placeholder="Ej: 121018" inputMode="numeric" disabled={!!entradaId} aria-invalid={falta && !remito.trim()} /></label>
+            <label className="fld"><span>Base *</span>
+              <select value={origen} onChange={(e) => setOrigen(e.target.value)} disabled={!!entradaId} aria-invalid={falta && !origen}>
+                <option value="">Elegí la base</option>
+                {BASES.map((b) => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </label>
           </div>
-          <datalist id="ent-bases">{bases.map((b) => <option key={b} value={b} />)}</datalist>
           <div style={{ font: '400 11.5px "IBM Plex Sans"', color: 'var(--t-7A8792)', marginTop: 10 }}>
-            {entradaId ? 'Entrada abierta: estos datos quedan fijos hasta confirmarla.' : 'Completalos antes de leer el primer tag.'}
+            {entradaId ? 'Entrada abierta: estos datos quedan fijos hasta confirmarla.' : 'Los dos son obligatorios antes de leer el primer tag.'}
           </div>
         </div>
 
