@@ -78,7 +78,12 @@ function NuevaEntrada({ toast, visible, retomar, onRetomada, onRegistro }) {
       if (r.sin_pieza) partes.push(r.sin_pieza === 1 ? '1 sin pieza asociada' : `${r.sin_pieza} sin pieza asociada`);
       toast(partes.join(' · ') || 'Sin cambios');
       try { navigator.vibrate && navigator.vibrate(r.sin_pieza ? [90, 60, 90] : 80); } catch { /* sin vibración */ }
-    } catch (e) { toast(e.message); }
+    } catch (e) {
+      if (e.status === 404 && idRef.current) { // la entrada se descartó desde otro lado: se empieza una nueva con la próxima lectura
+        idRef.current = null; setEntradaId(null); setItems([]);
+        toast('Esa entrada se descartó. Volvé a leer para empezar una nueva.');
+      } else toast(e.message);
+    }
     finally { setScanning(false); }
   }
   // seguir cargando una entrada abierta (elegida en el registro)
@@ -115,6 +120,19 @@ function NuevaEntrada({ toast, visible, retomar, onRetomada, onRegistro }) {
       await loadRecent();
     } catch (e) { toast(e.message); }
     finally { setConfirmando(false); }
+  }
+
+  // descartar la entrada abierta (empezada por error): se pide confirmar en el mismo botón
+  const [descartar, setDescartar] = useState(false);
+  async function descartarEntrada() {
+    if (!entradaId) return;
+    try {
+      await api(`/api/entradas/${entradaId}`, { method: 'DELETE' });
+      toast('Entrada descartada');
+      idRef.current = null;
+      setEntradaId(null); setItems([]); setRemito(''); setOrigen(''); setDescartar(false);
+      loadRecent();
+    } catch (e) { toast('No se pudo descartar: ' + e.message); }
   }
 
   const ALERTA = { overdue: 'Cert vencido', due: 'Por vencer', no_apto: 'No apto', sin_cert: 'Sin certificados' };
@@ -199,6 +217,15 @@ function NuevaEntrada({ toast, visible, retomar, onRetomada, onRegistro }) {
             <button className="axt-btn primary" style={{ width: '100%', opacity: items.length ? 1 : 0.5 }} onClick={confirmar} disabled={!items.length || confirmando}>
               <PackageCheck size={16} /> Confirmar entrada
             </button>
+            {entradaId && (descartar ? (
+              <div className="ent-descartar">
+                <span>¿Descartar esta entrada y todo lo leído?</span>
+                <button className="axt-btn small" onClick={descartarEntrada}>Sí, descartar</button>
+                <button className="axt-btn small" onClick={() => setDescartar(false)}>No</button>
+              </div>
+            ) : (
+              <button className="ent-descartar-btn" onClick={() => setDescartar(true)}>Descartar entrada</button>
+            ))}
           </div>
         </div>
       </div>

@@ -102,6 +102,8 @@ body { margin: 0; background: var(--s-0A0A0B); }
 .fld [aria-invalid="true"] { border-color: var(--t-E5605C); }
 .fld span svg { vertical-align: -1px; margin-right: 3px; }
 .gs-ibm.ibm { color: var(--t-8A97A2); background: transparent; border-color: var(--b-433C48); }
+.ent-descartar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; font: 500 12.5px "IBM Plex Sans"; color: var(--t-E5A3A1); }
+.ent-descartar-btn { display: block; margin: 10px auto 0; background: none; border: none; cursor: pointer; font: 500 12px "IBM Plex Sans"; color: var(--t-8A97A2); text-decoration: underline; text-underline-offset: 3px; }
 .ok-badge.abierta { color: var(--t-EDA53C); background: var(--s-211A10); border-color: var(--b-3A2C15); }
 .ent-filtros { padding: 14px 16px; display: grid; gap: 10px; }
 .ent-filtros-fila { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; align-items: end; }
