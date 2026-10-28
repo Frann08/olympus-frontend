@@ -104,7 +104,6 @@ export default function Precintos({ toast }) {
   const esAdmin = getUser()?.role === 'admin';
   const tituloInf = infSel ? `INF ${infSel.informe} · ${infSel.cliente}${infSel.ibm ? ` · IBM ${infSel.ibm}` : ''}` : '';
   const pendientes = aptos.filter((x) => x.estado === 'pendiente');
-  const sinEpc = aptos.filter((x) => !x.epc && x.tag_id);
   const [corregir, setCorregir] = useState(false);
 
   return (
@@ -156,11 +155,6 @@ export default function Precintos({ toast }) {
                   ) : (
                     <span className="pr-muted pr-nota-serie">Para grabar varios seguidos, abrí Olympus en Chrome desde un Android.</span>
                   ))}
-                  {sinEpc.length > 0 && (
-                    <button className="axt-btn" onClick={() => setAsocEpc({ cola: sinEpc, titulo: tituloInf })} title="Leer con el escáner RFID el tag de cada pieza">
-                      <Radar size={14} /> Asociar EPC con escáner ({sinEpc.length})
-                    </button>
-                  )}
                   {esAdmin && (
                     <button className="axt-btn small" onClick={() => setCorregir((v) => !v)}>
                       <Pencil size={12} /> Corregir informe
@@ -199,7 +193,8 @@ export default function Precintos({ toast }) {
               : (
                 <div className="pr-ledger">
                   <div className="pr-row pr-head"><div /><div>Pieza</div><div className="pr-hide">Resultado</div><div className="pr-hide">Tag</div><div /></div>
-                  {visibles.map((it) => <ItemRow key={it.tag_id + '-' + it.asset_id} it={it} onGrabar={() => setGrabar(it)} onEstado={setEstado} />)}
+                  {visibles.map((it) => <ItemRow key={it.tag_id + '-' + it.asset_id} it={it} onGrabar={() => setGrabar(it)} onEstado={setEstado}
+                    onUhf={() => setAsocEpc({ cola: [it], titulo: tituloInf })} />)}
                   {visibles.length === 0 && <div className="pr-empty">No hay piezas con ese estado.</div>}
                 </div>
               )}
@@ -274,22 +269,30 @@ function CorregirInforme({ inf, toast, onCancel, onSaved }) {
   );
 }
 
-function ItemRow({ it, onGrabar, onEstado }) {
+function ItemRow({ it, onGrabar, onEstado, onUhf }) {
   const e = estadoDe(it);
   const st = EST[e];
+  // pieza con el NFC grabado pero sin el UHF asociado: se arregla desde acá, con el escáner
+  const sinUhf = (e === 'grabado' || e === 'colocado') && !it.epc && it.tag_id;
+  const botonUhf = (
+    <button className="axt-btn small pr-sinuhf" onClick={onUhf} title="Asociar el UHF de esta pieza con el escáner RFID">
+      <Radar size={12} /> Sin UHF
+    </button>
+  );
   let action;
   if (e === 'na') action = <span className="pr-muted">No aplica</span>;
   else if (e === 'pendiente') action = <button className="axt-btn small primary" onClick={onGrabar}>Grabar tag</button>;
   else if (e === 'grabado') action = (
     <span className="pr-actions">
       <button className="axt-x sm" title="Deshacer: volver a pendiente" aria-label="Deshacer grabado" onClick={() => onEstado(it, 'pendiente', 'Volvió a pendiente')}><Undo2 size={13} /></button>
+      {sinUhf && botonUhf}
       <button className="axt-btn small" onClick={() => onEstado(it, 'colocado', 'Marcado como colocado')}>Marcar colocado</button>
     </span>
   );
   else action = (
     <span className="pr-actions">
       <button className="axt-x sm" title="Deshacer: volver a grabado" aria-label="Deshacer colocado" onClick={() => onEstado(it, 'grabado', 'Volvió a grabado')}><Undo2 size={13} /></button>
-      <span className="pr-ok">✓ Listo</span>
+      {sinUhf ? botonUhf : <span className="pr-ok">✓ Listo</span>}
     </span>
   );
 

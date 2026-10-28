@@ -850,3 +850,6 @@ a.axt-btn { text-decoration: none; }
 /* Corregir nombre (empresa / usuario) en línea */
 .gs-nombre { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
 .gs-nombre .fld { flex: 1 1 180px; }
+
+/* Precintos: pieza grabada sin el UHF asociado */
+.pr-sinuhf { color: var(--t-E8A33C); border-color: color-mix(in srgb, var(--t-E8A33C) 45%, transparent); }

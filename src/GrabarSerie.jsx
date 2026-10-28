@@ -10,8 +10,10 @@ import { BarraR6, useR6, epcLindo } from './Pistola.jsx';
      1) se lee su número de chip (UID) y el link que ya tenga;
      2) si ese tag ya se grabó en esta serie, o es de otra pieza grabada/colocada, se frena y avisa;
      3) si está libre, se graba el link de la pieza, vibra, queda tildada y pasa a la siguiente.
-   Si el escáner R6 está conectado, en el mismo paso lee el UHF del tag (que sigue apoyado en el
-   teléfono) y asocia su EPC a la pieza. Si no lo puede leer solo, se resuelve con el gatillo.
+   Con el escáner R6 conectado, en el mismo paso lee el UHF del tag y asocia su EPC a la pieza.
+   Una pieza pasa a la siguiente solo con el NFC y el UHF hechos: si el UHF no se lee solo, la
+   pantalla se queda en esa pieza hasta resolverlo (reintentar, gatillo) o hasta que el usuario
+   elija seguir sin UHF. Grabar solo NFC (sin escáner) hay que elegirlo a propósito.
    Necesita Chrome en Android (Web NFC). */
 
 export const puedeGrabar = () => typeof window !== 'undefined' && 'NDEFReader' in window;
@@ -34,7 +36,24 @@ function tokenDe(message) {
 const vibrar = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catch { /* sin vibración */ } };
 const NOMBRE_EST = { grabado: 'grabado', colocado: 'colocado' };
 const POTENCIA_GRABAR = 15; // dBm: alcanza para el tag apoyado en el teléfono y no para los de alrededor
+const POTENCIAS_UHF = [POTENCIA_GRABAR, 22, 30]; // si no lee nada, se sube de a poco
 const RAFAGA_MS = 1200;
+
+// Los Xerafy DataBand2 llevan en el EPC parte del número de chip del NFC (al revés):
+// UID C1:68:5B:12:01:78:16:E0 → EPC …7801125B68C1…. Con eso se sabe cuál de los tags leídos es
+// el que se acaba de grabar, aunque el escáner lea varios.
+export function epcDelUid(lecturas, uid) {
+  const b = String(uid || '').toUpperCase().split(':').filter(Boolean);
+  if (b.length < 6) return null;
+  const al = b.slice().reverse().join(''), de = b.join('');
+  const claves = [al.slice(-12), de.slice(0, 12)];
+  const hit = (lecturas || []).filter((x) => claves.some((c) => String(x.epc).toUpperCase().includes(c)));
+  return hit.length === 1 ? hit[0].epc : null;
+}
+const elegirPara = (juntas, uid) => {
+  const porUid = epcDelUid(juntas, uid);
+  return porUid ? { epc: porUid, n: juntas.length, porUid: true } : elegirTag(juntas);
+};
 
 function mensajeError(e, al) {
   const n = e && e.name;
@@ -57,6 +76,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
     texto: 'Este teléfono o navegador no puede grabar desde Olympus. Usá Chrome en un Android con NFC prendido. Si no, grabá uno por uno con NFC Tools.',
   })); // { tipo: ok | error | alerta, texto, reusar }
   const [colocar, setColocar] = useState(false);
+  const [soloNfc, setSoloNfc] = useState(false); // eligió grabar sin escáner (el UHF queda para después)
 
   const lector = useRef(null); // { ndef, ctrl }
   const ocupado = useRef(false);
@@ -65,10 +85,10 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   const permitir = useRef(null); // uid o token que el usuario aceptó reusar
   const wake = useRef(null);
   const est = useRef();
-  est.current = { cola, actual, colocar };
+  est.current = { cola, actual, colocar, soloNfc };
   const r6 = useR6();
   const conR6 = r6.estado === 'lista' || r6.estado === 'leyendo';
-  const faltaUhf = useRef(null); // { k, code, reusado }: pieza grabada a la que le falta asociar el UHF
+  const faltaUhf = useRef(null); // { k, code, reusado, uid }: la pieza actual, grabada, esperando su UHF
   const potenciaAntes = useRef(null);
   const gatillo = useRef([]);
 
@@ -80,7 +100,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   // Apagar todo al cerrar (y devolverle al escáner la potencia que tenía)
   useEffect(() => () => {
     parar();
-    if (potenciaAntes.current != null && lectorR6.conectada && lectorR6.ver().potencia === POTENCIA_GRABAR) lectorR6.ponerPotencia(potenciaAntes.current);
+    if (potenciaAntes.current != null && lectorR6.conectada && POTENCIAS_UHF.includes(lectorR6.ver().potencia)) lectorR6.ponerPotencia(potenciaAntes.current);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Lo que se lee con el gatillo va para la pieza que quedó sin UHF
   useEffect(() => lectorR6.registrar({
@@ -102,11 +122,19 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   }
   function cerrar() { parar(); onClose(); }
 
-  async function empezar() {
+  async function empezar(sinEscaner = soloNfc) {
     if (!puedeGrabar()) {
       setAviso({ tipo: 'error', texto: 'Este teléfono o navegador no puede grabar desde Olympus. Usá Chrome en un Android con NFC.' });
       return;
     }
+    // cada pieza se graba en NFC y UHF: sin el escáner conectado, hay que elegir a propósito seguir solo con NFC
+    if (!lectorR6.conectada && !sinEscaner) {
+      setAviso({ tipo: 'alerta', sinEscaner: true, texto: hayBluetooth()
+        ? 'El escáner RFID no está conectado. Conectalo abajo (Escáner RFID) para grabar cada pieza en NFC y UHF en el mismo paso.'
+        : 'Este teléfono no puede conectarse al escáner RFID (hace falta Chrome en Android con Bluetooth). Solo se puede grabar el NFC.' });
+      return;
+    }
+    if (sinEscaner && !soloNfc) setSoloNfc(true);
     const ctrl = new AbortController();
     try {
       const ndef = new window.NDEFReader();
@@ -146,15 +174,76 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
     return otro ? { code: otro.code, estado: otro.estado, cliente: otro.cliente } : null;
   }
 
-  // Lee el UHF del tag apoyado con el escáner. Devuelve { epc } o { epc: null, motivo, n }; null sin escáner.
-  async function leerUhf() {
+  // pasar a la pieza pendiente que sigue (o terminar)
+  function avanzar(desde) {
+    faltaUhf.current = null;
+    const xs = est.current.cola;
+    const sig = siguientePendiente(xs, desde);
+    if (sig >= 0) setActual(sig);
+    else { parar(); setFase('fin'); }
+    return sig;
+  }
+
+  // Lee el UHF del tag recién grabado. Empieza con poca potencia (solo el tag apoyado) y, si no
+  // lee nada, la sube de a poco. Si entre lo leído está el EPC que corresponde al NFC grabado,
+  // ese es. Devuelve { epc } o { epc: null, motivo, n }; null sin escáner.
+  async function leerUhf(uid) {
     if (!lectorR6.conectada) return null;
     const pot = lectorR6.ver().potencia;
-    if (pot != null && pot > POTENCIA_GRABAR && potenciaAntes.current == null) {
-      if (await lectorR6.ponerPotencia(POTENCIA_GRABAR)) potenciaAntes.current = pot;
+    if (potenciaAntes.current == null && pot != null && !POTENCIAS_UHF.includes(pot)) potenciaAntes.current = pot;
+    let res = { epc: null, motivo: 'ninguno', n: 0 };
+    for (const p of POTENCIAS_UHF) {
+      if (!lectorR6.conectada) break;
+      if (lectorR6.ver().potencia !== p) await lectorR6.ponerPotencia(p);
+      const juntas = await lectorR6.rafaga(RAFAGA_MS).catch(() => null);
+      if (!juntas) continue;
+      res = elegirPara(juntas, uid);
+      if (res.epc || res.motivo === 'varios') break; // con más potencia leería todavía más tags
     }
-    const juntas = await lectorR6.rafaga(RAFAGA_MS).catch(() => null);
-    return juntas ? elegirTag(juntas) : null;
+    if (lectorR6.conectada && lectorR6.ver().potencia !== POTENCIA_GRABAR) await lectorR6.ponerPotencia(POTENCIA_GRABAR);
+    return res;
+  }
+
+  // Volver a leer el UHF de la pieza que lo está esperando (el tag tiene que estar cerca del escáner)
+  async function reintentarUhf() {
+    const f = faltaUhf.current;
+    if (!f || ocupado.current) return;
+    if (!lectorR6.conectada) { setAviso({ ...avisoFalta(f, 'El escáner no está conectado. Conectalo abajo y tocá Reintentar UHF.') }); return; }
+    ocupado.current = true;
+    setFase('uhf');
+    try {
+      const u = await leerUhf(f.uid);
+      if (u && u.epc) await cerrarUhf(f, u.epc);
+      else { vibrar([90, 60, 90]); setAviso(avisoFalta(f, `${problemaUhf(u || {}, f.code)} Acercá el escáner al tag y tocá Reintentar UHF, o apretá el gatillo apuntándole.`)); }
+    } finally {
+      ocupado.current = false;
+      setFase((x) => (x === 'uhf' ? (lector.current ? 'esperando' : 'listo') : x));
+    }
+  }
+
+  // Asociar el EPC a la pieza que esperaba su UHF y, si salió bien, seguir con la próxima
+  async function cerrarUhf(f, epc) {
+    const a = await asociarUhf(f.k, epc, f.reusado);
+    if (a.ok) {
+      vibrar(140);
+      const sig = avanzar(f.k);
+      setAviso({ tipo: 'ok', texto: `✓ ${f.code}: UHF asociado${a.antes ? ` (era de ${a.antes})` : ''}.${sig >= 0 ? ' Acercá el próximo tag.' : ''}` });
+    } else if (a.conflicto) {
+      vibrar([90, 60, 90]);
+      setAviso({ ...avisoFalta(f, `${a.conflicto}. Si es un tag recuperado, pasalo a ${f.code}.`), pasarUhf: { k: f.k, epc, code: f.code } });
+    } else setAviso(avisoFalta(f, 'No se pudo asociar el UHF: ' + a.error));
+    return a.ok;
+  }
+
+  // aviso de "a esta pieza le falta el UHF", con los botones para resolverlo
+  const avisoFalta = (f, texto) => ({ tipo: 'alerta', falta: true, texto });
+
+  function seguirSinUhf() {
+    const f = faltaUhf.current;
+    if (!f) return;
+    if (!window.confirm(`¿Seguir sin el UHF de ${f.code}?\nEl NFC ya quedó grabado. La pieza va a figurar "Sin UHF" en la lista y se lo podés asociar después desde ahí.`)) return;
+    const sig = avanzar(f.k);
+    setAviso({ tipo: 'alerta', texto: `${f.code} quedó sin UHF.${sig >= 0 ? ' Seguí con el próximo tag.' : ''}` });
   }
 
   async function asociarUhf(k, epc, reasignar = false) {
@@ -182,29 +271,22 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
       if (juntas.length) setAviso({ tipo: 'alerta', texto: 'Ninguna pieza está esperando el UHF. Para grabar, acercá el tag al teléfono: el UHF se lee solo.' });
       return;
     }
-    const u = elegirTag(juntas);
+    const u = elegirPara(juntas, f.uid);
     if (!u.epc) {
       vibrar([90, 60, 90]);
-      setAviso({ tipo: 'alerta', despues: true, texto: u.motivo === 'varios'
+      setAviso(avisoFalta(f, u.motivo === 'varios'
         ? `Se leyeron ${u.n} tags a la vez. Apuntá solo al tag de ${f.code}, más de cerca, y apretá el gatillo de nuevo.`
-        : `No se leyó ningún tag. Acercá el escáner al tag de ${f.code} y apretá el gatillo de nuevo.` });
+        : `No se leyó ningún tag. Acercá el escáner al tag de ${f.code} y apretá el gatillo de nuevo.`));
       return;
     }
-    const a = await asociarUhf(f.k, u.epc, f.reusado);
-    if (a.ok) {
-      faltaUhf.current = null;
-      vibrar(140);
-      setAviso({ tipo: 'ok', texto: `✓ ${f.code}: UHF asociado${a.antes ? ` (era de ${a.antes})` : ''}.` });
-    } else if (a.conflicto) {
-      vibrar([90, 60, 90]);
-      setAviso({ tipo: 'alerta', despues: true, texto: `${a.conflicto}. Si es un tag recuperado, pasalo a ${f.code}.`, pasarUhf: { k: f.k, epc: u.epc, code: f.code } });
-    } else setAviso({ tipo: 'error', despues: true, texto: 'No se pudo asociar el UHF: ' + a.error });
+    await cerrarUhf(f, u.epc);
   }
 
   async function pasarUhf({ k, epc, code }) {
+    const f = faltaUhf.current && faltaUhf.current.k === k ? faltaUhf.current : { k, code, reusado: true };
     const a = await asociarUhf(k, epc, true);
-    if (a.ok) { faltaUhf.current = null; setAviso({ tipo: 'ok', texto: `✓ ${code}: UHF asociado${a.antes ? ` (era de ${a.antes})` : ''}.` }); }
-    else setAviso({ tipo: 'error', despues: true, texto: 'No se pudo asociar el UHF: ' + (a.error || a.conflicto) });
+    if (a.ok) { vibrar(140); const sig = avanzar(k); setAviso({ tipo: 'ok', texto: `✓ ${code}: UHF asociado${a.antes ? ` (era de ${a.antes})` : ''}.${sig >= 0 ? ' Acercá el próximo tag.' : ''}` }); }
+    else setAviso(avisoFalta(f, 'No se pudo asociar el UHF: ' + (a.error || a.conflicto)));
   }
 
   async function manejar(ev) {
@@ -255,14 +337,15 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
       if (uid) usados.current.set(uid, pieza.code);
       const reusado = permitir.current != null;
       permitir.current = null;
-      faltaUhf.current = null; // si quedaba otra sin UHF, sigue en la lista para después
+      faltaUhf.current = null;
 
       // con el escáner: el UHF del mismo tag, mientras sigue apoyado
       let u = null;
+      const sinEscaner = est.current.soloNfc;
       if (lectorR6.conectada) {
         setFase('uhf');
-        u = await leerUhf();
-      }
+        u = await leerUhf(uid);
+      } else if (!sinEscaner) u = { epc: null, motivo: 'desconectado' };
       vibrar(140);
 
       let guardado = true;
@@ -270,34 +353,43 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
       try { const r = await guardar(pieza, col ? 'colocado' : 'grabado', uid, token); liberadas = (r && r.liberadas) || []; } catch { guardado = false; }
       const nueva = xs.map((x, k) => (k === i ? { ...x, local: guardado ? 'grabado' : 'sin_guardar', uid, antes: token, colocado: col, uhf: u ? 'leyendo' : null } : x));
       setCola(nueva);
-      const sig = siguientePendiente(nueva, i);
+      est.current.cola = nueva;
       const libre = liberadas.length ? ` ${liberadas.join(', ')} quedó sin tag (volvió a pendiente).` : '';
-      const seguir = sig >= 0 ? ' Sacá el tag y acercá el siguiente.' : '';
       const hecho = `✓ ${pieza.code} grabado${col ? ' y colocado' : ''}`;
+      const f = { k: i, code: pieza.code, reusado, uid };
 
-      let avisoUhf = null; // si el UHF no se pudo asociar solo
-      let conUhf = '';
-      if (u && u.epc) {
-        const a = await asociarUhf(i, u.epc, reusado);
-        if (a.ok) conUhf = ` con UHF${a.antes ? ` (era de ${a.antes})` : ''}`;
-        else if (a.conflicto) {
-          faltaUhf.current = { k: i, code: pieza.code, reusado };
-          avisoUhf = { texto: `${a.conflicto}. Si es un tag recuperado, pasalo a ${pieza.code}.`, pasarUhf: { k: i, epc: u.epc, code: pieza.code } };
-        } else {
-          faltaUhf.current = { k: i, code: pieza.code, reusado };
-          avisoUhf = { texto: `No se pudo asociar el UHF (${a.error}). Apuntá el escáner al tag de ${pieza.code} y apretá el gatillo.` };
-        }
-      } else if (u) {
-        setCola((xs2) => xs2.map((x, k) => (k === i ? { ...x, uhf: 'falta' } : x)));
-        faltaUhf.current = { k: i, code: pieza.code, reusado };
-        avisoUhf = { texto: `${problemaUhf(u, pieza.code)} Apuntá el escáner al tag de ${pieza.code} y apretá el gatillo.` };
+      if (!guardado) {
+        setAviso({ tipo: 'error', texto: `${pieza.code}: el tag quedó grabado pero no se pudo guardar en Olympus (sin conexión). Tocá "Reintentar" en la lista.` });
+        avanzar(i);
+        return;
       }
-
-      if (!guardado) setAviso({ tipo: 'error', texto: `${pieza.code}: el tag quedó grabado pero no se pudo guardar en Olympus (sin conexión). Tocá "Reintentar" en la lista.` });
-      else if (avisoUhf) { vibrar([90, 60, 90]); setAviso({ tipo: 'alerta', despues: true, texto: `${hecho} (NFC). ${avisoUhf.texto}${libre}`, pasarUhf: avisoUhf.pasarUhf }); }
-      else setAviso({ tipo: 'ok', texto: `${hecho}${conUhf}.${libre}${seguir}` });
-      if (sig >= 0) setActual(sig);
-      else { parar(); setFase('fin'); }
+      if (!u) { // eligió grabar solo NFC
+        setCola((xs2) => xs2.map((x, k) => (k === i ? { ...x, uhf: 'falta' } : x)));
+        const sig = avanzar(i);
+        setAviso({ tipo: 'ok', texto: `${hecho} (solo NFC).${libre}${sig >= 0 ? ' Sacá el tag y acercá el siguiente.' : ''}` });
+        return;
+      }
+      if (u.epc) {
+        const a = await asociarUhf(i, u.epc, reusado);
+        if (a.ok) {
+          const sig = avanzar(i);
+          setAviso({ tipo: 'ok', texto: `${hecho} con UHF${a.antes ? ` (era de ${a.antes})` : ''}.${libre}${sig >= 0 ? ' Sacá el tag y acercá el siguiente.' : ''}` });
+          return;
+        }
+        // el UHF no se pudo asociar: la pieza se queda esperando
+        faltaUhf.current = f;
+        vibrar([90, 60, 90]);
+        if (a.conflicto) setAviso({ ...avisoFalta(f, `${hecho} en NFC. ${a.conflicto}. Si es un tag recuperado, pasalo a ${pieza.code}.${libre}`), pasarUhf: { k: i, epc: u.epc, code: pieza.code } });
+        else setAviso(avisoFalta(f, `${hecho} en NFC. No se pudo asociar el UHF (${a.error}).${libre}`));
+        return;
+      }
+      // no se leyó el UHF: la pieza se queda esperando hasta resolverlo
+      setCola((xs2) => xs2.map((x, k) => (k === i ? { ...x, uhf: 'falta' } : x)));
+      faltaUhf.current = f;
+      vibrar([90, 60, 90]);
+      setAviso(avisoFalta(f, u.motivo === 'desconectado'
+        ? `${hecho} en NFC, pero el escáner se desconectó. Conectalo abajo y tocá Reintentar UHF.${libre}`
+        : `${hecho} en NFC. ${problemaUhf(u, pieza.code)} Acercá el escáner al tag y tocá Reintentar UHF, o apretá el gatillo apuntándole.${libre}`));
     } finally {
       ocupado.current = false;
       setFase((f) => (f === 'revisando' || f === 'grabando' || f === 'uhf' ? 'esperando' : f));
@@ -314,11 +406,13 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   }
 
   function saltear() {
+    if (faltaUhf.current) return;
     const sig = siguientePendiente(cola, actual);
     if (sig >= 0 && sig !== actual) { setActual(sig); setAviso(null); permitir.current = null; }
   }
 
   const escuchando = fase === 'esperando' || fase === 'revisando' || fase === 'grabando' || fase === 'uhf';
+  const esperaUhf = !!(faltaUhf.current && it && faltaUhf.current.k === actual);
   const conUhf = cola.filter((x) => x.uhf === 'ok').length;
   const sinUhf = cola.filter((x) => x.local !== 'pendiente' && x.uhf === 'falta').length;
 
@@ -349,19 +443,20 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
             </div>
             {sinUhf > 0 && (
               <div className="pr-muted" style={{ textAlign: 'center', marginTop: 6 }}>
-                {sinUhf === 1 ? 'A 1 pieza le falta' : `A ${sinUhf} piezas les falta`} el UHF: {sinUhf === 1 ? 'asocialo' : 'asocialos'} con <b>Asociar EPC con escáner</b>.
+                {sinUhf === 1 ? 'A 1 pieza le falta' : `A ${sinUhf} piezas les falta`} el UHF: en la lista del informe, tocá <b>Sin UHF</b> en {sinUhf === 1 ? 'esa pieza' : 'cada una'}.
               </div>
             )}
             <button className="axt-btn primary" style={{ width: '100%', marginTop: 14 }} onClick={cerrar}>Cerrar</button>
           </div>
         ) : it ? (
           <div className={'ser-actual' + (escuchando ? ' on' : '')}>
-            <div className="ser-ahora">Ahora</div>
+            <div className="ser-ahora">{esperaUhf ? 'Falta el UHF' : 'Ahora'}</div>
             <div className="ser-serial">{it.code}</div>
             <div className="ser-desc">{it.name}</div>
             <div className="ser-estado" aria-live="polite">
               {fase === 'listo' && <span>Tocá <b>Empezar</b> y acercá un tag al teléfono.</span>}
-              {fase === 'esperando' && <><span className="ser-onda"><Radio size={18} /></span><span>Acercá un tag nuevo a la espalda del teléfono{conR6 ? '. El escáner lee el UHF en el mismo paso.' : ''}</span></>}
+              {fase === 'esperando' && esperaUhf && <><AlertTriangle size={16} /><span>El NFC ya está grabado. Falta asociar el UHF para pasar a la siguiente.</span></>}
+              {fase === 'esperando' && !esperaUhf && <><span className="ser-onda"><Radio size={18} /></span><span>Acercá un tag nuevo a la espalda del teléfono{conR6 ? '. El escáner lee el UHF en el mismo paso.' : soloNfc ? ' (solo NFC).' : ''}</span></>}
               {fase === 'revisando' && <><Loader2 size={16} className="spin" /><span>Revisando el tag…</span></>}
               {fase === 'grabando' && <><Loader2 size={16} className="spin" /><span>Grabando… no muevas el teléfono</span></>}
               {fase === 'uhf' && <><Loader2 size={16} className="spin" /><span>Leyendo el UHF con el escáner… dejá el tag apoyado</span></>}
@@ -369,8 +464,8 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
             <div className="ser-botones">
               {escuchando
                 ? <button className="axt-btn" onClick={pausar}><Pause size={14} /> Pausar</button>
-                : <button className="axt-btn primary" onClick={empezar}><Play size={14} /> Empezar</button>}
-              {quedan > 1 && <button className="axt-btn" onClick={saltear}><SkipForward size={14} /> Saltear</button>}
+                : <button className="axt-btn primary" onClick={() => empezar()}><Play size={14} /> Empezar</button>}
+              {quedan > 1 && !esperaUhf && <button className="axt-btn" onClick={saltear}><SkipForward size={14} /> Saltear</button>}
             </div>
           </div>
         ) : null}
@@ -380,12 +475,18 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
             {aviso.tipo !== 'ok' && <AlertTriangle size={15} style={{ flex: 'none', marginTop: 1 }} />}
             <div style={{ minWidth: 0 }}>
               <div>{aviso.texto}</div>
-              {(aviso.pasarUhf || aviso.despues) && (
+              {(aviso.pasarUhf || (aviso.falta && faltaUhf.current)) && (
                 <div className="cor-botones" style={{ marginTop: 8 }}>
                   {aviso.pasarUhf && <button className="axt-btn small" onClick={() => pasarUhf(aviso.pasarUhf)}>Es un tag recuperado: pasarlo a {aviso.pasarUhf.code}</button>}
-                  {aviso.despues && faltaUhf.current && (
-                    <button className="axt-btn small" onClick={() => { faltaUhf.current = null; setAviso({ tipo: 'ok', texto: 'Listo: ese UHF queda para después (Asociar EPC con escáner). Seguí con el siguiente tag.' }); }}>Después</button>
-                  )}
+                  {aviso.falta && faltaUhf.current && <>
+                    <button className="axt-btn small primary" onClick={reintentarUhf} disabled={fase === 'uhf'}><RotateCcw size={12} /> Reintentar UHF</button>
+                    <button className="axt-btn small" onClick={seguirSinUhf}>Seguir sin UHF</button>
+                  </>}
+                </div>
+              )}
+              {aviso.sinEscaner && (
+                <div className="cor-botones" style={{ marginTop: 8 }}>
+                  <button className="axt-btn small" onClick={() => { setAviso(null); empezar(true); }}>Grabar solo NFC (el UHF queda para después)</button>
                 </div>
               )}
               {aviso.reusar && (
@@ -400,7 +501,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
 
         {hayBluetooth() && (fase !== 'fin' || faltaUhf.current) && (
           <div className="ser-pistola">
-            <div className="ser-pistola-tit">Escáner RFID <em>(opcional: asocia el UHF al grabar)</em></div>
+            <div className="ser-pistola-tit">Escáner RFID <em>{soloNfc ? '(grabando solo NFC: conectalo para sumar el UHF)' : '(asocia el UHF en el mismo paso)'}</em></div>
             <BarraR6 />
           </div>
         )}
@@ -415,7 +516,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
         <ol className="ser-lista">
           {cola.map((x, k) => (
             <li key={x.tag_id} className={'ser-item ' + x.local + (k === actual && fase !== 'fin' && x.local === 'pendiente' ? ' actual' : '')}>
-              <button type="button" className="ser-item-btn" disabled={x.local !== 'pendiente' || fase === 'fin'}
+              <button type="button" className="ser-item-btn" disabled={x.local !== 'pendiente' || fase === 'fin' || esperaUhf}
                 onClick={() => { setActual(k); setAviso(null); permitir.current = null; }}
                 aria-label={x.local === 'pendiente' ? `Grabar ahora ${x.code}` : `${x.code}: ${x.local === 'grabado' ? 'grabado' : 'falta guardar'}`}>
                 <span className="ser-marca">

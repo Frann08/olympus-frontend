@@ -264,10 +264,11 @@ function GuiaPrecintos() {
           <li>Si es un <b>tag recuperado</b> de otra pieza, tocá <b>Es un tag recuperado: reusarlo</b> y acercalo de nuevo. La pieza anterior queda sin tag (vuelve a pendiente).</li>
           <li>Si se corta la señal, el tag queda grabado y la pieza dice <b>!</b>: cuando vuelva la señal, tocá <b>Reintentar</b>.</li>
         </ul>
-        <p><b>Con el escáner R6 conectado, el UHF se asocia en el mismo paso.</b> Conectalo desde el mismo panel, en <b>Escáner RFID</b>. Después de grabar el NFC, el escáner lee el UHF de ese tag y lo une a la pieza; en la lista aparece <b>UHF ✓</b>. Mientras dice <b>Leyendo el UHF…</b>, dejá el tag apoyado.</p>
+        <p><b>Cada pieza se graba en NFC y UHF en el mismo paso</b>, con el escáner R6 conectado. Conectalo desde el mismo panel, en <b>Escáner RFID</b>, antes de tocar Empezar. Después de grabar el NFC, el escáner lee el UHF de ese tag y lo une a la pieza; en la lista aparece <b>UHF ✓</b> y recién ahí pasa a la siguiente. Mientras dice <b>Leyendo el UHF…</b>, dejá el tag quieto y cerca del escáner.</p>
         <ul className="ay-lista">
-          <li>Para grabar, Olympus baja la potencia a <b>Media baja</b>, así lee solo el tag apoyado. Al cerrar el panel vuelve la que tenías.</li>
-          <li>Si el escáner lee varios tags parecidos, o ninguno, el NFC queda grabado y la pieza dice <b>sin UHF</b>: apuntá el escáner al tag de esa pieza y apretá el gatillo. O tocá <b>Después</b> y asocialo más tarde (punto 6).</li>
+          <li>Si tocás Empezar sin el escáner conectado, avisa. Podés conectarlo, o elegir <b>Grabar solo NFC</b>: en ese caso las piezas quedan <b>Sin UHF</b> para asociarlas después.</li>
+          <li>Olympus empieza leyendo con poca potencia, para tomar solo el tag que estás grabando, y si no lo encuentra la va subiendo. Al cerrar el panel vuelve la potencia que tenías.</li>
+          <li>Si no logra leer el UHF, <b>no pasa a la siguiente</b>: arriba dice <b>Falta el UHF</b>. Acercá el escáner al tag y tocá <b>Reintentar UHF</b>, o apuntale y apretá el gatillo. Si de verdad querés dejarlo para después, tocá <b>Seguir sin UHF</b> y confirmá.</li>
           <li>Si el UHF era de otra pieza (un tag recuperado), avisa de cuál y ofrece pasarlo a esta.</li>
         </ul>
         <Aviso>Mirá siempre el Nº de serie de <b>Ahora</b> antes de acercar el tag: tiene que ser el de la pieza que vas a etiquetar.</Aviso>
@@ -276,12 +277,12 @@ function GuiaPrecintos() {
 
       <Sec id="epc" n="6" titulo="Asociar el EPC con el escáner RFID">
         <p>El tag tiene dos partes: el <b>NFC</b> (el que se graba con el celular y lee el cliente) y el <b>UHF</b>, que lee el escáner a distancia. Para que el escáner reconozca la pieza, hay que unir su código UHF (el <b>EPC</b>) con la pieza. Se hace una sola vez por tag.</p>
-        <p>Si grabaste en serie con el escáner conectado (punto 5), esto ya quedó hecho. Usalo para las piezas que dicen <b>sin UHF</b> o que se grabaron sin el escáner.</p>
+        <p>Al grabar en serie (punto 5) esto se hace en el mismo paso. Solo hace falta para las piezas que quedaron <b>Sin UHF</b> (se grabaron sin el escáner, o se eligió seguir sin UHF).</p>
         <ol className="ay-pasos">
-          <li>Abrí el informe en Precintos y tocá <b>Asociar EPC con escáner</b>. Entre paréntesis dice cuántas piezas faltan.</li>
+          <li>Abrí el informe en Precintos. Las piezas grabadas a las que les falta el UHF tienen el botón naranja <b>Sin UHF</b>: tocalo.</li>
           <li>Si el escáner no está conectado, tocá <b>Conectar escáner R6</b> en el panel (cómo se hace la primera vez: guía de Trazabilidad, punto 1).</li>
           <li>Arriba aparece la pieza que va <b>ahora</b>. Apuntá <b>solo a su tag</b>, de cerca, apretá el gatillo y soltalo.</li>
-          <li>Olympus guarda el EPC, el equipo vibra y pasa a la siguiente pieza.</li>
+          <li>Olympus guarda el EPC, el equipo vibra y el botón <b>Sin UHF</b> desaparece.</li>
         </ol>
         <ul className="ay-lista">
           <li>Si el escáner lee <b>más de un tag a la vez</b>, avisa y no guarda nada: alejá las otras piezas o bajá la <b>potencia</b> a <b>Baja</b> o <b>Media baja</b> en la barra del escáner mientras asociás.</li>
