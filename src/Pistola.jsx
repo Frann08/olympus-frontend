@@ -148,9 +148,17 @@ export function usePotenciaMinima() {
   const antes = useRef(null);
   const conectada = r6Conectada(r6);
   useEffect(() => {
-    if (!conectada || r6.potencia == null || r6.potencia === POTENCIA_MINIMA) return;
+    if (!conectada || r6.potencia == null || r6.potencia === POTENCIA_MINIMA) return undefined;
     if (antes.current == null) antes.current = r6.potencia;
-    lectorR6.ponerPotencia(POTENCIA_MINIMA);
+    let vivo = true;
+    (async () => {
+      // si el escáner no acepta el cambio (estaba ocupado), se reintenta: no tiene que quedar leyendo fuerte
+      for (let k = 0; k < 3 && vivo; k++) {
+        if (await lectorR6.ponerPotencia(POTENCIA_MINIMA)) return;
+        await new Promise((r) => setTimeout(r, 400));
+      }
+    })();
+    return () => { vivo = false; };
   }, [conectada, r6.potencia]);
   useEffect(() => () => {
     if (antes.current != null && lectorR6.conectada && lectorR6.ver().potencia === POTENCIA_MINIMA) lectorR6.ponerPotencia(antes.current);
