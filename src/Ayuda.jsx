@@ -76,13 +76,13 @@ function GuiaCliente() {
         <Nota><b>Instalala como app.</b> En Chrome tocá los tres puntos <b>⋮</b> → <b>Agregar a la pantalla principal</b> (o <b>Instalar app</b>). Queda el ícono de Olympus Trace junto a tus otras aplicaciones.</Nota>
       </Sec>
 
-      <Sec id="escanear" n="2" titulo="Escanear una pieza con el celular" img={{ src: 'c-tag-login', alt: 'Pantalla que pide iniciar sesión al escanear un tag', cap: 'Sin sesión iniciada, primero pide usuario y contraseña.' }}>
+      <Sec id="escanear" n="2" titulo="Escanear una pieza con el celular" img={{ src: 'c-tag-login', alt: 'Pantalla que pide iniciar sesión al escanear un tag', cap: 'Sin sesión iniciada, muestra lo mínimo de la pieza y pide usuario y contraseña para el detalle.' }}>
         <p>Cada pieza inspeccionada por BM lleva un <b>tag</b> (el precinto electrónico). Con el celular ves su estado al instante.</p>
         <ol className="ay-pasos">
           <li><b>Activá el NFC.</b> En Android: bajá la barra de notificaciones y tocá <b>NFC</b>, o entrá a Ajustes → Conexiones (o Dispositivos conectados) → NFC.</li>
           <li><b>Desbloqueá</b> la pantalla.</li>
           <li><b>Apoyá la parte de atrás del celular sobre el tag</b> y dejalo quieto 1 o 2 segundos. En la mayoría de los Android la antena está en el centro de la espalda, cerca de la cámara. En iPhone, acercá la parte de arriba del teléfono.</li>
-          <li>Se abre Olympus con la <b>ficha de la pieza</b>. Si el celular no tenía la sesión iniciada, primero te pide usuario y contraseña.</li>
+          <li>Se abre Olympus con la <b>ficha de la pieza</b>. Si el celular no tenía la sesión iniciada, muestra lo mínimo (Nº de serie, presión, vencimiento y si está vigente) y pide usuario y contraseña para ver el detalle.</li>
         </ol>
         <Nota>Para ver una pieza siempre hace falta tu usuario. Si alguien escanea el tag sin usuario, no ve ningún dato.</Nota>
       </Sec>
@@ -192,7 +192,7 @@ function GuiaCliente() {
         <Faq q="No veo algunas de mis piezas">Tu usuario ve solo las piezas de tu empresa y de los IBM que tiene habilitados. Pedile a BM que agregue los que falten.</Faq>
         <Faq q="¿Puedo usarlo en la computadora?">Sí, para ver tus activos y descargar relevamientos en Excel. Escanear tags necesita un celular con NFC.</Faq>
         <Faq q="¿Cómo cierro la sesión?">Con el ícono de salida, arriba a la derecha, o con <b>Salir</b> en la ficha de la pieza.</Faq>
-        <Faq q="¿Alguien sin usuario puede ver mis piezas?">No. La información de cada pieza la ve solo quien tiene acceso a ella.</Faq>
+        <Faq q="¿Alguien sin usuario puede ver mis piezas?">Solo lo mismo que dice el precinto: Nº de serie, presión, vencimiento y si está vigente. La empresa, el IBM, los informes y los certificados los ve solo quien tiene acceso.</Faq>
       </Sec>
     </>
   );

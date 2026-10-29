@@ -855,3 +855,15 @@ a.axt-btn { text-decoration: none; }
 .pr-sinuhf { color: var(--t-E8A33C); border-color: color-mix(in srgb, var(--t-E8A33C) 45%, transparent); }
 
 .r6-fija { font: italic 400 11px "IBM Plex Sans"; color: var(--t-7A8792); white-space: nowrap; }
+
+/* Escanear un tag: lo mínimo de la pieza, visible sin sesión */
+.tag-resumen { background: var(--s-151217); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin: 8px 0 4px; }
+.tag-resumen.cargando { display: grid; place-items: center; min-height: 92px; }
+.tag-resumen-top { display: flex; gap: 11px; align-items: center; }
+.tag-resumen-et { font: 500 10.5px "IBM Plex Mono", monospace; color: var(--t-7A8792); letter-spacing: .5px; text-transform: uppercase; }
+.tag-resumen-serie { font: 700 19px "Oswald", sans-serif; color: var(--t-EAF0F3); overflow-wrap: anywhere; }
+.tag-resumen-datos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--b-201C24); }
+.tag-resumen-datos span { display: block; font: 500 10.5px "IBM Plex Mono", monospace; color: var(--t-7A8792); letter-spacing: .5px; text-transform: uppercase; }
+.tag-resumen-datos b { font: 600 15px "IBM Plex Sans"; color: var(--t-EAF0F3); }
+.tag-resumen-nada { font: 400 13px "IBM Plex Sans"; color: var(--t-8B98A5); }
+.tag-sinpermiso { display: flex; gap: 8px; margin-top: 14px; font: 400 12.5px "IBM Plex Sans"; color: var(--t-8B98A5); line-height: 1.5; }

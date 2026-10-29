@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { SlidersHorizontal, ScanLine, Smartphone, LogOut, KeyRound, Radio, WifiOff, Tag, ArrowLeft, Lock, SearchX, HelpCircle, MapPin } from 'lucide-react';
-import { login, logout, getUser, isAuthed, tagInfo } from './api.js';
+import { login, logout, getUser, isAuthed, tagInfo, tagResumen } from './api.js';
 import { Band, Pill, CertRow, Spinner, ErrorNote, Toast } from './ui.jsx';
 import { useOnline } from './offline.js';
 // Cada pantalla se baja recién cuando se usa: el cliente no carga Administración, etc.
@@ -289,14 +289,43 @@ function TagPage({ token, user, onUser, onAyuda }) {
       {user
         ? <TagView token={token} user={user} onSalir={salir}
             onExpired={() => { setAviso('Tu sesión venció. Volvé a entrar para ver la pieza.'); onUser(null); }} />
-        : <TagLogin aviso={aviso} onAyuda={onAyuda} onLogin={(u) => { setAviso(null); onUser(u); }} />}
+        : <TagLogin token={token} aviso={aviso} onAyuda={onAyuda} onLogin={(u) => { setAviso(null); onUser(u); }} />}
     </div>
   );
 }
 
 const irAOlympus = () => { window.location.href = window.location.origin + '/'; };
 
-function TagLogin({ aviso, onLogin, onAyuda }) {
+// "2027-06-30" → "06/2027" (como figura en el precinto)
+const mesAnio = (d) => (/^\d{4}-\d{2}/.test(String(d || '')) ? `${String(d).slice(5, 7)}/${String(d).slice(0, 4)}` : '—');
+
+// Lo mínimo de la pieza, visible para cualquiera que escanee (lo mismo que dice el precinto).
+// El detalle completo (cliente, IBM, informes, certificados) sigue pidiendo sesión.
+function ResumenPublico({ token }) {
+  const [r, setR] = useState(undefined);
+  useEffect(() => { let vivo = true; tagResumen(token).then((x) => { if (vivo) setR(x); }); return () => { vivo = false; }; }, [token]);
+  if (r === undefined) return <div className="tag-resumen cargando"><Spinner /></div>;
+  if (!r) return null; // sin conexión: no se muestra
+  if (r.noRegistrado) return <div className="tag-resumen"><div className="tag-resumen-nada">Este tag no está registrado en Olympus.</div></div>;
+  return (
+    <div className="tag-resumen" aria-label="Datos del precinto">
+      <div className="tag-resumen-top">
+        <Band status={r.estado} h={38} />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div className="tag-resumen-et">Nº de serie</div>
+          <div className="tag-resumen-serie">{r.code}</div>
+        </div>
+        <Pill status={r.estado} />
+      </div>
+      <div className="tag-resumen-datos">
+        <div><span>Presión</span><b>{r.presion || '—'}</b></div>
+        <div><span>Vence</span><b>{mesAnio(r.vence)}</b></div>
+      </div>
+    </div>
+  );
+}
+
+function TagLogin({ token, aviso, onLogin, onAyuda }) {
   const [usuario, setUsuario] = useState('');
   const [password, setPassword] = useState('');
   const [err, setErr] = useState(null);
@@ -314,10 +343,12 @@ function TagLogin({ aviso, onLogin, onAyuda }) {
     <div className="login-wrap">
       <form className="login-card" onSubmit={submit}>
         <div className="login-top" style={{ margin: '0 0 22px' }}><Logo /><BotonTema className="axt-x sm" size={14} /></div>
-        <div className="login-side" style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Lock size={12} /> Pieza registrada</div>
-        <h1 style={{ font: '700 21px "Oswald", sans-serif', color: 'var(--t-EAF0F3)', margin: '6px 0 6px' }}>Iniciá sesión para ver esta pieza</h1>
-        <p style={{ font: '400 13px "IBM Plex Sans"', color: 'var(--t-8B98A5)', margin: '0 0 20px', lineHeight: 1.5 }}>
-          Esta pieza está registrada en Olympus Trace. Su información la ve solo quien tiene acceso.
+        <div className="login-side" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>Pieza registrada</div>
+        <ResumenPublico token={token} />
+        <div className="login-side" style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 18 }}><Lock size={12} /> Detalle completo</div>
+        <h1 style={{ font: '700 19px "Oswald", sans-serif', color: 'var(--t-EAF0F3)', margin: '6px 0 6px' }}>Iniciá sesión para ver el detalle</h1>
+        <p style={{ font: '400 13px "IBM Plex Sans"', color: 'var(--t-8B98A5)', margin: '0 0 18px', lineHeight: 1.5 }}>
+          Cliente, informes y certificados los ve solo quien tiene acceso.
         </p>
 
         {aviso && <div className="tag-aviso" role="status">{aviso}</div>}
@@ -369,7 +400,7 @@ function TagView({ token, user, onExpired, onSalir }) {
         <div className="phone-screen">
           {st.loading ? <Spinner />
             : st.data ? <PiezaInfo data={st.data} />
-            : <TagProblema code={st.code} onRetry={() => setIntento((n) => n + 1)} />}
+            : <TagProblema code={st.code} token={token} onRetry={() => setIntento((n) => n + 1)} />}
 
           <div className="tag-foot">
             <span>Usuario: <b>{user.username || user.email}</b></span>
@@ -421,8 +452,17 @@ function PiezaInfo({ data }) {
   );
 }
 
-function TagProblema({ code, onRetry }) {
+function TagProblema({ code, token, onRetry }) {
   const noEsta = code === 404;
+  if (noEsta) return (
+    <div style={{ padding: '4px 0 8px' }}>
+      <ResumenPublico token={token} />
+      <div className="tag-sinpermiso">
+        <Lock size={14} style={{ flex: 'none', marginTop: 2 }} />
+        <span>Tu usuario no tiene acceso al detalle de esta pieza (cliente, informes, certificados). Si tenés otro usuario, tocá <b>Salir</b> y entrá con ese.</span>
+      </div>
+    </div>
+  );
   return (
     <div style={{ textAlign: 'center', padding: '26px 4px 8px' }}>
       <SearchX size={30} color={noEsta ? 'var(--t-8B98A5)' : 'var(--t-E5605C)'} />
