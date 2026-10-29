@@ -48,9 +48,16 @@ export function epcDelUid(lecturas, uid) {
   const hit = (lecturas || []).filter((x) => claves.some((c) => String(x.epc).toUpperCase().includes(c)));
   return hit.length === 1 ? hit[0].epc : null;
 }
-const elegirPara = (juntas, uid) => {
+// EPC de fábrica de un DataBand (chip doble NFC + UHF): 00000000 2000 + parte del número de chip NFC
+export const esDataBand = (epc) => /^0{8}2000[0-9A-F]{12}/.test(String(epc || '').toUpperCase());
+// De lo leído, el UHF del tag recién grabado. Un DataBand que no lleva el número de chip del NFC
+// grabado es OTRO tag (uno de al lado): nunca se toma, aunque sea el único que se leyó.
+export const elegirPara = (juntas, uid) => {
   const porUid = epcDelUid(juntas, uid);
-  return porUid ? { epc: porUid, n: juntas.length, porUid: true } : elegirTag(juntas);
+  if (porUid) return { epc: porUid, n: juntas.length, porUid: true };
+  const posibles = uid ? juntas.filter((x) => !esDataBand(x.epc)) : juntas;
+  if (juntas.length && !posibles.length) return { epc: null, motivo: 'otro', n: juntas.length };
+  return elegirTag(posibles);
 };
 
 function mensajeError(e, al) {
@@ -86,6 +93,8 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   est.current = { cola, actual, colocar, soloNfc };
   const r6 = useR6();
   const conR6 = r6.estado === 'lista' || r6.estado === 'leyendo';
+  const enEspera = useRef(null); // { ev, t }: tag apoyado mientras se procesaba otro
+  const [nota, setNota] = useState(null); // aviso corto en el recuadro de "Ahora"
   const faltaUhf = useRef(null); // { k, code, reusado, uid }: la pieza actual, grabada, esperando su UHF
   const gatillo = useRef([]);
 
@@ -172,6 +181,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   // pasar a la pieza pendiente que sigue (o terminar)
   function avanzar(desde) {
     faltaUhf.current = null;
+    setNota(null);
     const xs = est.current.cola;
     const sig = siguientePendiente(xs, desde);
     if (sig >= 0) setActual(sig);
@@ -184,8 +194,14 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   // EPC que corresponde al NFC grabado, ese es. Devuelve { epc } o { epc: null, motivo, n }; null sin escáner.
   async function leerUhf(uid) {
     if (!lectorR6.conectada) return null;
-    const juntas = await lectorR6.rafaga(RAFAGA_MS).catch(() => null);
-    return juntas ? elegirPara(juntas, uid) : { epc: null, motivo: 'ninguno', n: 0 };
+    let res = { epc: null, motivo: 'ninguno', n: 0 };
+    // con la potencia mínima a veces no lo toma de entrada: una segunda pasada (misma potencia)
+    for (let k = 0; k < 2 && lectorR6.conectada; k++) {
+      const juntas = await lectorR6.rafaga(RAFAGA_MS).catch(() => null);
+      if (juntas) res = elegirPara(juntas, uid);
+      if (res.epc || res.motivo === 'varios') break;
+    }
+    return res;
   }
 
   // Volver a leer el UHF de la pieza que lo está esperando (el tag tiene que estar cerca del escáner)
@@ -246,7 +262,9 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
 
   const problemaUhf = (u, code) => (u.motivo === 'varios'
     ? `El escáner leyó ${u.n} tags a la vez y no se sabe cuál es el de ${code}.`
-    : 'El escáner no leyó el UHF de este tag.');
+    : u.motivo === 'otro'
+      ? `El escáner leyó ${u.n === 1 ? 'otro tag' : 'otros tags'} de al lado, no el que acabás de grabar.`
+      : 'El escáner no leyó el UHF de este tag.');
 
   // Después de un gatillazo: asociar lo leído a la pieza que quedó sin UHF
   async function trasGatillo(juntas) {
@@ -260,7 +278,9 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
       vibrar([90, 60, 90]);
       setAviso(avisoFalta(f, u.motivo === 'varios'
         ? `Se leyeron ${u.n} tags a la vez. Apuntá solo al tag de ${f.code}, más de cerca, y apretá el gatillo de nuevo.`
-        : `No se leyó ningún tag. Acercá el escáner al tag de ${f.code} y apretá el gatillo de nuevo.`));
+        : u.motivo === 'otro'
+          ? `Se leyó otro tag, no el de ${f.code}. Apuntá bien pegado a su tag y apretá el gatillo de nuevo.`
+          : `No se leyó ningún tag. Acercá el escáner al tag de ${f.code} y apretá el gatillo de nuevo.`));
       return;
     }
     await cerrarUhf(f, u.epc);
@@ -274,10 +294,20 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   }
 
   async function manejar(ev) {
-    if (ocupado.current) return;
+    // Chrome avisa una sola vez por cada vez que se apoya un tag: si llega mientras se termina el
+    // anterior (UHF, guardado), se guarda y se atiende enseguida, en vez de perderlo.
+    if (ocupado.current) { enEspera.current = { ev, t: Date.now() }; return; }
     const { cola: xs, actual: i, colocar: col } = est.current;
     const pieza = xs[i];
-    if (!pieza || pieza.local !== 'pendiente') return;
+    if (!pieza || pieza.local !== 'pendiente') {
+      const u2 = normUid(ev.serialNumber);
+      if (faltaUhf.current && u2 && u2 !== ultimoOk.current.uid) {
+        vibrar([90, 60, 90]);
+        setNota(`Ese tag todavía no se graba: primero resolvé el UHF de ${faltaUhf.current.code}. Después volvé a apoyarlo.`);
+      }
+      return;
+    }
+    setNota(null);
     const uid = normUid(ev.serialNumber);
     const token = tokenDe(ev.message);
     // el tag que se acaba de grabar sigue apoyado: no es un error
@@ -311,7 +341,11 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
 
       setFase('grabando');
       try {
-        await lector.current.ndef.write({ records: [{ recordType: 'url', data: tagUrl(pieza.token) }] });
+        // si el tag ya no está apoyado, Chrome esperaría al próximo que se acerque (sin revisarlo): se corta a los 6 s
+        const corte = new AbortController();
+        const tt = setTimeout(() => corte.abort(), 6000);
+        try { await lector.current.ndef.write({ records: [{ recordType: 'url', data: tagUrl(pieza.token) }] }, { signal: corte.signal }); }
+        finally { clearTimeout(tt); }
       } catch (e) {
         vibrar([90, 60, 90]);
         setAviso({ tipo: 'error', texto: mensajeError(e, 'grabar') });
@@ -377,6 +411,10 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
     } finally {
       ocupado.current = false;
       setFase((f) => (f === 'revisando' || f === 'grabando' || f === 'uhf' ? 'esperando' : f));
+      // un tag que se apoyó mientras tanto (hace poco): atenderlo ahora
+      const e2 = enEspera.current;
+      enEspera.current = null;
+      if (e2 && Date.now() - e2.t < 4000 && lector.current) setTimeout(() => manejar(e2.ev), 0);
     }
   }
 
@@ -445,6 +483,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
               {fase === 'grabando' && <><Loader2 size={16} className="spin" /><span>Grabando… no muevas el teléfono</span></>}
               {fase === 'uhf' && <><Loader2 size={16} className="spin" /><span>Leyendo el UHF con el escáner… dejá el tag apoyado</span></>}
             </div>
+            {nota && <div className="ser-nota" role="status">{nota}</div>}
             <div className="ser-botones">
               {escuchando
                 ? <button className="axt-btn" onClick={pausar}><Pause size={14} /> Pausar</button>
