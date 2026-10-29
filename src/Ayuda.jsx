@@ -91,7 +91,7 @@ function GuiaCliente() {
         <ul className="ay-lista">
           <li><b>Arriba:</b> tipo de pieza, empresa, IBM, descripción, <b>Nº de serie</b> y el estado general.</li>
           <li><b>Certificados:</b> cada inspección de BM, con el número de informe, el resultado (<b>APTO</b> / <b>NO APTO</b>), la presión, el texto del precinto, la fecha de emisión, la de vencimiento y cuántos días faltan.</li>
-          <li>Si BM habilitó el informe, aparece el botón <b>Ver informe (BM)</b> para abrirlo.</li>
+          <li>Si el informe está disponible, aparece el botón <b>Ver informe</b>: se abre dentro de Olympus, hoja por hoja (con dos dedos se agranda). Arriba está <b>Descargar</b> para guardarlo en PDF. Hace falta internet.</li>
           <li>Si la pieza tuvo <b>inspecciones anteriores</b>, quedan abajo como historial, marcadas <b>Anterior</b>. El estado de la pieza sale siempre de su inspección más reciente.</li>
           <li><b>Abajo:</b> con qué usuario estás, <b>Ir a Olympus</b> (tu pantalla completa) y <b>Salir</b>.</li>
         </ul>
