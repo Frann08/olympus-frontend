@@ -202,7 +202,7 @@ function GuiaCliente() {
    PRECINTOS
 ============================================================ */
 const IDX_PRECINTOS = [
-  ['entrar', 'Entrar'], ['cargar', 'Cargar la Hoja 2'], ['informe', 'Elegir el informe'], ['grabar', 'Grabar el tag'], ['serie', 'Grabar en serie'], ['epc', 'Asociar EPC con el escáner'],
+  ['entrar', 'Entrar'], ['cargar', 'Cargar la Hoja 2'], ['informe', 'Elegir el informe'], ['grabar', 'Grabar el tag'], ['serie', 'Grabar en serie'], ['epc', 'Asociar EPC con el escáner'], ['revisar-tag', 'Revisar un tag'],
   ['colocar', 'Colocar el tag'], ['deshacer', 'Deshacer un paso'], ['noapto', 'Piezas NO APTO'], ['controlar', 'Controlar el trabajo'],
   ['corregir', 'Si un dato vino mal'],
 ];
@@ -290,6 +290,16 @@ function GuiaPrecintos() {
           <li>También se puede asociar desde Trazabilidad, con el botón <b>Asociar</b> de un tag leído sin pieza.</li>
         </ul>
         <Nota>El escáner R6 no apaga el NFC del celular: se puede grabar el NFC y asociar el EPC sin desconectar el escáner. Si con el celular puesto en el soporte no lee el NFC, sacalo del soporte para grabar.</Nota>
+      </Sec>
+
+      <Sec id="revisar-tag" n="6b" titulo="Revisar un tag">
+        <p>Si un tag no se deja grabar o no sabés de qué pieza es, en Precintos tocá <b>Revisar tag</b> (arriba, al lado de "Grabar y colocar tags").</p>
+        <ul className="ay-lista">
+          <li><b>Leer NFC</b>: acercá el tag al teléfono. Muestra el número de chip, lo que tiene grabado y, si es de Olympus, a qué pieza corresponde y en qué estado está.</li>
+          <li>Abajo explica qué pasa: <b>vacío</b> (se puede grabar), <b>de otra pieza</b> (por eso no deja grabarlo; si es recuperado, se reusa desde Grabar en serie), o <b>cruzado</b> (el chip es de una pieza y el link de otra).</li>
+          <li>Si dice que <b>detecta un tag pero no lo puede leer</b>, puede estar bloqueado con contraseña o dañado. Si no detecta nada, revisá el teléfono con otro tag y que no esté pegado a metal.</li>
+          <li><b>Leer UHF</b> (con el escáner conectado): muestra el EPC que lee de cerca y a qué pieza está asociado. Si el UHF lee y el NFC no, la parte NFC del tag tiene un problema.</li>
+        </ul>
       </Sec>
 
       <Sec id="colocar" n="7" titulo="Colocar el tag" img={{ src: 'p-lista', alt: 'Lista de piezas con estados colocado, grabado, pendiente y sin precinto', cap: 'Estados de cada pieza del informe.' }}>
