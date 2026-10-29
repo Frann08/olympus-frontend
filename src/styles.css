@@ -853,3 +853,5 @@ a.axt-btn { text-decoration: none; }
 
 /* Precintos: pieza grabada sin el UHF asociado */
 .pr-sinuhf { color: var(--t-E8A33C); border-color: color-mix(in srgb, var(--t-E8A33C) 45%, transparent); }
+
+.r6-fija { font: italic 400 11px "IBM Plex Sans"; color: var(--t-7A8792); white-space: nowrap; }
