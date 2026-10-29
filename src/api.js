@@ -119,6 +119,16 @@ export function tagInfo(tok) {
   return api(`/api/tag/${encodeURIComponent(tok)}`);
 }
 
+// Lo mínimo de la pieza sin sesión (lo que dice el precinto): Nº de serie, presión, vencimiento y estado.
+// null si el tag no está registrado o no hay conexión.
+export async function tagResumen(tok) {
+  try {
+    const res = await fetch(`${API}/api/public/tag/${encodeURIComponent(tok)}`);
+    if (!res.ok) return { noRegistrado: res.status === 404 };
+    return await res.json();
+  } catch { return null; }
+}
+
 // Dirección pública de Olympus que se graba en los tags. Si se configura VITE_PUBLIC_URL
 // (por ejemplo, el dominio propio) se usa esa aunque se esté trabajando desde otra dirección.
 export const PUBLIC_URL = String(import.meta.env.VITE_PUBLIC_URL || window.location.origin).replace(/\/+$/, '');
