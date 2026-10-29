@@ -29,7 +29,7 @@ const nTags = (n) => `${n} ${n === 1 ? 'tag' : 'tags'}`;
 // espera: cuánto esperar después del último tag antes de mandar la tanda (modo teclado: el escáner tipea cada EPC en ~1 s)
 // parcial: con la R6, mientras lee se van mandando los tags nuevos (si no, todo junto al parar).
 // Sin parcial (buscar un solo tag), un gatillazo lee un momento y para solo.
-export function CapturaPistola({ onLeidos, activo = true, texto = 'Apretá el gatillo del escáner', ayuda, espera = 350, parcial = true }) {
+export function CapturaPistola({ onLeidos, activo = true, texto = 'Apretá el gatillo del escáner', ayuda, espera = 350, parcial = true, potenciaFija = false }) {
   const ref = useRef(null);
   const tanda = useRef([]);
   const timer = useRef(null);
@@ -102,7 +102,7 @@ export function CapturaPistola({ onLeidos, activo = true, texto = 'Apretá el ga
     sub = !parcial ? (enCurso ? `${nTags(enCurso)} hasta ahora` : 'Apuntá al tag')
       : enCurso ? `${nTags(enCurso)} hasta ahora · gatillo otra vez para parar` : 'Apretá el gatillo otra vez para parar';
   }
-  else if (conR6) { titulo = texto; sub = reciente ? (ultimo.n ? `Leídos: ${nTags(ultimo.n)}` : 'No se leyó ningún tag. Acercate más o subí la potencia.') : (ayuda || 'Escáner conectado, listo para leer'); }
+  else if (conR6) { titulo = texto; sub = reciente ? (ultimo.n ? `Leídos: ${nTags(ultimo.n)}` : (potenciaFija ? 'No se leyó ningún tag. Acercá el escáner al tag.' : 'No se leyó ningún tag. Acercate más o subí la potencia.')) : (ayuda || 'Escáner conectado, listo para leer'); }
   else if (conBt && !(reciente && ultimo.n)) { titulo = 'Conectá el escáner R6 con el botón de abajo'; sub = foco ? 'Si usás un escáner en modo teclado, ya podés apretar el gatillo' : 'Si usás un escáner en modo teclado, tocá acá antes de apretar el gatillo'; }
   else if (foco) { titulo = texto; sub = reciente && ultimo.n ? `Leídos: ${nTags(ultimo.n)}` : (ayuda || 'Lista para leer'); }
   else { titulo = 'Tocá acá antes de apretar el gatillo'; sub = reciente && ultimo.n ? `Leídos: ${nTags(ultimo.n)}` : 'El escáner escribe acá lo que lee'; }
@@ -132,15 +132,34 @@ export function CapturaPistola({ onLeidos, activo = true, texto = 'Apretá el ga
           }}
         />
       </label>
-      {conBt && <BarraR6 />}
+      {conBt && <BarraR6 fija={potenciaFija} />}
     </div>
   );
 }
 
 const POTENCIAS = [[5, 'Mínima'], [10, 'Baja'], [15, 'Media baja'], [20, 'Media'], [25, 'Alta'], [30, 'Máxima']];
 
+// Al grabar o asociar un tag, el escáner lee siempre con la potencia mínima: así toma solo el tag
+// que está pegado y no uno que esté a un metro. Mientras la pantalla está abierta la potencia queda
+// fija; al cerrarla vuelve la que tenía.
+export const POTENCIA_MINIMA = 5;
+export function usePotenciaMinima() {
+  const r6 = useR6();
+  const antes = useRef(null);
+  const conectada = r6Conectada(r6);
+  useEffect(() => {
+    if (!conectada || r6.potencia == null || r6.potencia === POTENCIA_MINIMA) return;
+    if (antes.current == null) antes.current = r6.potencia;
+    lectorR6.ponerPotencia(POTENCIA_MINIMA);
+  }, [conectada, r6.potencia]);
+  useEffect(() => () => {
+    if (antes.current != null && lectorR6.conectada && lectorR6.ver().potencia === POTENCIA_MINIMA) lectorR6.ponerPotencia(antes.current);
+  }, []);
+}
+
 // Conectar la R6 por Bluetooth, ver batería, cambiar potencia, leer sin gatillo
-export function BarraR6() {
+// fija: la potencia la maneja la pantalla (grabar / asociar) y no se puede cambiar
+export function BarraR6({ fija = false }) {
   const r6 = useR6();
   const [cambiando, setCambiando] = useState(false);
   const [aviso, setAviso] = useState(null);
@@ -187,11 +206,13 @@ export function BarraR6() {
       <div className="r6-fila">
         <label className="r6-pot">
           <span>Potencia</span>
-          <select value={r6.potencia ?? ''} onChange={(e) => potencia(Number(e.target.value))} disabled={cambiando || leyendo} aria-label="Potencia de lectura">
+          <select value={r6.potencia ?? ''} onChange={(e) => potencia(Number(e.target.value))} disabled={fija || cambiando || leyendo} aria-label="Potencia de lectura"
+            title={fija ? 'Para grabar y asociar, la potencia queda en la mínima' : undefined}>
             {r6.potencia == null && <option value="">—</option>}
             {opciones.map(([v, n]) => <option key={v} value={v}>{n} ({v} dBm)</option>)}
           </select>
           {cambiando && <Loader2 size={13} className="spin" />}
+          {fija && <em className="r6-fija">fija para grabar</em>}
         </label>
         <button className={'axt-btn small' + (leyendo ? ' on' : '')} onClick={() => lectorR6.alternar()} title="Leer sin usar el gatillo">
           {leyendo ? <><Square size={12} /> Parar</> : <><ScanLine size={13} /> Leer</>}
@@ -285,6 +306,7 @@ export function AsociarSerie({ cola: colaIni, titulo, onClose, onCambio }) {
   const est = useRef(); est.current = { cola, actual, busy };
   const ultimoOk = useRef(0); // después de asociar, unos segundos se ignoran lecturas (el mismo tag sigue cerca)
   useEscape(onClose);
+  usePotenciaMinima();
 
   const hechos = cola.filter((x) => x.hecho).length;
   const it = cola[actual];
@@ -317,7 +339,7 @@ export function AsociarSerie({ cola: colaIni, titulo, onClose, onCambio }) {
     if (Date.now() - ultimoOk.current < 2500) return;
     if (epcs.length > 1) {
       vibrar([90, 60, 90]);
-      setAviso({ tipo: 'alerta', texto: `Se leyeron ${epcs.length} tags a la vez. Alejá las otras piezas o bajá la potencia, y apuntá solo al tag de esta pieza.` });
+      setAviso({ tipo: 'alerta', texto: `Se leyeron ${epcs.length} tags a la vez. Alejá las otras piezas y apuntá solo al tag de esta pieza, bien de cerca.` });
       return;
     }
     guardar(epcs[0]);
@@ -352,7 +374,7 @@ export function AsociarSerie({ cola: colaIni, titulo, onClose, onCambio }) {
             <div className="ser-serial">{it.code}</div>
             <div className="ser-desc">{it.name}</div>
             <div style={{ marginTop: 12 }}>
-              <CapturaPistola onLeidos={leidos} espera={1800} parcial={false} texto="Apuntá al tag de esta pieza y apretá el gatillo"
+              <CapturaPistola onLeidos={leidos} espera={1800} parcial={false} potenciaFija texto="Apuntá al tag de esta pieza y apretá el gatillo"
                 ayuda={busy ? 'Guardando…' : 'Solo ese tag: alejá las otras piezas'} />
             </div>
             {cola.length - hechos > 1 && (

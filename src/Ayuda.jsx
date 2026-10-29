@@ -267,7 +267,7 @@ function GuiaPrecintos() {
         <p><b>Cada pieza se graba en NFC y UHF en el mismo paso</b>, con el escáner R6 conectado. Conectalo desde el mismo panel, en <b>Escáner RFID</b>, antes de tocar Empezar. Después de grabar el NFC, el escáner lee el UHF de ese tag y lo une a la pieza; en la lista aparece <b>UHF ✓</b> y recién ahí pasa a la siguiente. Mientras dice <b>Leyendo el UHF…</b>, dejá el tag quieto y cerca del escáner.</p>
         <ul className="ay-lista">
           <li>Si tocás Empezar sin el escáner conectado, avisa. Podés conectarlo, o elegir <b>Grabar solo NFC</b>: en ese caso las piezas quedan <b>Sin UHF</b> para asociarlas después.</li>
-          <li>Olympus empieza leyendo con poca potencia, para tomar solo el tag que estás grabando, y si no lo encuentra la va subiendo. Al cerrar el panel vuelve la potencia que tenías.</li>
+          <li>Mientras grabás, el escáner lee siempre con la potencia <b>Mínima</b> y no se puede cambiar: así toma solo el tag que tenés pegado y no uno que esté cerca. Al cerrar el panel vuelve la potencia que tenías.</li>
           <li>Si no logra leer el UHF, <b>no pasa a la siguiente</b>: arriba dice <b>Falta el UHF</b>. Acercá el escáner al tag y tocá <b>Reintentar UHF</b>, o apuntale y apretá el gatillo. Si de verdad querés dejarlo para después, tocá <b>Seguir sin UHF</b> y confirmá.</li>
           <li>Si el UHF era de otra pieza (un tag recuperado), avisa de cuál y ofrece pasarlo a esta.</li>
         </ul>
@@ -285,7 +285,7 @@ function GuiaPrecintos() {
           <li>Olympus guarda el EPC, el equipo vibra y el botón <b>Sin UHF</b> desaparece.</li>
         </ol>
         <ul className="ay-lista">
-          <li>Si el escáner lee <b>más de un tag a la vez</b>, avisa y no guarda nada: alejá las otras piezas o bajá la <b>potencia</b> a <b>Baja</b> o <b>Media baja</b> en la barra del escáner mientras asociás.</li>
+          <li>Mientras asociás, el escáner lee con la potencia <b>Mínima</b>: apuntá bien de cerca. Si lee <b>más de un tag a la vez</b>, avisa y no guarda nada: alejá las otras piezas.</li>
           <li>Si el tag ya estaba asociado a otra pieza, avisa de cuál. Si es un tag recuperado, tocá <b>Es un tag recuperado</b> para pasarlo a esta pieza.</li>
           <li>También se puede asociar desde Trazabilidad, con el botón <b>Asociar</b> de un tag leído sin pieza.</li>
         </ul>

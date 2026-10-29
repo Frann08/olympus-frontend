@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Check, Radio, Loader2, SkipForward, RotateCcw, AlertTriangle, Pause, Play } from 'lucide-react';
 import { api, PUBLIC_URL } from './api.js';
 import { lectorR6, hayBluetooth, elegirTag, juntarLecturas } from './r6.js';
-import { BarraR6, useR6, epcLindo } from './Pistola.jsx';
+import { BarraR6, useR6, epcLindo, usePotenciaMinima } from './Pistola.jsx';
 
 /* Grabado en serie (Precintos)
    Se arma la cola con las piezas pendientes del informe. La pantalla muestra la que sigue;
@@ -35,9 +35,7 @@ function tokenDe(message) {
 }
 const vibrar = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catch { /* sin vibración */ } };
 const NOMBRE_EST = { grabado: 'grabado', colocado: 'colocado' };
-const POTENCIA_GRABAR = 15; // dBm: alcanza para el tag apoyado en el teléfono y no para los de alrededor
-const POTENCIAS_UHF = [POTENCIA_GRABAR, 22, 30]; // si no lee nada, se sube de a poco
-const RAFAGA_MS = 1200;
+const RAFAGA_MS = 1500; // con la potencia mínima (fija mientras el panel está abierto: usePotenciaMinima)
 
 // Los Xerafy DataBand2 llevan en el EPC parte del número de chip del NFC (al revés):
 // UID C1:68:5B:12:01:78:16:E0 → EPC …7801125B68C1…. Con eso se sabe cuál de los tags leídos es
@@ -89,7 +87,6 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   const r6 = useR6();
   const conR6 = r6.estado === 'lista' || r6.estado === 'leyendo';
   const faltaUhf = useRef(null); // { k, code, reusado, uid }: la pieza actual, grabada, esperando su UHF
-  const potenciaAntes = useRef(null);
   const gatillo = useRef([]);
 
   const hechos = cola.filter((x) => x.local !== 'pendiente').length;
@@ -97,11 +94,9 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   const it = cola[actual];
   const quedan = cola.length - hechos;
 
-  // Apagar todo al cerrar (y devolverle al escáner la potencia que tenía)
-  useEffect(() => () => {
-    parar();
-    if (potenciaAntes.current != null && lectorR6.conectada && POTENCIAS_UHF.includes(lectorR6.ver().potencia)) lectorR6.ponerPotencia(potenciaAntes.current);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  usePotenciaMinima(); // el escáner lee con la mínima mientras el panel está abierto
+  // Apagar todo al cerrar
+  useEffect(() => () => { parar(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Lo que se lee con el gatillo va para la pieza que quedó sin UHF
   useEffect(() => lectorR6.registrar({
     corteMs: 1500, // un gatillazo lee un momento y para solo
@@ -184,24 +179,13 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
     return sig;
   }
 
-  // Lee el UHF del tag recién grabado. Empieza con poca potencia (solo el tag apoyado) y, si no
-  // lee nada, la sube de a poco. Si entre lo leído está el EPC que corresponde al NFC grabado,
-  // ese es. Devuelve { epc } o { epc: null, motivo, n }; null sin escáner.
+  // Lee el UHF del tag recién grabado, con la potencia mínima (solo el tag que está pegado).
+  // Nunca sube la potencia: con más potencia toma tags que están lejos. Si entre lo leído está el
+  // EPC que corresponde al NFC grabado, ese es. Devuelve { epc } o { epc: null, motivo, n }; null sin escáner.
   async function leerUhf(uid) {
     if (!lectorR6.conectada) return null;
-    const pot = lectorR6.ver().potencia;
-    if (potenciaAntes.current == null && pot != null && !POTENCIAS_UHF.includes(pot)) potenciaAntes.current = pot;
-    let res = { epc: null, motivo: 'ninguno', n: 0 };
-    for (const p of POTENCIAS_UHF) {
-      if (!lectorR6.conectada) break;
-      if (lectorR6.ver().potencia !== p) await lectorR6.ponerPotencia(p);
-      const juntas = await lectorR6.rafaga(RAFAGA_MS).catch(() => null);
-      if (!juntas) continue;
-      res = elegirPara(juntas, uid);
-      if (res.epc || res.motivo === 'varios') break; // con más potencia leería todavía más tags
-    }
-    if (lectorR6.conectada && lectorR6.ver().potencia !== POTENCIA_GRABAR) await lectorR6.ponerPotencia(POTENCIA_GRABAR);
-    return res;
+    const juntas = await lectorR6.rafaga(RAFAGA_MS).catch(() => null);
+    return juntas ? elegirPara(juntas, uid) : { epc: null, motivo: 'ninguno', n: 0 };
   }
 
   // Volver a leer el UHF de la pieza que lo está esperando (el tag tiene que estar cerca del escáner)
@@ -389,7 +373,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
       vibrar([90, 60, 90]);
       setAviso(avisoFalta(f, u.motivo === 'desconectado'
         ? `${hecho} en NFC, pero el escáner se desconectó. Conectalo abajo y tocá Reintentar UHF.${libre}`
-        : `${hecho} en NFC. ${problemaUhf(u, pieza.code)} Acercá el escáner al tag y tocá Reintentar UHF, o apretá el gatillo apuntándole.${libre}`));
+        : `${hecho} en NFC. ${problemaUhf(u, pieza.code)} Acercá el escáner bien pegado al tag y tocá Reintentar UHF, o apretá el gatillo apuntándole.${libre}`));
     } finally {
       ocupado.current = false;
       setFase((f) => (f === 'revisando' || f === 'grabando' || f === 'uhf' ? 'esperando' : f));
@@ -502,7 +486,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
         {hayBluetooth() && (fase !== 'fin' || faltaUhf.current) && (
           <div className="ser-pistola">
             <div className="ser-pistola-tit">Escáner RFID <em>{soloNfc ? '(grabando solo NFC: conectalo para sumar el UHF)' : '(asocia el UHF en el mismo paso)'}</em></div>
-            <BarraR6 />
+            <BarraR6 fija />
           </div>
         )}
 
