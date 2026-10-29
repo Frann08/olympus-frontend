@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import QRCode from 'qrcode';
-import { Tag, Copy, Check, X, Undo2, Smartphone, Search, Pencil, Radar } from 'lucide-react';
+import { Tag, Copy, Check, X, Undo2, Smartphone, Search, Pencil, Radar, ScanSearch } from 'lucide-react';
 import { api, PUBLIC_URL, getUser } from './api.js';
 import { Spinner, ErrorNote } from './ui.jsx';
 import { ImportPanel } from './Admin.jsx';
 import GrabarSerie, { puedeGrabar } from './GrabarSerie.jsx';
 import { AsociarSerie } from './Pistola.jsx';
+import RevisarTag from './RevisarTag.jsx';
 
 // Estado físico del tag de cada pieza
 const EST = {
@@ -30,6 +31,7 @@ export default function Precintos({ toast }) {
   const [grabar, setGrabar] = useState(null);
   const [serie, setSerie] = useState(null); // { cola, titulo } · grabado seguido desde el teléfono
   const [asocEpc, setAsocEpc] = useState(null); // { cola, titulo } · asociar EPC con el escáner RFID
+  const [revisar, setRevisar] = useState(false); // panel Revisar tag
 
   const loadInformes = useCallback(async (pickKey) => {
     try {
@@ -117,6 +119,9 @@ export default function Precintos({ toast }) {
               <Tag size={17} color="var(--t-E7C15A)" />
               <span style={{ font: '600 15px "Oswald", sans-serif', color: 'var(--t-F3F1EC)' }}>2 · Grabar y colocar tags</span>
             </div>
+            <button className="axt-btn small" onClick={() => setRevisar(true)} title="Ver qué tiene grabado un tag y de qué pieza es">
+              <ScanSearch size={14} /> Revisar tag
+            </button>
             <div className="pr-search">
               <Search size={14} color="var(--t-6E6C69)" />
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar informe o cliente" aria-label="Buscar informe o cliente" />
@@ -210,6 +215,8 @@ export default function Precintos({ toast }) {
           onTelefono={() => { const it = grabar; setGrabar(null); setSerie({ cola: [it], titulo: tituloInf }); }}
         />
       )}
+
+      {revisar && <RevisarTag onClose={() => { setRevisar(false); if (infSel) loadItems(infSel); }} />}
 
       {asocEpc && (
         <AsociarSerie cola={asocEpc.cola} titulo={asocEpc.titulo} onClose={() => setAsocEpc(null)} onCambio={() => loadItems(infSel)} />
