@@ -98,6 +98,17 @@ export async function api(path, options = {}) {
   return res.json();
 }
 
+// El PDF de un informe (ArrayBuffer). Lo sirve Olympus solo a quien tiene acceso a ese informe.
+export async function informePdf(numero, ibm) {
+  const qs = ibm ? `?ibm=${encodeURIComponent(ibm)}` : '';
+  let res;
+  try { res = await fetch(`${API}/api/informes/${encodeURIComponent(numero)}${qs}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} }); }
+  catch { throw new Error('Sin conexión: para ver el informe hace falta internet.'); }
+  if (res.status === 401) { sesionVencida(); throw new Error('Sesión expirada, volvé a entrar'); }
+  if (!res.ok) throw new Error(res.status === 404 ? 'Este informe no está disponible.' : `No se pudo abrir el informe (error ${res.status}).`);
+  return res.arrayBuffer();
+}
+
 // Descargar el respaldo completo (dispara la descarga del archivo)
 export async function downloadBackup() {
   const res = await fetch(`${API}/api/backup`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });

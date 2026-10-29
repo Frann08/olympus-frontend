@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, X, Loader2, AlertTriangle, Download } from 'lucide-react';
+import { CheckCircle2, X, Loader2, AlertTriangle, Download, FileText } from 'lucide-react';
 
 /* ---------- estado / formato ---------- */
 export const STATUS = {
@@ -122,12 +122,16 @@ export function StatTile({ label, value, sub, color, icon: Icon, i = 0 }) {
   );
 }
 
+const VisorInforme = React.lazy(() => import('./VisorInforme.jsx'));
+
 export function CertRow({ c, last, onDownload }) {
+  const [verInforme, setVerInforme] = React.useState(false);
+  const conDoc = !c.pdf_url && c.informe_doc;
   const isInsp = !!(c.resultado || c.precinto || c.cert_type === 'Inspección');
   const resColor = c.resultado === 'NO APTO' ? 'var(--t-E5605C)' : c.resultado === 'APTO' ? 'var(--t-4FC98B)' : 'var(--t-8B98A5)';
   return (
     <div style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: last ? 'none' : '1px solid var(--b-201C24)' }}>
-      <Band status={c.status} h={onDownload || c.pdf_url ? 58 : 40} />
+      <Band status={c.status} h={onDownload || c.pdf_url || conDoc ? 58 : 40} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ font: '600 13px "IBM Plex Sans"', color: 'var(--t-EAF0F3)' }}>{isInsp ? `Inspección · Informe ${c.number}` : c.cert_type}</span>
@@ -145,6 +149,8 @@ export function CertRow({ c, last, onDownload }) {
         </div>
         {c.pdf_url ? (
           <a className="axt-btn small" style={{ marginTop: 9, textDecoration: 'none', display: 'inline-flex' }} href={c.pdf_url} target="_blank" rel="noreferrer"><Download size={13} /> Ver informe (BM)</a>
+        ) : conDoc ? (
+          <button className="axt-btn small" style={{ marginTop: 9 }} onClick={() => setVerInforme(true)}><FileText size={13} /> Ver informe</button>
         ) : onDownload ? (
           <button className="axt-btn small" style={{ marginTop: 9 }} onClick={onDownload}><Download size={13} /> Descargar PDF</button>
         ) : null}
@@ -155,6 +161,11 @@ export function CertRow({ c, last, onDownload }) {
           {c.status === 'anterior' ? 'reemplazada' : c.status === 'no_apto' ? 'no habilitada' : daysLabel(c.expires_date)}
         </div>
       </div>
+      {verInforme && (
+        <React.Suspense fallback={<div className="vi"><div className="vi-estado"><Spinner /></div></div>}>
+          <VisorInforme numero={c.informe_doc.numero} ibm={c.informe_doc.ibm} onClose={() => setVerInforme(false)} />
+        </React.Suspense>
+      )}
     </div>
   );
 }
