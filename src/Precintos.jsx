@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import QRCode from 'qrcode';
-import { Tag, Copy, Check, X, Undo2, Smartphone, Search, Pencil, Radar, ScanSearch } from 'lucide-react';
+import { Tag, Copy, Check, X, Undo2, Smartphone, Search, Pencil, Radar, ScanSearch, ChevronDown, ChevronRight } from 'lucide-react';
 import { api, PUBLIC_URL, getUser } from './api.js';
 import { Spinner, ErrorNote } from './ui.jsx';
 import { ImportPanel } from './Admin.jsx';
@@ -18,6 +18,15 @@ const EST = {
 const estadoDe = (it) => (it.apto ? it.estado : 'na');
 const keyInf = (i) => `${i.client_id}|${i.ibm || ''}|${i.informe}`;
 const tagUrl = (token) => `${PUBLIC_URL}/?tag=${token}`;
+const INF_TANDA = 12;
+const esCelu = () => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
+// filtros de la lista de informes
+const F_INF = [
+  ['pend', 'Con pendientes', (i) => i.colocados < i.aptos],
+  ['comp', 'Completos', (i) => i.aptos > 0 && i.colocados >= i.aptos],
+  ['todos', 'Todos', () => true],
+];
+const fechaCorta = (d) => { try { return d ? new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : ''; } catch { return ''; } };
 
 export default function Precintos({ toast }) {
   const [informes, setInformes] = useState(null);
@@ -32,13 +41,22 @@ export default function Precintos({ toast }) {
   const [serie, setSerie] = useState(null); // { cola, titulo } · grabado seguido desde el teléfono
   const [asocEpc, setAsocEpc] = useState(null); // { cola, titulo } · asociar EPC con el escáner RFID
   const [revisar, setRevisar] = useState(false); // panel Revisar tag
+  const [fInf, setFInf] = useState('pend'); // filtro de la lista de informes
+  const [nInf, setNInf] = useState(INF_TANDA); // cuántos informes se ven
+  const [verLista, setVerLista] = useState(true); // en el celular, la lista se pliega al elegir un informe
+  useEffect(() => { setNInf(INF_TANDA); }, [q, fInf]);
 
   const loadInformes = useCallback(async (pickKey) => {
     try {
       const r = await api('/api/precintos/informes');
       setInformes(r);
       setErr(null);
-      setSel((cur) => pickKey || cur || (r[0] && keyInf(r[0])) || null);
+      setSel((cur) => {
+        if (pickKey || cur) return pickKey || cur;
+        const primero = r.find(F_INF[0][2]) || r[0];
+        if (primero && esCelu()) setVerLista(false); // en el celular, directo a las piezas
+        return primero ? keyInf(primero) : null;
+      });
       return r;
     } catch (e) { setErr(e.message); return []; }
   }, []);
@@ -100,7 +118,13 @@ export default function Precintos({ toast }) {
   const pct = aptos.length ? Math.round((col / aptos.length) * 100) : 0;
 
   const qn = q.trim().toLowerCase();
-  const listaInf = (informes || []).filter((i) => !qn || String(i.informe).toLowerCase().includes(qn) || (i.cliente || '').toLowerCase().includes(qn));
+  const pasaQ = (i) => !qn || String(i.informe).toLowerCase().includes(qn) || (i.cliente || '').toLowerCase().includes(qn)
+    || (i.ibm && (`ibm ${i.ibm}`.includes(qn) || String(i.ibm).toLowerCase() === qn));
+  const filtroInf = F_INF.find((f) => f[0] === fInf)[2];
+  // al buscar, se busca en todos (no solo en el filtro elegido)
+  const listaInf = (informes || []).filter((i) => pasaQ(i) && (qn || filtroInf(i)));
+  const cuentaInf = (f) => (informes || []).filter(f).length;
+  const elegirInf = (i) => { setSel(keyInf(i)); if (esCelu()) { setVerLista(false); window.scrollTo({ top: 0, behavior: 'smooth' }); } };
   const visibles = (items || []).filter((x) => fEst === 'all' || estadoDe(x) === fEst);
   const infSel = (informes || []).find((i) => keyInf(i) === sel) || null;
   const esAdmin = getUser()?.role === 'admin';
@@ -124,7 +148,7 @@ export default function Precintos({ toast }) {
             </button>
             <div className="pr-search">
               <Search size={14} color="var(--t-6E6C69)" />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar informe o cliente" aria-label="Buscar informe o cliente" />
+              <input value={q} onChange={(e) => { setQ(e.target.value); setVerLista(true); }} placeholder="Buscar informe, cliente o IBM" aria-label="Buscar informe, cliente o IBM" />
             </div>
           </div>
 
@@ -132,17 +156,44 @@ export default function Precintos({ toast }) {
             : !informes ? <Spinner label="Cargando informes…" />
             : informes.length === 0 ? (
               <div className="pr-empty">Todavía no hay informes cargados. Subí la Hoja 2 en el paso 1.</div>
+            ) : !verLista && infSel ? (
+              <button className="pr-infbar" onClick={() => setVerLista(true)} aria-expanded="false" aria-label="Cambiar de informe">
+                <span className="pr-infbar-txt"><b>INF {infSel.informe}</b> <span>{infSel.cliente}{infSel.ibm ? ` · IBM ${infSel.ibm}` : ''}</span></span>
+                <span className="pr-infbar-cambiar">Cambiar <ChevronDown size={14} /></span>
+              </button>
             ) : (
-              <div className="pr-infs" role="tablist" aria-label="Informes">
-                {listaInf.map((i) => (
-                  <button key={keyInf(i)} role="tab" aria-selected={keyInf(i) === sel} className={'pr-inf' + (keyInf(i) === sel ? ' on' : '')} onClick={() => setSel(keyInf(i))}>
-                    <b>INF {i.informe}</b>
-                    <span>{i.cliente}{i.ibm ? ` · IBM ${i.ibm}` : ''}</span>
-                    <em>{i.colocados}/{i.aptos} colocados</em>
-                  </button>
-                ))}
-                {listaInf.length === 0 && <span className="pr-muted">Ningún informe coincide con “{q}”.</span>}
-              </div>
+              <>
+                {!qn && (
+                  <div className="pr-finf" role="group" aria-label="Filtrar informes">
+                    {F_INF.map(([k, l, f]) => (
+                      <button key={k} className={'fchip' + (fInf === k ? ' on' : '')} onClick={() => setFInf(k)}>{l} <span className="gs-cuenta">{cuentaInf(f)}</span></button>
+                    ))}
+                  </div>
+                )}
+                <div className="pr-infs" role="tablist" aria-label="Informes">
+                  {listaInf.slice(0, nInf).map((i) => {
+                    const on = keyInf(i) === sel;
+                    const listo = i.aptos > 0 && i.colocados >= i.aptos;
+                    return (
+                      <button key={keyInf(i)} role="tab" aria-selected={on} className={'pr-inf' + (on ? ' on' : '') + (listo ? ' listo' : '')} onClick={() => elegirInf(i)}>
+                        <b>INF {i.informe}</b>
+                        <span className="pr-inf-cli">{i.cliente}{i.ibm ? ` · IBM ${i.ibm}` : ''}</span>
+                        <em>{listo ? '✓ ' : ''}{i.colocados}/{i.aptos} colocados{i.grabados ? ` · ${i.grabados} sin colocar` : ''}</em>
+                        {i.cargado && <i className="pr-inf-fecha">{fechaCorta(i.cargado)}</i>}
+                        <ChevronRight size={15} className="pr-inf-ir" />
+                      </button>
+                    );
+                  })}
+                  {listaInf.length === 0 && <span className="pr-muted">{qn ? `Ningún informe coincide con “${q}”.` : fInf === 'pend' ? 'No hay informes con tags pendientes. 🎉' : 'No hay informes en esta lista.'}</span>}
+                </div>
+                {listaInf.length > nInf && (
+                  <div className="gs-mas">
+                    <span>Mostrando {nInf} de {listaInf.length}</span>
+                    <button className="axt-btn small" onClick={() => setNInf((x) => x + INF_TANDA)}>Mostrar {Math.min(INF_TANDA, listaInf.length - nInf)} más</button>
+                  </div>
+                )}
+                {infSel && esCelu() && <button className="axt-btn small pr-infvolver" onClick={() => setVerLista(false)}>Volver a INF {infSel.informe}</button>}
+              </>
             )}
         </div>
 
