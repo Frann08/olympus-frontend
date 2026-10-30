@@ -232,8 +232,10 @@ function GuiaPrecintos() {
 
       <Sec id="informe" n="3" titulo="Elegir el informe" img={{ src: 'p-informe-top', alt: 'Tarjetas de informes, avance y filtros', cap: 'Informe 2182: 3 de 7 tags colocados.' }}>
         <ul className="ay-lista">
-          <li>Cada informe cargado aparece como una tarjeta con su número, el cliente, el IBM y cuántos tags están colocados.</li>
-          <li>Usá el buscador para encontrarlo por número o cliente.</li>
+          <li>Cada informe cargado aparece como una tarjeta con su número, el cliente, el IBM, cuántos tags están colocados y la fecha en que se cargó. Los más nuevos van primero.</li>
+          <li>Por defecto se ven solo los <b>Con pendientes</b> (les falta colocar algún tag). Los terminados están en <b>Completos</b>, y en <b>Todos</b> están todos. Se muestran de a 12: abajo está <b>Mostrar más</b>.</li>
+          <li>Usá el buscador para encontrarlo por número, cliente o IBM (por ejemplo "ibm 195"). El buscador busca en todos, también en los completos.</li>
+          <li><b>En el celular</b>, al elegir un informe la lista se pliega y queda una barra con el informe elegido; tocá <b>Cambiar</b> para elegir otro.</li>
           <li>Al elegirlo ves el <b>avance</b>: colocados sobre el total, y cuántos están grabados y pendientes.</li>
           <li>Los filtros muestran <b>Todos</b>, <b>Pendientes</b>, <b>Grabados</b> o <b>Colocados</b>.</li>
         </ul>
