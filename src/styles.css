@@ -927,3 +927,9 @@ a.axt-btn { text-decoration: none; }
   .pr-inf-fecha { top: 10px; right: 34px; }
   .pr-inf-ir { display: block; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--t-6E6C69); }
 }
+
+/* Grabar en serie: modo diagnóstico */
+.ser-diag { margin: 4px 0 12px; display: flex; flex-direction: column; gap: 8px; }
+.ser-diag-caja { border: 1px dashed var(--border); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.ser-diag-lista { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; font: 400 11.5px "IBM Plex Mono", monospace; color: var(--t-9AA6B1); display: flex; flex-direction: column; gap: 3px; }
+.ser-diag-lista b { color: var(--t-7A8792); font-weight: 500; }

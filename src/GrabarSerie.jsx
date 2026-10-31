@@ -94,6 +94,19 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   const r6 = useR6();
   const conR6 = r6.estado === 'lista' || r6.estado === 'leyendo';
   const enEspera = useRef(null); // { ev, t }: tag apoyado mientras se procesaba otro
+  const rearmePendiente = useRef(false); // reiniciar la lectura NFC apenas termine lo que se está haciendo
+  const listoDesde = useRef(0); // cuándo quedó lista la lectura para el próximo tag (diagnóstico)
+  // Modo diagnóstico (para el tester): anota cada paso de la lectura con su hora y demora
+  const [diag, setDiag] = useState(() => { try { return localStorage.getItem('ot_diag') === '1'; } catch { return false; } });
+  const diagLog = useRef([]);
+  const [, setDiagN] = useState(0);
+  const anotar = (txt) => {
+    const d = new Date();
+    const hora = d.toLocaleTimeString('es-AR', { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+    diagLog.current = [{ hora, txt }, ...diagLog.current].slice(0, 200);
+    setDiagN((n) => n + 1);
+  };
+  const seg = (ms) => (ms / 1000).toFixed(1).replace('.', ',') + ' s';
   const [nota, setNota] = useState(null); // aviso corto en el recuadro de "Ahora"
   const faltaUhf = useRef(null); // { k, code, reusado, uid }: la pieza actual, grabada, esperando su UHF
   const gatillo = useRef([]);
@@ -119,6 +132,41 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
     return () => window.removeEventListener('keydown', k);
   }); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Arma una lectura NFC nueva (Chrome avisa una vez por cada tag que se apoya)
+  async function armarLector() {
+    const ctrl = new AbortController();
+    const ndef = new window.NDEFReader();
+    try { await ndef.scan({ signal: ctrl.signal }); }
+    catch (e) { ctrl.abort(); throw e; }
+    ndef.onreading = (ev) => { manejar(ev); };
+    ndef.onreadingerror = () => {
+      anotar('Error de lectura NFC: se detectó un tag pero no se pudo leer');
+      if (!ocupado.current) setAviso({ tipo: 'error', texto: 'No se pudo leer el tag. Dejá el teléfono quieto sobre el tag unos segundos.' });
+    };
+    return { ndef, ctrl };
+  }
+
+  // Reinicia la lectura NFC (lo más parecido que permite Chrome a reactivar el lector): se arma
+  // una nueva y recién después se corta la anterior, así nunca queda sin leer. Si falla, sigue la de antes.
+  async function rearmarNfc(motivo) {
+    if (!lector.current) return;
+    if (ocupado.current) { rearmePendiente.current = true; return; }
+    rearmePendiente.current = false;
+    const t0 = Date.now();
+    try {
+      const nuevo = await armarLector();
+      const viejo = lector.current;
+      if (!viejo) { nuevo.ctrl.abort(); return; } // se pausó mientras tanto
+      viejo.ndef.onreading = null; viejo.ndef.onreadingerror = null;
+      try { viejo.ctrl.abort(); } catch { /* ya estaba parado */ }
+      lector.current = nuevo;
+      listoDesde.current = Date.now();
+      anotar(`Lectura NFC reiniciada (${motivo}) en ${Date.now() - t0} ms`);
+    } catch (e) {
+      anotar(`No se pudo reiniciar la lectura NFC (${motivo}): ${(e && e.name) || e}`);
+    }
+  }
+
   function parar() {
     if (lector.current) { try { lector.current.ctrl.abort(); } catch { /* ya estaba parado */ } }
     lector.current = null;
@@ -139,18 +187,15 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
       return;
     }
     if (sinEscaner && !soloNfc) setSoloNfc(true);
-    const ctrl = new AbortController();
     try {
-      const ndef = new window.NDEFReader();
-      await ndef.scan({ signal: ctrl.signal });
-      ndef.onreading = (ev) => { manejar(ev); };
-      ndef.onreadingerror = () => { if (!ocupado.current) setAviso({ tipo: 'error', texto: 'No se pudo leer el tag. Dejá el teléfono quieto sobre el tag unos segundos.' }); };
-      lector.current = { ndef, ctrl };
+      lector.current = await armarLector();
+      listoDesde.current = Date.now();
+      anotar(`Lectura NFC lista${sinEscaner ? ' (solo NFC)' : ''}`);
       setFase('esperando');
       setAviso(null);
       try { if (navigator.wakeLock) wake.current = await navigator.wakeLock.request('screen'); } catch { /* la pantalla se puede apagar sola */ }
     } catch (e) {
-      ctrl.abort();
+      anotar(`No se pudo empezar la lectura NFC: ${(e && e.name) || e}`);
       setAviso({ tipo: 'error', texto: mensajeError(e, 'leer') });
     }
   }
@@ -178,6 +223,9 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
     return otro ? { code: otro.code, estado: otro.estado, cliente: otro.cliente } : null;
   }
 
+  // Al pasar a otra pieza, la lectura NFC arranca de nuevo (limpia para el próximo tag)
+  useEffect(() => { if (lector.current) rearmarNfc('pieza siguiente'); }, [actual]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // pasar a la pieza pendiente que sigue (o terminar)
   function avanzar(desde) {
     faltaUhf.current = null;
@@ -197,8 +245,11 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
     let res = { epc: null, motivo: 'ninguno', n: 0 };
     // con la potencia mínima a veces no lo toma de entrada: una segunda pasada (misma potencia)
     for (let k = 0; k < 2 && lectorR6.conectada; k++) {
+      const t0 = Date.now();
       const juntas = await lectorR6.rafaga(RAFAGA_MS).catch(() => null);
       if (juntas) res = elegirPara(juntas, uid);
+      anotar(`UHF pasada ${k + 1}: ${juntas ? juntas.length : 'sin respuesta del escáner'}${juntas ? (juntas.length === 1 ? ' tag' : ' tags') : ''}`
+        + `${res.epc ? ` → ${res.porUid ? 'coincide con el NFC' : 'tomado'}` : res.motivo === 'otro' ? ' → ninguno es el grabado' : res.motivo === 'varios' ? ' → varios, no se sabe cuál' : ''} (${Date.now() - t0} ms)`);
       if (res.epc || res.motivo === 'varios') break;
     }
     return res;
@@ -217,6 +268,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
       else { vibrar([90, 60, 90]); setAviso(avisoFalta(f, `${problemaUhf(u || {}, f.code)} Acercá el escáner al tag y tocá Reintentar UHF, o apretá el gatillo apuntándole.`)); }
     } finally {
       ocupado.current = false;
+      if (rearmePendiente.current) rearmarNfc('pieza siguiente');
       setFase((x) => (x === 'uhf' ? (lector.current ? 'esperando' : 'listo') : x));
     }
   }
@@ -296,7 +348,10 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   async function manejar(ev) {
     // Chrome avisa una sola vez por cada vez que se apoya un tag: si llega mientras se termina el
     // anterior (UHF, guardado), se guarda y se atiende enseguida, en vez de perderlo.
-    if (ocupado.current) { enEspera.current = { ev, t: Date.now() }; return; }
+    const uidEv = normUid(ev.serialNumber);
+    const desde = listoDesde.current ? ` a los ${seg(Date.now() - listoDesde.current)} de estar lista la lectura` : '';
+    if (ocupado.current) { enEspera.current = { ev, t: Date.now() }; anotar(`Tag ${uidEv || '(sin número)'} detectado mientras se procesaba el anterior: queda en espera`); return; }
+    anotar(`Tag detectado ${uidEv || '(sin número)'}${desde}${(ev.message && ev.message.records && ev.message.records.length) ? '' : ' · vacío'}`);
     const { cola: xs, actual: i, colocar: col } = est.current;
     const pieza = xs[i];
     if (!pieza || pieza.local !== 'pendiente') {
@@ -310,8 +365,8 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
     setNota(null);
     const uid = normUid(ev.serialNumber);
     const token = tokenDe(ev.message);
-    // el tag que se acaba de grabar sigue apoyado: no es un error
-    if (uid && ultimoOk.current.uid === uid && Date.now() - ultimoOk.current.t < 4000) return;
+    // el tag que se acaba de grabar sigue apoyado (o se volvió a leer al reiniciar la lectura): no es un error
+    if (uid && ultimoOk.current.uid === uid && Date.now() - ultimoOk.current.t < 8000) { anotar('Es el tag recién grabado: se ignora'); return; }
 
     const yaEnSerie = (uid && usados.current.get(uid)) || (token && (xs.find((x) => x.local !== 'pendiente' && x.token === token) || {}).code);
     if (yaEnSerie) {
@@ -340,6 +395,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
       }
 
       setFase('grabando');
+      const tw = Date.now();
       try {
         // si el tag ya no está apoyado, Chrome esperaría al próximo que se acerque (sin revisarlo): se corta a los 6 s
         const corte = new AbortController();
@@ -347,10 +403,12 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
         try { await lector.current.ndef.write({ records: [{ recordType: 'url', data: tagUrl(pieza.token) }] }, { signal: corte.signal }); }
         finally { clearTimeout(tt); }
       } catch (e) {
+        anotar(`Error al grabar el NFC de ${pieza.code}: ${(e && e.name) || e} (${Date.now() - tw} ms)`);
         vibrar([90, 60, 90]);
         setAviso({ tipo: 'error', texto: mensajeError(e, 'grabar') });
         return;
       }
+      anotar(`NFC grabado para ${pieza.code} en ${Date.now() - tw} ms`);
       ultimoOk.current = { uid, t: Date.now() };
       if (uid) usados.current.set(uid, pieza.code);
       const reusado = permitir.current != null;
@@ -415,6 +473,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
       const e2 = enEspera.current;
       enEspera.current = null;
       if (e2 && Date.now() - e2.t < 4000 && lector.current) setTimeout(() => manejar(e2.ev), 0);
+      else if (rearmePendiente.current) rearmarNfc('pieza siguiente');
     }
   }
 
@@ -488,6 +547,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
               {escuchando
                 ? <button className="axt-btn" onClick={pausar}><Pause size={14} /> Pausar</button>
                 : <button className="axt-btn primary" onClick={() => empezar()}><Play size={14} /> Empezar</button>}
+              {escuchando && <button className="axt-btn" onClick={() => rearmarNfc('a mano')} disabled={fase !== 'esperando'} title="Si un tag no se detecta, reinicia la lectura NFC"><RotateCcw size={14} /> Reiniciar NFC</button>}
               {quedan > 1 && !esperaUhf && <button className="axt-btn" onClick={saltear}><SkipForward size={14} /> Saltear</button>}
             </div>
           </div>
@@ -535,6 +595,27 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
             <span>Los tags ya están puestos en las piezas <em>(se marcan como colocados)</em></span>
           </label>
         )}
+
+        <div className="ser-diag">
+          <label className="ser-colocar" style={{ margin: 0 }}>
+            <input type="checkbox" checked={diag} onChange={(e) => { setDiag(e.target.checked); try { localStorage.setItem('ot_diag', e.target.checked ? '1' : '0'); } catch { /* sin almacenamiento */ } }} />
+            <span>Modo diagnóstico <em>(para pruebas: anota cada lectura con su demora)</em></span>
+          </label>
+          {diag && (
+            <div className="ser-diag-caja">
+              <div className="cor-botones">
+                <button className="axt-btn small" onClick={() => {
+                  const txt = ['Olympus · diagnóstico de Grabar en serie', navigator.userAgent, ...diagLog.current.slice().reverse().map((x) => `${x.hora}  ${x.txt}`)].join('\n');
+                  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => setNota('Diagnóstico copiado: pegalo en un mensaje.'), () => setNota('No se pudo copiar. Sacale una captura a la lista.'));
+                }}>Copiar</button>
+                <button className="axt-btn small" onClick={() => { diagLog.current = []; setDiagN((n) => n + 1); }}>Borrar</button>
+              </div>
+              {diagLog.current.length ? (
+                <ol className="ser-diag-lista">{diagLog.current.map((x, k) => <li key={diagLog.current.length - k}><b>{x.hora}</b> {x.txt}</li>)}</ol>
+              ) : <div className="pr-muted">Todavía no hay nada anotado. Tocá Empezar y grabá unos tags.</div>}
+            </div>
+          )}
+        </div>
 
         <ol className="ser-lista">
           {cola.map((x, k) => (
