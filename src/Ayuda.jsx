@@ -265,6 +265,8 @@ function GuiaPrecintos() {
           <li>Si acercás un tag que <b>ya grabaste</b> en esta tanda, o uno que es <b>de otra pieza</b>, avisa y no lo graba.</li>
           <li>Si es un <b>tag recuperado</b> de otra pieza, tocá <b>Es un tag recuperado: reusarlo</b> y acercalo de nuevo. La pieza anterior queda sin tag (vuelve a pendiente).</li>
           <li>Si se corta la señal, el tag queda grabado y la pieza dice <b>!</b>: cuando vuelva la señal, tocá <b>Reintentar</b>.</li>
+          <li>Después de cada pieza la lectura NFC se reinicia sola. Si igual un tag no se detecta, tocá <b>Reiniciar NFC</b>, alejá bien el tag anterior (más de 10 cm) y acercá el nuevo. Tené los tags sin grabar lejos del celular: Android lee un solo tag a la vez.</li>
+          <li><b>Modo diagnóstico</b> (abajo, para pruebas): anota cada lectura con su hora y su demora. Si algo falla, tocá <b>Copiar</b> y pegalo en un mensaje para revisarlo.</li>
         </ul>
         <p><b>Cada pieza se graba en NFC y UHF en el mismo paso</b>, con el escáner R6 conectado. Conectalo desde el mismo panel, en <b>Escáner RFID</b>, antes de tocar Empezar. Después de grabar el NFC, el escáner lee el UHF de ese tag y lo une a la pieza; en la lista aparece <b>UHF ✓</b> y recién ahí pasa a la siguiente. Mientras dice <b>Leyendo el UHF…</b>, dejá el tag quieto y cerca del escáner.</p>
         <ul className="ay-lista">
