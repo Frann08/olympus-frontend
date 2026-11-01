@@ -94,7 +94,6 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   const r6 = useR6();
   const conR6 = r6.estado === 'lista' || r6.estado === 'leyendo';
   const enEspera = useRef(null); // { ev, t }: tag apoyado mientras se procesaba otro
-  const rearmePendiente = useRef(false); // reiniciar la lectura NFC apenas termine lo que se está haciendo
   const listoDesde = useRef(0); // cuándo quedó lista la lectura para el próximo tag (diagnóstico)
   // Modo diagnóstico (para el tester): anota cada paso de la lectura con su hora y demora
   const [diag, setDiag] = useState(() => { try { return localStorage.getItem('ot_diag') === '1'; } catch { return false; } });
@@ -144,27 +143,6 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
       if (!ocupado.current) setAviso({ tipo: 'error', texto: 'No se pudo leer el tag. Dejá el teléfono quieto sobre el tag unos segundos.' });
     };
     return { ndef, ctrl };
-  }
-
-  // Reinicia la lectura NFC (lo más parecido que permite Chrome a reactivar el lector): se arma
-  // una nueva y recién después se corta la anterior, así nunca queda sin leer. Si falla, sigue la de antes.
-  async function rearmarNfc(motivo) {
-    if (!lector.current) return;
-    if (ocupado.current) { rearmePendiente.current = true; return; }
-    rearmePendiente.current = false;
-    const t0 = Date.now();
-    try {
-      const nuevo = await armarLector();
-      const viejo = lector.current;
-      if (!viejo) { nuevo.ctrl.abort(); return; } // se pausó mientras tanto
-      viejo.ndef.onreading = null; viejo.ndef.onreadingerror = null;
-      try { viejo.ctrl.abort(); } catch { /* ya estaba parado */ }
-      lector.current = nuevo;
-      listoDesde.current = Date.now();
-      anotar(`Lectura NFC reiniciada (${motivo}) en ${Date.now() - t0} ms`);
-    } catch (e) {
-      anotar(`No se pudo reiniciar la lectura NFC (${motivo}): ${(e && e.name) || e}`);
-    }
   }
 
   function parar() {
@@ -223,9 +201,6 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
     return otro ? { code: otro.code, estado: otro.estado, cliente: otro.cliente } : null;
   }
 
-  // Al pasar a otra pieza, la lectura NFC arranca de nuevo (limpia para el próximo tag)
-  useEffect(() => { if (lector.current) rearmarNfc('pieza siguiente'); }, [actual]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // pasar a la pieza pendiente que sigue (o terminar)
   function avanzar(desde) {
     faltaUhf.current = null;
@@ -268,7 +243,6 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
       else { vibrar([90, 60, 90]); setAviso(avisoFalta(f, `${problemaUhf(u || {}, f.code)} Acercá el escáner al tag y tocá Reintentar UHF, o apretá el gatillo apuntándole.`)); }
     } finally {
       ocupado.current = false;
-      if (rearmePendiente.current) rearmarNfc('pieza siguiente');
       setFase((x) => (x === 'uhf' ? (lector.current ? 'esperando' : 'listo') : x));
     }
   }
@@ -366,7 +340,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
     const uid = normUid(ev.serialNumber);
     const token = tokenDe(ev.message);
     // el tag que se acaba de grabar sigue apoyado (o se volvió a leer al reiniciar la lectura): no es un error
-    if (uid && ultimoOk.current.uid === uid && Date.now() - ultimoOk.current.t < 8000) { anotar('Es el tag recién grabado: se ignora'); return; }
+    if (uid && ultimoOk.current.uid === uid && Date.now() - ultimoOk.current.t < 4000) { anotar('Es el tag recién grabado: se ignora'); return; }
 
     const yaEnSerie = (uid && usados.current.get(uid)) || (token && (xs.find((x) => x.local !== 'pendiente' && x.token === token) || {}).code);
     if (yaEnSerie) {
@@ -473,7 +447,6 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
       const e2 = enEspera.current;
       enEspera.current = null;
       if (e2 && Date.now() - e2.t < 4000 && lector.current) setTimeout(() => manejar(e2.ev), 0);
-      else if (rearmePendiente.current) rearmarNfc('pieza siguiente');
     }
   }
 
@@ -547,7 +520,6 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
               {escuchando
                 ? <button className="axt-btn" onClick={pausar}><Pause size={14} /> Pausar</button>
                 : <button className="axt-btn primary" onClick={() => empezar()}><Play size={14} /> Empezar</button>}
-              {escuchando && <button className="axt-btn" onClick={() => rearmarNfc('a mano')} disabled={fase !== 'esperando'} title="Si un tag no se detecta, reinicia la lectura NFC"><RotateCcw size={14} /> Reiniciar NFC</button>}
               {quedan > 1 && !esperaUhf && <button className="axt-btn" onClick={saltear}><SkipForward size={14} /> Saltear</button>}
             </div>
           </div>
