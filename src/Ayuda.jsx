@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
 import { ArrowLeft, X, Printer, Info, AlertTriangle, ChevronDown } from 'lucide-react';
-import { Pill } from './ui.jsx';
+import { Pill, useEscape } from './ui.jsx';
 import { BotonTema } from './tema.jsx';
 import { PUBLIC_URL } from './api.js';
 
@@ -468,12 +468,9 @@ export default function Ayuda({ guias, inicial, onClose, pagina, puedeImprimir, 
   const cerrar = useRef(onClose);
   cerrar.current = onClose;
   useEffect(() => {
-    if (pagina) return undefined;
-    cerrarRef.current && cerrarRef.current.focus();
-    const onKey = (e) => e.key === 'Escape' && cerrar.current && cerrar.current();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    if (!pagina && cerrarRef.current) cerrarRef.current.focus();
   }, [pagina]);
+  useEscape(() => cerrar.current && cerrar.current(), !pagina); // Escape o "Atrás" del celular
 
   const ir = (id) => {
     const el = document.getElementById('ay-' + id);

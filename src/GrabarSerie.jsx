@@ -3,6 +3,7 @@ import { X, Check, Radio, Loader2, SkipForward, RotateCcw, AlertTriangle, Pause,
 import { api, PUBLIC_URL } from './api.js';
 import { lectorR6, hayBluetooth, elegirTag, juntarLecturas } from './r6.js';
 import { BarraR6, useR6, epcLindo, usePotenciaMinima } from './Pistola.jsx';
+import { useEscape } from './ui.jsx';
 
 /* Grabado en serie (Precintos)
    Se arma la cola con las piezas pendientes del informe. La pantalla muestra la que sigue;
@@ -127,11 +128,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
     tag: (epc, rssi) => { gatillo.current.push({ epc, rssi }); },
     fin: () => { trasGatillo(juntarLecturas(gatillo.current)); },
   }), []); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    const k = (e) => { if (e.key === 'Escape') cerrar(); };
-    window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
-  }); // eslint-disable-line react-hooks/exhaustive-deps
+  useEscape(cerrar); // Escape o "Atrás" del celular cierran (y apagan la lectura)
 
   // Arma una lectura NFC nueva (Chrome avisa una vez por cada tag que se apoya)
   async function armarLector() {

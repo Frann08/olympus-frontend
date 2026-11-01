@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ScanLine, Tag, X, PackageCheck, Package, AlertTriangle, CheckCircle2, Link2, ChevronRight } from 'lucide-react';
 import { api } from './api.js';
-import { STATUS, Spinner, tinte } from './ui.jsx';
+import { STATUS, Spinner, tinte, useAtrasNivel } from './ui.jsx';
 import { CapturaPistola, AsociarPieza, epcLindo } from './Pistola.jsx';
 import { RegistroEntradas, DetalleEntrada } from './Entradas.jsx';
 
@@ -9,6 +9,7 @@ const BASES = ['Añelo', 'Centenario'];
 
 export default function Traza({ toast }) {
   const [tab, setTab] = useState('nueva');
+  useAtrasNivel(() => { if (tab !== 'nueva') { setTab('nueva'); return true; } return false; }); // "Atrás" vuelve a Nueva entrada
   const [retomar, setRetomar] = useState(null); // entrada abierta elegida en el registro
   return (
     <div>

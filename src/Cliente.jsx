@@ -6,7 +6,7 @@ import {
 import { cargarXlsx } from './xlsx.js';
 import { api } from './api.js';
 import { getUser } from './api.js';
-import { Band, Pill, CertRow, Spinner, ErrorNote, daysLabel, daysFrom, esNoApto, useEscape } from './ui.jsx';
+import { Band, Pill, CertRow, Spinner, ErrorNote, daysLabel, daysFrom, esNoApto, useEscape, useAtrasNivel } from './ui.jsx';
 import { saveBundle, loadBundle, bundleAt, getQueue, saveQueue, useOnline, agoLabel } from './offline.js';
 import Destinos, { MandarADestino } from './Destinos.jsx';
 
@@ -41,6 +41,7 @@ export default function Cliente({ toast }) {
   const [fIbm, setFIbm] = useState('all');
   const [fDest, setFDest] = useState('all'); // all | sin | nombre del destino
   const [tab, setTab] = useState('activos');
+  useAtrasNivel(() => { if (tab !== 'activos') { setTab('activos'); return true; } return false; }); // "Atrás" vuelve a Mis activos
   const [rev, setRev] = useState(0); // al cambiar destinos se vuelven a bajar los datos
 
   useEffect(() => {
