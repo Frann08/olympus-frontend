@@ -59,6 +59,22 @@ export function logout({ borrarDatos = false } = {}) {
   guardar('axtag_user', null);
 }
 
+// La sesión no vence. Las de antes sí (3 días o 12 horas): al abrir Olympus se cambian solas por
+// una que no vence, sin pedir la contraseña. Sin señal no pasa nada: se intenta la próxima vez.
+function venceElToken(t) {
+  try { return !!JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp; } catch { return false; }
+}
+export async function renovarSesion() {
+  if (!token || !venceElToken(token)) return;
+  try {
+    const res = await fetch(`${API}/api/auth/renovar`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) return; // si ya venció, el próximo pedido lleva al ingreso como siempre
+    const d = await res.json();
+    if (d && d.token) { token = d.token; guardar('axtag_token', token); }
+  } catch { /* sin señal */ }
+}
+if (typeof window !== 'undefined') setTimeout(renovarSesion, 0);
+
 // Aviso global de sesión vencida: App vuelve a la pantalla de ingreso
 function sesionVencida() {
   const tenia = !!token;
