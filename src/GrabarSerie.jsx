@@ -78,7 +78,7 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   const [fase, setFase] = useState('listo'); // listo | esperando | revisando | grabando | fin
   const [aviso, setAviso] = useState(() => (puedeGrabar() ? null : {
     tipo: 'error',
-    texto: 'Este teléfono o navegador no puede grabar desde Olympus. Usá Chrome en un Android con NFC prendido. Si no, grabá uno por uno con NFC Tools.',
+    texto: 'Este teléfono o navegador no puede grabar desde Olympus. Usá Chrome en un Android con NFC prendido.',
   })); // { tipo: ok | error | alerta, texto, reusar }
   const [colocar, setColocar] = useState(false);
   const [soloNfc, setSoloNfc] = useState(false); // eligió grabar sin escáner (el UHF queda para después)

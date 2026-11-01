@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import QRCode from 'qrcode';
-import { Tag, Copy, Check, X, Undo2, Smartphone, Search, Pencil, Radar, ScanSearch, ChevronDown, ChevronRight } from 'lucide-react';
-import { api, PUBLIC_URL, getUser } from './api.js';
+import { Tag, Undo2, Smartphone, Search, Pencil, Radar, ScanSearch, ChevronDown, ChevronRight } from 'lucide-react';
+import { api, getUser } from './api.js';
 import { Spinner, ErrorNote } from './ui.jsx';
 import { ImportPanel } from './Admin.jsx';
 import GrabarSerie, { puedeGrabar } from './GrabarSerie.jsx';
@@ -17,7 +16,6 @@ const EST = {
 };
 const estadoDe = (it) => (it.apto ? it.estado : 'na');
 const keyInf = (i) => `${i.client_id}|${i.ibm || ''}|${i.informe}`;
-const tagUrl = (token) => `${PUBLIC_URL}/?tag=${token}`;
 const INF_TANDA = 12;
 const esCelu = () => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
 // filtros de la lista de informes
@@ -37,7 +35,6 @@ export default function Precintos({ toast }) {
   const [loadingItems, setLoadingItems] = useState(false);
   const [q, setQ] = useState('');
   const [fEst, setFEst] = useState('all');
-  const [grabar, setGrabar] = useState(null);
   const [serie, setSerie] = useState(null); // { cola, titulo } · grabado seguido desde el teléfono
   const [asocEpc, setAsocEpc] = useState(null); // { cola, titulo } · asociar EPC con el escáner RFID
   const [revisar, setRevisar] = useState(false); // panel Revisar tag
@@ -209,7 +206,7 @@ export default function Precintos({ toast }) {
                       <Smartphone size={14} /> Grabar en serie ({pendientes.length})
                     </button>
                   ) : (
-                    <span className="pr-muted pr-nota-serie">Para grabar varios seguidos, abrí Olympus en Chrome desde un Android.</span>
+                    <span className="pr-muted pr-nota-serie">Para grabar tags, abrí Olympus en Chrome desde un Android con NFC.</span>
                   ))}
                   {esAdmin && (
                     <button className="axt-btn small" onClick={() => setCorregir((v) => !v)}>
@@ -249,7 +246,7 @@ export default function Precintos({ toast }) {
               : (
                 <div className="pr-ledger">
                   <div className="pr-row pr-head"><div /><div>Pieza</div><div className="pr-hide">Resultado</div><div className="pr-hide">Tag</div><div /></div>
-                  {visibles.map((it) => <ItemRow key={it.tag_id + '-' + it.asset_id} it={it} onGrabar={() => setGrabar(it)} onEstado={setEstado}
+                  {visibles.map((it) => <ItemRow key={it.tag_id + '-' + it.asset_id} it={it} onGrabar={() => setSerie({ cola: [it], titulo: tituloInf })} onEstado={setEstado}
                     onUhf={() => setAsocEpc({ cola: [it], titulo: tituloInf })} />)}
                   {visibles.length === 0 && <div className="pr-empty">No hay piezas con ese estado.</div>}
                 </div>
@@ -257,15 +254,6 @@ export default function Precintos({ toast }) {
           </>
         )}
       </div>
-
-      {grabar && (
-        <GrabarPanel
-          it={grabar}
-          onClose={() => setGrabar(null)}
-          onDone={() => { const it = grabar; setGrabar(null); setEstado(it, 'grabado', 'Tag grabado · falta colocarlo'); }}
-          onTelefono={() => { const it = grabar; setGrabar(null); setSerie({ cola: [it], titulo: tituloInf }); }}
-        />
-      )}
 
       {revisar && <RevisarTag onClose={() => { setRevisar(false); if (infSel) loadItems(infSel); }} />}
 
@@ -339,7 +327,9 @@ function ItemRow({ it, onGrabar, onEstado, onUhf }) {
   );
   let action;
   if (e === 'na') action = <span className="pr-muted">No aplica</span>;
-  else if (e === 'pendiente') action = <button className="axt-btn small primary" onClick={onGrabar}>Grabar tag</button>;
+  else if (e === 'pendiente') action = puedeGrabar()
+    ? <button className="axt-btn small primary" onClick={onGrabar}>Grabar tag</button>
+    : <span className="pr-muted" title="Para grabar, abrí Olympus en Chrome desde un Android">Grabar desde Android</span>;
   else if (e === 'grabado') action = (
     <span className="pr-actions">
       <button className="axt-x sm" title="Deshacer: volver a pendiente" aria-label="Deshacer grabado" onClick={() => onEstado(it, 'pendiente', 'Volvió a pendiente')}><Undo2 size={13} /></button>
@@ -370,64 +360,5 @@ function ItemRow({ it, onGrabar, onEstado, onUhf }) {
       </div>
       <div className="pr-cell" style={{ textAlign: 'right' }}>{action}</div>
     </div>
-  );
-}
-
-function GrabarPanel({ it, onClose, onDone, onTelefono }) {
-  const url = tagUrl(it.token);
-  const [qr, setQr] = useState(null);
-  const [copied, setCopied] = useState(false);
-  const canWrite = puedeGrabar();
-
-  useEffect(() => {
-    QRCode.toDataURL(url, { margin: 1, width: 360, color: { dark: '#0A0A0C', light: '#FFFFFF' } }).then(setQr).catch(() => setQr(null));
-  }, [url]);
-  useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  const copy = async () => {
-    try { await navigator.clipboard.writeText(url); } catch { /* sin permiso de portapapeles */ }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-
-  return (
-    <>
-      <div className="axt-overlay" onClick={onClose} />
-      <aside className="pr-panel" role="dialog" aria-label={'Grabar tag de ' + it.code}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
-          <div style={{ minWidth: 0 }}>
-            <div className="pr-eyebrow">Grabar tag</div>
-            <div className="pr-serial" style={{ fontSize: 20, margin: '6px 0 4px' }}>{it.code}</div>
-            <div className="pr-desc">{it.name}</div>
-            <div className="pr-muted" style={{ marginTop: 4 }}>{it.cliente}{it.ibm ? ` · IBM ${it.ibm}` : ''}</div>
-          </div>
-          <button className="axt-x sm" onClick={onClose} aria-label="Cerrar"><X size={15} /></button>
-        </div>
-
-        {qr && <img src={qr} alt={'QR del tag de ' + it.code} className="pr-qr" />}
-        <div className="pr-url">{url}</div>
-        <button className="axt-btn" style={{ width: '100%' }} onClick={copy}>
-          {copied ? <><Check size={14} /> Copiada</> : <><Copy size={14} /> Copiar URL</>}
-        </button>
-
-        {canWrite && (
-          <button className="axt-btn" style={{ width: '100%', marginTop: 8 }} onClick={onTelefono}>
-            <Smartphone size={14} /> Grabar desde este teléfono
-          </button>
-        )}
-
-        <ol className="pr-steps">
-          <li>Abrí <b>NFC Tools</b> → Escribir → Agregar registro → <b>URL</b></li>
-          <li>Pegá la URL copiada</li>
-          <li>Tocá Escribir y acercá el <b>DATABAND2</b> al teléfono</li>
-        </ol>
-
-        <button className="axt-btn primary" style={{ width: '100%' }} onClick={onDone}>Ya lo grabé</button>
-      </aside>
-    </>
   );
 }
