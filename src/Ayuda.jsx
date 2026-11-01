@@ -71,7 +71,7 @@ function GuiaCliente() {
         <ol className="ay-pasos">
           <li>Abrí <b>{url.replace(/^https?:\/\//, '')}</b> en el navegador del celular (en Android, Chrome).</li>
           <li>Tocá <b>Cliente</b> e ingresá el <b>usuario</b> y la <b>contraseña</b> que te dio BM.</li>
-          <li>Listo: ves tus activos. La sesión dura <b>3 días</b>; en ese tiempo el celular no te vuelve a pedir la contraseña.</li>
+          <li>Listo: ves tus activos. La sesión <b>no vence</b>: el celular no te vuelve a pedir la contraseña, salvo que toques <b>Salir</b> o cambies tu contraseña.</li>
         </ol>
         <Nota><b>Instalala como app.</b> En Chrome tocá los tres puntos <b>⋮</b> → <b>Agregar a la pantalla principal</b> (o <b>Instalar app</b>). Queda el ícono de Olympus Trace junto a tus otras aplicaciones.</Nota>
       </Sec>
@@ -210,7 +210,7 @@ function GuiaPrecintos() {
   return (
     <>
       <Sec id="entrar" n="1" titulo="Entrar">
-        <p>En el portal tocá <b>Operador</b> e ingresá con tu usuario de Precintos. La sesión dura 12 horas.</p>
+        <p>En el portal tocá <b>Operador</b> e ingresá con tu usuario de Precintos. La sesión no vence: queda abierta hasta que toques Salir.</p>
         <p>La pantalla tiene dos pasos: <b>1 · Cargar Hoja 2 del informe</b> y <b>2 · Grabar y colocar tags</b>.</p>
       </Sec>
 
@@ -377,7 +377,7 @@ function GuiaTraza() {
       </Sec>
 
       <Sec id="entrar" n="2" titulo="Entrar">
-        <p>En el portal tocá <b>Operador</b> e ingresá con tu usuario de Trazabilidad. La sesión dura 12 horas.</p>
+        <p>En el portal tocá <b>Operador</b> e ingresá con tu usuario de Trazabilidad. La sesión no vence: queda abierta hasta que toques Salir.</p>
         <p>Trazabilidad registra las piezas que <b>entran al depósito</b> leyendo sus tags a distancia, sin tener que revisar una por una.</p>
       </Sec>
 
@@ -575,7 +575,7 @@ export function HojaCliente() {
         <ol className="hoja-pasos">
           <li><b>Activá el NFC</b> del celular. <em>Android: bajá la barra de notificaciones y tocá NFC.</em></li>
           <li><b>Apoyá la parte de atrás del celular sobre el tag</b> de la pieza y esperá 1 o 2 segundos.</li>
-          <li><b>Ingresá tu usuario y contraseña.</b> <em>La sesión dura 3 días en ese celular.</em></li>
+          <li><b>Ingresá tu usuario y contraseña.</b> <em>La sesión queda abierta en ese celular, no vence.</em></li>
           <li><b>Mirá el estado y los certificados</b> de la pieza.</li>
         </ol>
 
@@ -604,7 +604,7 @@ export function HojaCliente() {
           <h2>Si algo no funciona</h2>
           <div><b>El tag no lee</b>Revisá que el NFC esté activado y la pantalla desbloqueada. Sacá la funda si es gruesa o metálica y mové el celular despacio sobre el tag.</div>
           <div><b>Dice “Pieza no disponible”</b>Esa pieza no está habilitada para tu usuario (otra empresa u otro IBM). Consultá a BM con el Nº de serie.</div>
-          <div><b>Me volvió a pedir la contraseña</b>La sesión dura 3 días. Ingresá de nuevo; si no la recordás, pedile a BM que te la restablezca.</div>
+          <div><b>Me volvió a pedir la contraseña</b>Pasa si tocaste Salir o si cambió tu contraseña. Ingresá de nuevo; si no la recordás, pedile a BM que te la restablezca.</div>
         </section>
 
         <footer className="hoja-foot">Olympus Trace · Trazabilidad de activos, de la inspección al campo.</footer>
