@@ -94,6 +94,8 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
   const r6 = useR6();
   const conR6 = r6.estado === 'lista' || r6.estado === 'leyendo';
   const enEspera = useRef(null); // { ev, t }: tag apoyado mientras se procesaba otro
+  // tags ya revisados en el servidor (libres para esa pieza): al volver a acercarlos se graban al toque
+  const revisados = useRef(new Map()); // uid o token → { tagId, t }
   const listoDesde = useRef(0); // cuándo quedó lista la lectura para el próximo tag (diagnóstico)
   // Modo diagnóstico (para el tester): anota cada paso de la lectura con su hora y demora
   const [diag, setDiag] = useState(() => { try { return localStorage.getItem('ot_diag') === '1'; } catch { return false; } });
@@ -352,11 +354,22 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
     ocupado.current = true;
     try {
       const clave = uid || token;
-      if (!clave || permitir.current !== clave) {
+      // Algunos celulares (Samsung) sueltan el tag enseguida después de leerlo: si se tarda en grabar
+      // (la consulta al servidor), ya no lo pueden grabar sin volver a acercarlo. Por eso:
+      // - tag vacío (nuevo): se graba al toque; si el chip era de otra pieza, lo resuelve el guardado
+      //   (esa pieza vuelve a pendiente y se avisa), igual que un tag recuperado;
+      // - tag ya revisado hace poco para esta pieza (volvió a acercarse): se graba al toque.
+      const vacio = !(ev.message && ev.message.records && ev.message.records.length);
+      const rev = clave && revisados.current.get(clave);
+      const yaRevisado = !!(rev && rev.tagId === pieza.tag_id && Date.now() - rev.t < 120000);
+      const rapido = vacio && !!uid;
+      if (!rapido && !yaRevisado && (!clave || permitir.current !== clave)) {
         setFase('revisando');
         let otro;
+        const tr = Date.now();
         try { otro = await duenioDe(uid, token, pieza); }
         catch { setAviso({ tipo: 'error', texto: 'Sin conexión: no se pudo revisar el tag. Revisá la señal y volvé a acercarlo.' }); return; }
+        anotar(`Tag revisado en el servidor en ${Date.now() - tr} ms${otro ? ` (es de ${otro.code})` : ''}`);
         if (otro) {
           vibrar([90, 60, 90]);
           setAviso({
@@ -366,7 +379,8 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
           });
           return;
         }
-      }
+      } else anotar(rapido ? 'Tag vacío: se graba sin esperar al servidor' : yaRevisado ? 'Tag ya revisado: se graba al toque' : 'Tag recuperado: se graba');
+      if (clave) revisados.current.set(clave, { tagId: pieza.tag_id, t: Date.now() });
 
       setFase('grabando');
       const tw = Date.now();
@@ -379,7 +393,10 @@ export default function GrabarSerie({ cola: colaIni, todos, titulo, guardar, onC
       } catch (e) {
         anotar(`Error al grabar el NFC de ${pieza.code}: ${(e && e.name) || e} (${Date.now() - tw} ms)`);
         vibrar([90, 60, 90]);
-        setAviso({ tipo: 'error', texto: mensajeError(e, 'grabar') });
+        if (e && e.name === 'AbortError') {
+          // el celular soltó el tag antes de poder grabar: al volver a acercarlo se graba al toque
+          setAviso({ tipo: 'alerta', texto: `El celular soltó el tag antes de grabarlo. Separalo unos 10 cm y volvé a acercarlo: se graba al instante para ${pieza.code}.` });
+        } else setAviso({ tipo: 'error', texto: mensajeError(e, 'grabar') });
         return;
       }
       anotar(`NFC grabado para ${pieza.code} en ${Date.now() - tw} ms`);
