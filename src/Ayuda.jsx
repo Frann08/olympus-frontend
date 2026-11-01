@@ -241,14 +241,14 @@ function GuiaPrecintos() {
         </ul>
       </Sec>
 
-      <Sec id="grabar" n="4" titulo="Grabar el tag" img={{ src: 'p-grabar', alt: 'Panel Grabar tag con QR, link y botones', cap: 'Panel de grabado de una pieza.' }}>
-        <p>Cada pieza tiene su propio link. Grabarlo en el tag es lo que une ese tag con esa pieza.</p>
+      <Sec id="grabar" n="4" titulo="Grabar el tag de una pieza">
+        <p>Cada pieza tiene su propio link. Grabarlo en el tag es lo que une ese tag con esa pieza. Se graba desde un <b>Android con Chrome</b> y NFC prendido.</p>
         <ol className="ay-pasos">
-          <li>En la pieza, tocá <b>Grabar tag</b>. Se abre un panel con el Nº de serie, un QR y el link de esa pieza.</li>
-          <li><b>Desde el celular</b> (Android con Chrome): tocá <b>Grabar desde este teléfono</b>, después <b>Empezar</b>, y apoyá el tag en la parte de atrás del celular. Cuando termina, la pieza pasa sola a <b>Grabado</b>.</li>
-          <li><b>Con NFC Tools</b> (si lo anterior no funciona): tocá <b>Copiar URL</b>, abrí NFC Tools → Escribir → Agregar registro → URL, pegá el link, tocá Escribir y acercá el tag. Después volvé a Olympus y tocá <b>Ya lo grabé</b>.</li>
+          <li>En la pieza, tocá <b>Grabar tag</b>. Se abre la misma pantalla de <b>Grabar en serie</b> (punto 5), pero solo con esa pieza.</li>
+          <li>Tocá <b>Empezar</b> y apoyá el tag en la parte de atrás del celular. Se graba el NFC, el escáner lee el UHF y la pieza pasa sola a <b>Grabado</b>.</li>
         </ol>
-        <Aviso>Antes de grabar, confirmá que el <b>Nº de serie del panel</b> sea el de la pieza que tenés en la mano. Un tag grabado con el link de otra pieza mostraría la pieza equivocada.</Aviso>
+        <p>Si el celular o el navegador no pueden grabar (una computadora, un iPhone u otro navegador), en vez del botón dice <b>Grabar desde Android</b>.</p>
+        <Aviso>Antes de grabar, confirmá que el <b>Nº de serie</b> en pantalla sea el de la pieza que tenés en la mano. Un tag grabado con el link de otra pieza mostraría la pieza equivocada.</Aviso>
       </Sec>
 
       <Sec id="serie" n="5" titulo="Grabar en serie (varios seguidos)" img={{ src: 'p-serie', alt: 'Pantalla Grabar en serie con la pieza actual, el avance y la lista', cap: 'Grabado en serie: 1 de 4 grabados; ahora va SW-40219.' }}>
@@ -277,7 +277,7 @@ function GuiaPrecintos() {
           <li>Si el UHF era de otra pieza (un tag recuperado), avisa de cuál y ofrece pasarlo a esta.</li>
         </ul>
         <Aviso>Mirá siempre el Nº de serie de <b>Ahora</b> antes de acercar el tag: tiene que ser el de la pieza que vas a etiquetar.</Aviso>
-        <Nota>En iPhone no se puede grabar desde Olympus (Apple no lo permite en páginas web). Desde un iPhone, grabá de a uno con NFC Tools.</Nota>
+        <Nota>En iPhone no se puede grabar desde Olympus (Apple no lo permite en páginas web). Usá un Android con Chrome.</Nota>
       </Sec>
 
       <Sec id="epc" n="6" titulo="Asociar el EPC con el escáner RFID">
