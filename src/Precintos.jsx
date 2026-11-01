@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Tag, Undo2, Smartphone, Search, Pencil, Radar, ScanSearch, ChevronDown, ChevronRight } from 'lucide-react';
 import { api, getUser } from './api.js';
-import { Spinner, ErrorNote } from './ui.jsx';
+import { Spinner, ErrorNote, useAtrasNivel } from './ui.jsx';
 import { ImportPanel } from './Admin.jsx';
 import GrabarSerie, { puedeGrabar } from './GrabarSerie.jsx';
 import { AsociarSerie } from './Pistola.jsx';
@@ -42,6 +42,8 @@ export default function Precintos({ toast }) {
   const [nInf, setNInf] = useState(INF_TANDA); // cuántos informes se ven
   const [verLista, setVerLista] = useState(true); // en el celular, la lista se pliega al elegir un informe
   useEffect(() => { setNInf(INF_TANDA); }, [q, fInf]);
+  // en el celular, "Atrás" desde las piezas vuelve a la lista de informes
+  useAtrasNivel(() => { if (!verLista) { setVerLista(true); return true; } return false; });
 
   const loadInformes = useCallback(async (pickKey) => {
     try {

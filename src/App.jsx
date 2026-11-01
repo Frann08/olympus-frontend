@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { SlidersHorizontal, ScanLine, Smartphone, LogOut, KeyRound, Radio, WifiOff, Tag, ArrowLeft, Lock, SearchX, HelpCircle, MapPin } from 'lucide-react';
 import { login, logout, getUser, isAuthed, tagInfo, tagResumen } from './api.js';
-import { Band, Pill, CertRow, Spinner, ErrorNote, Toast } from './ui.jsx';
+import { Band, Pill, CertRow, Spinner, ErrorNote, Toast, useAtrasBase } from './ui.jsx';
 import { useOnline } from './offline.js';
 // Cada pantalla se baja recién cuando se usa: el cliente no carga Administración, etc.
 const Admin = lazy(() => import('./Admin.jsx'));
@@ -101,6 +101,32 @@ export default function App() {
     return () => window.removeEventListener('ot:sesion-vencida', alVencer);
   }, []);
 
+  // "Atrás" del celular: vuelve a la pestaña anterior de Administración o, sin sesión, al portal.
+  // Si ya no hay adónde volver, avisa y el próximo "Atrás" sale de Olympus.
+  const vistasAnteriores = useRef([]);
+  useAtrasBase(() => {
+    if (!user) {
+      if (door) { setDoor(null); setAvisoLogin(null); return true; }
+      return false;
+    }
+    if (user.role === 'admin' && vistasAnteriores.current.length) {
+      const k = vistasAnteriores.current.pop();
+      setVistaParams(null); setView(k);
+      try { sessionStorage.setItem('ot_vista', k); } catch { /* nada */ }
+      return true;
+    }
+    return false;
+  }, !tagToken && ayudaParam == null);
+  useEffect(() => {
+    const salir = () => {
+      setToast('Tocá Atrás otra vez para salir');
+      clearTimeout(timerToast.current);
+      timerToast.current = setTimeout(() => setToast(null), 2600);
+    };
+    window.addEventListener('ot:atras-salir', salir);
+    return () => window.removeEventListener('ot:atras-salir', salir);
+  }, []);
+
   const esBM = !!user && user.role !== 'cliente';
   const abrirAyuda = (guias, inicial) => setAyuda({ guias, inicial });
   const overlay = ayuda && (
@@ -133,6 +159,7 @@ export default function App() {
           ? <Login side={door} aviso={avisoLogin} onBack={() => { setDoor(null); setAvisoLogin(null); }} onSwitch={setDoor} onLogin={(u) => { setView('admin'); setVistaParams(null); setAvisoLogin(null); setUser(u); try { sessionStorage.removeItem('ot_vista'); } catch { /* nada */ } }}
               onAyuda={() => abrirAyuda(guiasPara(door), door === 'operador' ? 'precintos' : door)} />
           : <Portal onPick={setDoor} Logo={Logo} onAyuda={() => abrirAyuda(guiasPara('admin'), 'cliente')} />}
+        {toast && <Toast msg={toast} />}
         {overlay}
       </div>
     );
@@ -142,6 +169,7 @@ export default function App() {
   const RoleIcon = role.icon;
   const screen = user.role === 'admin' ? view : user.role;
   const ir = (k, p) => {
+    if (k !== view) vistasAnteriores.current = [...vistasAnteriores.current.filter((x) => x !== view), view].slice(-10);
     setVistaParams(p || null); setView(k);
     try { sessionStorage.setItem('ot_vista', k); } catch { /* sin almacenamiento: no pasa nada */ }
   };
@@ -160,7 +188,7 @@ export default function App() {
           <BotonTema />
           <button className="axt-x" onClick={() => setMiClave(true)} title="Cambiar mi contraseña" aria-label="Cambiar mi contraseña"><KeyRound size={17} /></button>
           <button className="axt-x" onClick={() => abrirAyuda(guiasPara(user.role), user.role === 'admin' ? view : user.role)} title="Ayuda" aria-label="Ayuda"><HelpCircle size={17} /></button>
-          <button className="axt-x" onClick={() => { logout({ borrarDatos: true }); setUser(null); setDoor(null); }} title="Cerrar sesión" aria-label="Cerrar sesión"><LogOut size={17} /></button>
+          <button className="axt-x" onClick={() => { logout({ borrarDatos: true }); vistasAnteriores.current = []; setUser(null); setDoor(null); }} title="Cerrar sesión" aria-label="Cerrar sesión"><LogOut size={17} /></button>
         </div>
       </header>
 

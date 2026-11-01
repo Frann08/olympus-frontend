@@ -33,14 +33,106 @@ export const daysLabel = (d) => {
   return n < 0 ? `${Math.abs(n)} d vencido` : n === 0 ? 'vence hoy' : `en ${n} d`;
 };
 
-/* ---------- cerrar ventanas con Escape ---------- */
-export function useEscape(onClose) {
+/* ---------- cerrar ventanas con Escape o con "Atrás" del celular ----------
+   Cada ventana abierta (panel, ficha, modal) suma una entrada al historial del navegador:
+   el botón o gesto "Atrás" del celular cierra la de arriba en vez de salir de Olympus.
+   Sin ventanas abiertas, "Atrás" va a la pestaña anterior (useAtrasNivel) y, al final,
+   pide un segundo "Atrás" para salir. Escape cierra solo la ventana de arriba. */
+const ventanas = []; // { cerrar: ref, vivo, enHistoria }
+const niveles = []; // funciones que devuelven true si manejaron el "Atrás" (pestaña anterior, etc.)
+let base = null; // el de la app (pestañas de Administración, volver al portal): se prueba al final
+let ignorar = 0; // "popstate" que provocamos nosotros al sacar entradas
+let porSacar = 0; // entradas a sacar del historial (se juntan en una sola vuelta)
+const enCola = []; // ventanas que esperan que termine de sacarse una entrada para sumar la suya
+let guardia = false; // entrada extra para que el primer "Atrás" sin ventanas no salga de Olympus
+let escuchando = false;
+
+const empujar = (v) => {
+  if (ignorar || porSacar) { enCola.push(v); return; }
+  try { window.history.pushState({ ot: 1 }, ''); v.enHistoria = true; } catch { /* sin historial */ }
+};
+const armarGuardia = () => {
+  if (guardia || !(base || niveles.length) || ventanas.length || ignorar || porSacar) return;
+  try { window.history.pushState({ ot: 'g' }, ''); guardia = true; } catch { /* sin historial */ }
+};
+function escuchar() {
+  if (escuchando) return;
+  escuchando = true;
+  window.addEventListener('popstate', () => {
+    if (ignorar) {
+      ignorar--;
+      if (!ignorar) enCola.splice(0).forEach((v) => v.vivo && empujar(v));
+      return;
+    }
+    const v = ventanas[ventanas.length - 1];
+    if (v && v.enHistoria) {
+      v.enHistoria = false;
+      v.cerrar.current && v.cerrar.current();
+      // si la ventana no se cerró (p. ej. está enviando algo), vuelve a ocupar su lugar
+      setTimeout(() => { if (v.vivo && !v.enHistoria) empujar(v); }, 0);
+      return;
+    }
+    guardia = false;
+    const fns = [...niveles].reverse().concat(base ? [base] : []);
+    for (const f of fns) {
+      if (f.current && f.current()) { armarGuardia(); return; }
+    }
+    // ya no hay nada para volver: el próximo "Atrás" sale (se vuelve a armar al tocar la pantalla)
+    window.dispatchEvent(new CustomEvent('ot:atras-salir'));
+  });
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const v = ventanas[ventanas.length - 1];
+    if (v && v.cerrar.current) v.cerrar.current();
+  });
+  // la guardia se arma con un toque del usuario (Chrome ignora entradas agregadas sin tocar nada)
+  window.addEventListener('pointerdown', armarGuardia, true);
+}
+
+export function useEscape(onClose, activo = true) {
   const ref = React.useRef(onClose);
   ref.current = onClose;
   useEffect(() => {
-    const k = (e) => { if (e.key === 'Escape') ref.current && ref.current(); };
-    window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
+    if (!activo) return undefined;
+    escuchar();
+    const v = { cerrar: ref, vivo: true, enHistoria: false };
+    ventanas.push(v);
+    empujar(v);
+    return () => {
+      v.vivo = false;
+      const i = ventanas.indexOf(v);
+      if (i >= 0) ventanas.splice(i, 1);
+      const j = enCola.indexOf(v);
+      if (j >= 0) enCola.splice(j, 1);
+      if (!v.enHistoria) return; // ya se sacó con "Atrás"
+      v.enHistoria = false;
+      // se cerró con la X o Escape: sacar su entrada del historial (todas las que se cierren juntas, de una vez)
+      if (!porSacar) queueMicrotask(() => { const n = porSacar; porSacar = 0; ignorar++; window.history.go(-n); });
+      porSacar++;
+    };
+  }, [activo]);
+}
+
+// El de toda la app: se usa cuando ninguna pantalla manejó el "Atrás". Sin él no se frena la salida.
+export function useAtrasBase(fn, activo = true) {
+  const ref = React.useRef(fn);
+  ref.current = fn;
+  useEffect(() => {
+    if (!activo) return undefined;
+    escuchar();
+    base = ref;
+    return () => { if (base === ref) base = null; };
+  }, [activo]);
+}
+
+// Pantallas con pestañas: "Atrás" vuelve a la pestaña anterior. fn devuelve true si hizo algo.
+export function useAtrasNivel(fn) {
+  const ref = React.useRef(fn);
+  ref.current = fn;
+  useEffect(() => {
+    escuchar();
+    niveles.push(ref);
+    return () => { const i = niveles.indexOf(ref); if (i >= 0) niveles.splice(i, 1); };
   }, []);
 }
 
