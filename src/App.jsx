@@ -12,6 +12,7 @@ const Grabados = lazy(() => import('./Grabados.jsx'));
 const Traza = lazy(() => import('./Traza.jsx'));
 const Cliente = lazy(() => import('./Cliente.jsx'));
 const Precintos = lazy(() => import('./Precintos.jsx'));
+const VistaCliente = lazy(() => import('./VistaCliente.jsx'));
 import Portal, { SIDE_NAME } from './Portal.jsx';
 import Ayuda, { HojaCliente, guiasPara } from './Ayuda.jsx';
 import { BotonTema } from './tema.jsx';
@@ -25,7 +26,7 @@ const ROLES = {
 };
 
 // Páginas de Administración (también puede entrar a las pantallas de operador)
-const ADMIN_VIEWS = [['admin', 'Activos'], ['empresas', 'Empresas'], ['usuarios', 'Usuarios'], ['precintos', 'Precintos'], ['traza', 'Trazabilidad'], ['grabados', 'Tags grabados'], ['respaldo', 'Respaldo']];
+const ADMIN_VIEWS = [['admin', 'Activos'], ['empresas', 'Empresas'], ['usuarios', 'Usuarios'], ['precintos', 'Precintos'], ['traza', 'Trazabilidad'], ['vistacliente', 'Vista cliente'], ['grabados', 'Tags grabados'], ['respaldo', 'Respaldo']];
 
 // Al recargar, Administración vuelve a la página en la que estaba
 function vistaGuardada() {
@@ -214,6 +215,7 @@ export default function App() {
           {screen === 'precintos' && <Precintos toast={showToast} />}
           {screen === 'traza' && <Traza toast={showToast} />}
           {screen === 'cliente' && <Cliente toast={showToast} />}
+          {screen === 'vistacliente' && <VistaCliente toast={showToast} />}
           </Suspense>
         </Resguardo>
         {user.role !== 'admin' && !ROLES[screen] && <ErrorNote error="Tu usuario no tiene un lado asignado. Pedíselo a Administración." />}

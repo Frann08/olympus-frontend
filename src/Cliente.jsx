@@ -28,13 +28,14 @@ const astat = (certs) => {
   return s.includes('no_apto') ? 'no_apto' : s.includes('overdue') ? 'overdue' : s.includes('due') ? 'due' : s.length ? 'certified' : 'sin_cert';
 };
 
-export default function Cliente({ toast }) {
+// vista: { nombre } cuando Administración mira la pantalla de una empresa (no usa la copia sin conexión)
+export default function Cliente({ toast, vista = null }) {
   const user = getUser();
   const online = useOnline();
-  const [bundle, setBundle] = useState(() => loadBundle());
-  const [loading, setLoading] = useState(!loadBundle());
+  const [bundle, setBundle] = useState(() => (vista ? null : loadBundle()));
+  const [loading, setLoading] = useState(vista ? true : !loadBundle());
   const [error, setError] = useState(null);
-  const [updatedAt, setUpdatedAt] = useState(bundleAt());
+  const [updatedAt, setUpdatedAt] = useState(vista ? null : bundleAt());
   const [modalAsset, setModalAsset] = useState(null);
   const [q, setQ] = useState('');
   const [fEstado, setFEstado] = useState('all');
@@ -50,7 +51,7 @@ export default function Cliente({ toast }) {
     api('/api/me/bundle')
       .then((data) => {
         if (!live) return;
-        saveBundle(data);
+        if (!vista) saveBundle(data);
         setBundle(data);
         setUpdatedAt(Date.now());
         setError(null);
@@ -108,8 +109,8 @@ export default function Cliente({ toast }) {
             <Building2 size={20} color="var(--t-D9B44A)" />
           </div>
           <div>
-            <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-6A7681)' }}>SESIÓN DE CLIENTE</div>
-            <div style={{ font: '700 18px "Oswald", sans-serif', color: 'var(--t-EAF0F3)' }}>{user?.name || 'Cliente'}</div>
+            <div style={{ font: '400 11px "IBM Plex Mono", monospace', color: 'var(--t-6A7681)' }}>{vista ? 'VISTA DEL CLIENTE' : 'SESIÓN DE CLIENTE'}</div>
+            <div style={{ font: '700 18px "Oswald", sans-serif', color: 'var(--t-EAF0F3)' }}>{vista ? vista.nombre : (user?.name || 'Cliente')}</div>
           </div>
         </div>
         <div className={'net-pill ' + (online ? 'on' : 'off')}>
