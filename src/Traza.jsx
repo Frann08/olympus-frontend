@@ -111,8 +111,11 @@ function NuevaEntrada({ toast, visible, retomar, onRetomada, onRegistro }) {
     } catch (e) { toast('No se pudo quitar: ' + e.message); }
   }
   const [confirmando, setConfirmando] = useState(false);
+  // antes de confirmar, el operador marca que revisó la lista; si la lista cambia, se vuelve a pedir
+  const [revisado, setRevisado] = useState(false);
+  useEffect(() => { setRevisado(false); }, [items.length, entradaId]);
   async function confirmar() {
-    if (!items.length || !entradaId || confirmando) return;
+    if (!items.length || !entradaId || confirmando || !revisado) return;
     setConfirmando(true);
     try {
       const e = await api(`/api/entradas/${entradaId}/confirm`, { method: 'POST' });
@@ -138,6 +141,7 @@ function NuevaEntrada({ toast, visible, retomar, onRetomada, onRegistro }) {
 
   const ALERTA = { overdue: 'Cert vencido', due: 'Por vencer', no_apto: 'No apto', sin_cert: 'Sin certificados' };
   const flags = items.filter((i) => i.status && i.status !== 'certified').length;
+  const sinPieza = items.filter((i) => !i.asset_id).length;
 
   return (
     <div className="traza-grid">
@@ -215,7 +219,19 @@ function NuevaEntrada({ toast, visible, retomar, onRetomada, onRegistro }) {
           )}
 
           <div style={{ padding: 14, borderTop: '1px solid var(--b-2A2732)' }}>
-            <button className="axt-btn primary" style={{ width: '100%', opacity: items.length ? 1 : 0.5 }} onClick={confirmar} disabled={!items.length || confirmando}>
+            {items.length > 0 && (
+              <label className={'ent-check' + (revisado ? ' on' : '')}>
+                <input type="checkbox" checked={revisado} onChange={(e) => setRevisado(e.target.checked)} />
+                <span>
+                  Revisé la lista: {items.length === 1 ? 'el ítem es el correcto' : `los ${items.length} ítems son los correctos`}.
+                  {(sinPieza > 0 || flags > 0) && (
+                    <em> Ojo: {[sinPieza > 0 && `${sinPieza} sin pieza asociada`, flags > 0 && `${flags} con alerta`].filter(Boolean).join(' y ')}.</em>
+                  )}
+                </span>
+              </label>
+            )}
+            <button className="axt-btn primary" style={{ width: '100%', opacity: items.length && revisado ? 1 : 0.5 }} onClick={confirmar} disabled={!items.length || confirmando || !revisado}
+              title={items.length && !revisado ? 'Primero marcá que revisaste la lista' : undefined}>
               <PackageCheck size={16} /> Confirmar entrada
             </button>
             {entradaId && (descartar ? (

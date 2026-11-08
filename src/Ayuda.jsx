@@ -412,7 +412,7 @@ function GuiaTraza() {
       </Sec>
 
       <Sec id="confirmar" n="6" titulo="Confirmar la entrada">
-        <p>Cuando la lista está bien, tocá <b>Confirmar entrada</b>. Queda guardada en el <b>Registro de entradas</b> con el N.º de entrada, la base y todas las piezas, y la pantalla queda lista para la siguiente.</p>
+        <p>Cuando la lista está bien, marcá <b>Revisé la lista: los ítems son los correctos</b> y tocá <b>Confirmar entrada</b> (sin la marca, el botón no se habilita; si después se lee o se quita una pieza, hay que volver a marcarla). Queda guardada en el <b>Registro de entradas</b> con el N.º de entrada, la base y todas las piezas, y la pantalla queda lista para la siguiente.</p>
       </Sec>
 
       <Sec id="registro" n="7" titulo="Registro de entradas" img={{ src: 't-registro', alt: 'Registro de entradas con filtros por cliente y base', cap: 'Registro de entradas filtrado por cliente.' }}>
