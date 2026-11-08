@@ -937,3 +937,9 @@ a.axt-btn { text-decoration: none; }
 .ser-diag-caja { border: 1px dashed var(--border); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
 .ser-diag-lista { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; font: 400 11.5px "IBM Plex Mono", monospace; color: var(--t-9AA6B1); display: flex; flex-direction: column; gap: 3px; }
 .ser-diag-lista b { color: var(--t-7A8792); font-weight: 500; }
+
+/* Vista cliente (Administración) */
+.vc-barra { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; padding: 14px 16px; margin-bottom: 18px; border-color: var(--b-4A3E1E); background: var(--s-1B1609); }
+.vc-sel { flex: 1 1 260px; margin: 0; }
+.vc-nota { flex: 1 1 100%; margin: 0; font: 400 12px "IBM Plex Sans"; color: var(--t-8B98A5); }
+.vc-vacio { padding: 40px 16px; text-align: center; font: 500 13px "IBM Plex Sans"; color: var(--t-7A8792); }

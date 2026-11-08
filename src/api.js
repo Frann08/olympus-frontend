@@ -82,6 +82,10 @@ function sesionVencida() {
   if (tenia) window.dispatchEvent(new CustomEvent('ot:sesion-vencida'));
 }
 
+// Administración mirando la pantalla de un cliente (pestaña "Vista cliente"): id de la empresa
+let verCliente = null;
+export const setVerCliente = (id) => { verCliente = id ? String(id) : null; };
+
 export async function api(path, options = {}) {
   let res;
   try {
@@ -90,6 +94,7 @@ export async function api(path, options = {}) {
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(verCliente && path.startsWith('/api/me/') ? { 'X-Ver-Cliente': verCliente } : {}),
         ...(options.headers || {}),
       },
     });
